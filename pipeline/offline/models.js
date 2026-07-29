@@ -130,7 +130,7 @@ function propSurface(size, seed, kind) {
 
 const BUILDERS = {
   cargo_crate(seed) {
-    const m = new MeshBuilder({ uvScale: 0.5 });
+    const m = new MeshBuilder({ uvScale: 0.5, chamfer: 0.014 });
     const s = 0.8;
     const h = 0.78;
 
@@ -175,15 +175,15 @@ const BUILDERS = {
   },
 
   canister(seed) {
-    const m = new MeshBuilder({ uvScale: 0.45 });
+    const m = new MeshBuilder({ uvScale: 0.45, chamfer: 0.012 });
     const r = 0.22;
 
-    m.cylinder({ radiusTop: r, radiusBottom: r, height: 0.98, segments: 12, pos: [0, 0.56, 0], colour: C.olive });
-    m.cylinder({ radiusTop: r * 1.1, radiusBottom: r * 1.16, height: 0.09, segments: 12, pos: [0, 0.045, 0], colour: C.mid });
-    m.cylinder({ radiusTop: r * 0.72, radiusBottom: r * 1.02, height: 0.12, segments: 12, pos: [0, 1.11, 0], colour: C.mid });
+    m.cylinder({ radiusTop: r, radiusBottom: r, height: 0.98, segments: 18, pos: [0, 0.56, 0], colour: C.olive });
+    m.cylinder({ radiusTop: r * 1.1, radiusBottom: r * 1.16, height: 0.09, segments: 18, pos: [0, 0.045, 0], colour: C.mid });
+    m.cylinder({ radiusTop: r * 0.72, radiusBottom: r * 1.02, height: 0.12, segments: 18, pos: [0, 1.11, 0], colour: C.mid });
 
     for (const y of [0.28, 0.62, 0.92]) {
-      m.cylinder({ radiusTop: r * 1.07, radiusBottom: r * 1.07, height: 0.05, segments: 12, pos: [0, y, 0], colour: C.dark, capTop: false, capBottom: false });
+      m.cylinder({ radiusTop: r * 1.07, radiusBottom: r * 1.07, height: 0.05, segments: 18, pos: [0, y, 0], colour: C.dark, capTop: false, capBottom: false });
     }
 
     // Valve stack and gauge.
@@ -202,7 +202,7 @@ const BUILDERS = {
   },
 
   wall_console(seed) {
-    const m = new MeshBuilder({ uvScale: 0.5 });
+    const m = new MeshBuilder({ uvScale: 0.5, chamfer: 0.016 });
 
     m.box({ size: [0.96, 1.42, 0.34], pos: [0, 0.71, 0.17], colour: C.body });
     m.box({ size: [1.06, 0.1, 0.42], pos: [0, 1.47, 0.19], colour: C.mid });
@@ -236,7 +236,7 @@ const BUILDERS = {
   },
 
   pipe_cluster(seed) {
-    const m = new MeshBuilder({ uvScale: 0.55 });
+    const m = new MeshBuilder({ uvScale: 0.55, chamfer: 0.014 });
     const random = rng(seed + 7);
     const pipes = [
       { x: -0.3, r: 0.11, colour: C.mid },
@@ -250,7 +250,7 @@ const BUILDERS = {
         radiusTop: pipe.r,
         radiusBottom: pipe.r,
         height: 2.0,
-        segments: 9,
+        segments: 14,
         pos: [pipe.x, 1.0, 0.22],
         colour: pipe.colour,
         capTop: false,
@@ -262,7 +262,7 @@ const BUILDERS = {
           radiusTop: pipe.r * 1.28,
           radiusBottom: pipe.r * 1.28,
           height: 0.07,
-          segments: 9,
+          segments: 14,
           pos: [pipe.x, y, 0.22],
           colour: C.mid,
           capTop: false,
@@ -291,7 +291,7 @@ const BUILDERS = {
   },
 
   floor_debris(seed) {
-    const m = new MeshBuilder({ uvScale: 0.6 });
+    const m = new MeshBuilder({ uvScale: 0.6, chamfer: 0.009 });
     const random = rng(seed + 3);
 
     // Buckled deck panels heaped up.
@@ -327,7 +327,7 @@ const BUILDERS = {
   },
 
   power_switch(seed) {
-    const m = new MeshBuilder({ uvScale: 0.32 });
+    const m = new MeshBuilder({ uvScale: 0.32, chamfer: 0.012 });
 
     // Mounting backplate and armoured body.
     m.box({ size: [0.66, 1.36, 0.06], pos: [0, 0.68, 0.03], colour: C.mid });
@@ -366,7 +366,7 @@ const BUILDERS = {
   },
 
   airlock_door(seed) {
-    const m = new MeshBuilder({ uvScale: 0.7 });
+    const m = new MeshBuilder({ uvScale: 0.7, chamfer: 0.018 });
     const w = 2.34;
     const h = 2.4;
 
@@ -407,7 +407,7 @@ const BUILDERS = {
 
   scanner(seed) {
     // Authored pointing down -Z with +Y up, which is how the viewmodel holds it.
-    const m = new MeshBuilder({ uvScale: 0.12 });
+    const m = new MeshBuilder({ uvScale: 0.12, chamfer: 0.004 });
 
     // Main body and rubberised grip.
     m.box({ size: [0.1, 0.062, 0.19], pos: [0, 0, -0.01], colour: C.body });

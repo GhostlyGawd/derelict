@@ -9,13 +9,6 @@ import lamejs from '@breezystack/lamejs';
  * audible gap at the loop point.
  */
 
-export function pcm16ToFloat(buffer) {
-  const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-  const count = Math.floor(buffer.byteLength / 2);
-  const out = new Float32Array(count);
-  for (let i = 0; i < count; i++) out[i] = view.getInt16(i * 2, true) / 32768;
-  return out;
-}
 
 export function floatToPcm16(samples) {
   const out = new Int16Array(samples.length);
@@ -70,8 +63,7 @@ export function edgeFade(samples, sampleRate, seconds = 0.004) {
 
 /**
  * Builds a seamless loop of `seconds` by crossfading the tail back over the
- * head. Also used to stretch a provider clip that came back shorter than the
- * requested loop length.
+ * head, tiling the source first if it is shorter than the requested loop.
  */
 export function makeLoop(samples, sampleRate, seconds, crossfadeSeconds = 1.5) {
   const target = Math.floor(seconds * sampleRate);
