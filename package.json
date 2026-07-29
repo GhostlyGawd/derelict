@@ -13,6 +13,7 @@
     "pipeline:models": "node pipeline/run.js models",
     "pipeline:audio": "node pipeline/run.js audio",
     "pipeline:manifest": "node pipeline/run.js manifest",
+    "specimen": "node tools/specimen.mjs",
     "test": "npm run test:chain && npm run test:deadend && npm run test:smoke && npm run test:walkthrough && npm run test:mobile",
     "test:chain": "node tools/chain.mjs",
     "test:deadend": "node tools/deadend.mjs",
