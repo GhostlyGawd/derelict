@@ -1,10 +1,11 @@
 
 # DERELICT — Spec
 
-**How to read this document.** Phase 2 (v1.1) is the active spec and is still a
-draft. Amendment 1 and the v1.0 sections below it are ratified and shipped.
-Where they disagree, the later section wins. Nothing here is a suggestion — if
-we change something during a build, we change this document first.
+**How to read this document.** Phase 3 (v1.2) is the active spec and is still a
+draft. Phase 2, Amendment 1 and the v1.0 sections below them are ratified and
+shipped. Where any two disagree, the later section wins. Nothing here is a
+suggestion — if we change something during a build, we change this document
+first.
 
 ---
 
@@ -36,10 +37,175 @@ to tri budget, crunch textures to 256 px).
 
 ---
 
+# Phase 3 — v1.2
+
+**Status: DRAFT.** Merging this section is the ratification, as with phase 2.
+From the interview of 29 July 2026. On the same terms as v1 and phase 2: nothing
+here is a suggestion, and if we change something during the build we change this
+document first.
+
+Supersedes the "no text" clause of the v1 §8 style bible, narrowly — see 3.6.
+Everything in v1 and phase 2 not named here still stands, including Amendment 1.
+
+## 3.1 The one-liner
+
+The ship starts telling you what it is. Not what happened to it and not who you
+are — just that this is a real vessel with named compartments and labelled
+machinery, rather than five well-lit boxes.
+
+## 3.2 What phase 3 demonstrates
+
+That the pipeline can generate **letterforms**, and that generated type survives
+the retro treatment.
+
+v1 proved a generated asset set assembles into a finished game. Phase 2 proved
+the same foundation carries mechanics. Every asset so far has been abstract —
+noise, wear, geometry — and abstract is forgiving. Type is not: it is either
+legible or it is a smear, and 256 px textures under nearest-neighbour filtering
+at a 0.5–0.66× internal render scale are the worst conditions to attempt it in.
+
+There is also no font to reach for. Amendment 1's rule is that the generators
+produce everything, and a shipped typeface is a third-party asset. So the
+letterforms have to be **drawn in code** — which is the whole exercise, and the
+sharpest test yet of "an AI wrote the code that draws the rivets" as a claim.
+
+Every tradeoff during the build gets settled against that.
+
+## 3.3 What gets built
+
+**A glyph atlas, as a pipeline asset.** Parametric letterforms drawn at build
+time into one bitmap sheet, crunched and nearest-filtered like every other
+texture, listed in the manifest like every other asset. Uppercase, digits and a
+few marks — enough for compartment labels and placards, and nothing more.
+
+**Labels composed in engine from that atlas.** Each marking is quads textured
+from the sheet, placed from `layout.js` the way the conduit strips already are.
+One asset serves any number of markings, and rewording a sign costs nothing.
+Rejected: a baked decal texture per sign, which gives per-sign chipping for free
+but grows the manifest with every label and makes copy changes an asset
+regeneration.
+
+**Where markings go, and what they say:**
+
+| Marking | Placement |
+|---|---|
+| **Compartment label** | One per space, on the bulkhead beside the opening you enter through. Names the space and nothing else. |
+| **Fixture placard** | On the two switches, the airlock, and the two cradles — the fixtures that would carry one in reality. |
+
+**Compartment labels name spaces; they never direct traffic.** No arrows, no
+"this way to", nothing pointing at an objective. A label tells you the room you
+are walking into, which is what real signage does; it does not tell you which
+room to power first or where a cell is. The no-hints bar was proven without any
+signage at all and phase 3 must not quietly convert it into a signposted level.
+
+**Suggestive small print, baked into the tiling surfaces.** Text-shaped stencil
+wear at a scale that reads as markings from across the room and never resolves
+into words. This is what stops the readable labels looking like the only writing
+on a ship that otherwise has none. It goes into the existing wall and trim
+generators, not into new assets.
+
+**The airlock readout stops contradicting itself.** It currently draws a *filled*
+cell socket in red, because the whole readout stays red until 2/2. Red means
+"not done" everywhere else on the ship — switch indicators, cradle lamps — so a
+cell you have successfully seated lighting up red is the one place the colour
+language argues with itself. Filled pips go green; the `n/2` count stays red
+until the airlock is live, so the count still says "this door is dead" while the
+pips say "this one is in." Found by reading, not by playing, and it belongs to
+this phase because this phase is about the ship communicating clearly.
+
+**Unchanged:** the five spaces, every mechanic, the route, the lighting states,
+the HUD, the viewmodel, the retro rendering treatment, the asset budgets.
+
+## 3.4 Scope guardrails
+
+Still permanently out, unchanged: **combat, enemies, saving, settings menus,
+procedural generation, additional levels or rooms.**
+
+New for this phase, and permanent: **no narrative.** No logs, no dead crew, no
+incident to piece together, no reason you are here. The ship names its own parts
+and warns about its own hazards. That is the whole of what it says. If a future
+phase wants a story it changes this document first.
+
+**No new models and no new sounds.** One new asset, and it is the atlas.
+
+## 3.5 Definition of done
+
+| | Verified by |
+|---|---|
+| **Every space is named, once, correctly.** One label per space, each naming its own space, none duplicated or contradicting `SPACES`. | Claude — a check over the layout tables, run in CI |
+| **Labels are big enough to read where they matter.** From the position a player first sees it, at the shipped internal render scale, a compartment label's cap height clears a pixel floor. | Claude — a harness that computes on-screen cap height per label. Big enough is necessary, not sufficient |
+| **Labels are actually readable.** A player can read a compartment label from the doorway, on a phone, without stopping to squint. | **The owner.** Claude can measure pixels and cannot judge whether type reads, and must not claim to |
+| **Still generated end to end.** The atlas comes from the pipeline, and a clean checkout reproduces it byte-for-byte. | The existing determinism gate |
+| **Nothing regresses.** All five harnesses green, the six-step chain still solvable, the deployment still live. | CI |
+
+The second and third bars are deliberately separate. A pixel floor catches the
+failure where a label silently becomes unreadable because the render scale, the
+texture crunch or the placement distance changed — which is exactly the kind of
+regression nobody notices until a phone screenshot looks wrong. It cannot tell
+you whether the letterforms are any good.
+
+## 3.6 Amendment to the v1 §8 style bible
+
+The bible currently ends "No text, no watermarks, no people." That clause was
+right when every surface was tileable: text baked into a tiling texture repeats
+down a fourteen-metre wall. It now reads:
+
+> No legible text, no watermarks, no people.
+
+applied to **textures and model concepts only**. Illegible stencil-shaped wear is
+allowed and wanted on those. The glyph atlas is a new asset class and carries its
+own line, since it is nothing but text:
+
+> Uppercase industrial stencil lettering, the kind sprayed onto bulkheads and
+> equipment plates. Heavy, condensed, slightly irregular. Legible at small size
+> on a low-resolution screen.
+
+## 3.7 The box
+
+One new asset. One label per space, one placard per fixture that warrants one.
+Zero new models, zero new sounds, zero new rooms, zero new interactive types.
+
+If the phase wants a second new asset, that is a signal to change this document
+first — not to add it.
+
+## 3.8 Build order
+
+1. **Glyph generator** — letterforms drawn in code, the atlas baked and crunched,
+   proven legible on its own before a single label is placed. If type at this
+   size cannot be made to read, that is discovered here and the phase is
+   rethought rather than continued.
+2. **Placement** — labels and placards declared in `layout.js`, composed in
+   engine, plus the cap-height harness.
+3. **Suggestive small print** — text-shaped wear into the existing wall and trim
+   generators.
+4. **The readout fix, integration and ship.**
+
+## 3.9 Settled during the interview
+
+Recorded so the reasoning is not lost:
+
+- **Authenticity, not narrative.** Rejected: the ship's history in fragments
+  (the option I recommended), the player's own identity, and both together. The
+  ambition is that the ship reads as a real place, which keeps the phase a
+  technical exercise about type rather than a writing exercise.
+- **Mixed legibility.** Key markings readable, dense small print suggestive.
+  Rejected: everything readable, which reads sparse because real bulkheads carry
+  more markings than anyone writes copy for; and everything illegible, which is
+  period-accurate but means nothing on the ship ever actually says anything.
+- **Atlas over decals over canvas.** Rejected: a generated decal per sign, and
+  in-engine canvas text like the HUD — the latter is cheapest and always legible
+  but renders sharper than the rest of the ship and would make the signage the
+  one thing the player sees that the pipeline did not produce.
+- **Named spaces, no arrows.** Rejected: pure flavour with no room names, which
+  is the least authentic option available; and full wayfinding, which is real
+  but removes exploration the first play is made of.
+
+---
+
 # Phase 2 — v1.1
 
-**Status: LOCKED.** Ratified 29 July 2026 by merging PR #12, following the
-interview of the same day. On the same terms as v1: nothing here is a
+**Status: SHIPPED.** Spec ratified 29 July 2026 by merging PR #12, following the
+interview of the same day; built and shipped the same day in PR #13. On the same terms as v1: nothing here is a
 suggestion, and if we change something during the build we change this document
 first.
 
