@@ -37,13 +37,41 @@ const read = () =>
       x: g.player.position.x,
       z: g.player.position.z,
       phase: g.phase,
+      clock: g.runTime,
       cells: g.cells,
+      carrying: g.carry.held ? g.carry.held.id : null,
+      released: g.carryables.cradles.filter((c) => c.released).map((c) => c.id),
       prompt: document.getElementById('prompt').textContent,
     };
   });
 
 /** Mouse look is fair game; position is not. */
 const face = (yaw) => page.evaluate((y) => void (window.__derelict.player.yaw = y), yaw);
+
+/** Aims at a world point the way a player turns to look at a thing. */
+async function faceAt(x, z) {
+  const now = await read();
+  await face(Math.atan2(-(x - now.x), -(z - now.z)));
+  await page.waitForTimeout(180);
+}
+
+/**
+ * Looks at a fixture and presses E, insisting the prompt appeared first. The
+ * prompt is the assertion that matters: it means the crosshair actually found
+ * the thing from where a walked player ends up standing, which is the only
+ * check that the fixture is mounted at a height a human can aim at.
+ */
+async function interactWith(name, x, z, expected) {
+  await faceAt(x, z);
+  const before = await read();
+  if (!before.prompt) {
+    throw new Error(`stood at (${before.x.toFixed(2)}, ${before.z.toFixed(2)}) facing ${name}, but no prompt appeared`);
+  }
+  if (expected && !before.prompt.includes(expected)) {
+    throw new Error(`expected the ${name} prompt to offer "${expected}", got "${before.prompt}"`);
+  }
+  await page.keyboard.press('KeyE');
+}
 
 /**
  * Walks to a point by holding W and re-aiming, the way a player would.
@@ -53,10 +81,14 @@ async function walkTo(name, tx, tz, { arrive = 0.75, timeoutMs = 45000, expectBl
   const start = Date.now();
   let travelled = 0;
   let last = await read();
-  // Stalling is measured in wall-clock, not in poll count: each poll costs a
-  // couple of round-trips to the page, so a slower browser makes "26 polls"
-  // mean something completely different from one run to the next.
-  let lastProgressAt = Date.now();
+  // Stalling is measured against the game clock, which advances with dt, and
+  // never against the wall clock. Both of the obvious formulations are really
+  // measurements of the renderer: distance-per-poll is a speed, and "no
+  // progress in N wall-clock seconds" fires when the host hitches even though
+  // the player is walking normally. "Covered less than 25 cm while the game
+  // advanced 2.5 s" is a fact about the level.
+  let lastProgressClock = last.clock;
+  let sinceProgress = 0;
 
   await page.keyboard.down('KeyW');
   try {
@@ -78,8 +110,12 @@ async function walkTo(name, tx, tz, { arrive = 0.75, timeoutMs = 45000, expectBl
       // yaw 0 looks down -Z, so forward is (-sin, -cos).
       await face(Math.atan2(-dx, -dz));
 
-      if (step >= 0.012) lastProgressAt = Date.now();
-      const stalled = Date.now() - lastProgressAt > 2500;
+      sinceProgress += step;
+      if (sinceProgress >= 0.25) {
+        sinceProgress = 0;
+        lastProgressClock = now.clock;
+      }
+      const stalled = now.clock - lastProgressClock > 2.5;
       const timedOut = Date.now() - start > timeoutMs;
 
       // Failing to arrive is the whole assertion for a leg that expects a wall,
@@ -108,8 +144,14 @@ async function walkTo(name, tx, tz, { arrive = 0.75, timeoutMs = 45000, expectBl
   }
 }
 
-/** Legs of the route, in order. Names are what a failure will report. */
-const ROUTE = [
+/**
+ * Legs of the route, in order. Names are what a failure will report.
+ *
+ * Phase 2 makes this a round trip rather than a sweep: each cell has to be
+ * carried back to the airlock, so the Bay is crossed four times and both
+ * corridors are walked in both directions.
+ */
+const TO_SWITCH_1 = [
   ['bay centre', 0, 0.5],
   ['corridor A door', -6.2, 0],
   ['corridor A', -13, 0],
@@ -118,26 +160,52 @@ const ROUTE = [
   ['switch 1', -31.9, -3.4, { arrive: 0.5 }],
 ];
 
-const RETURN_AND_EAST = [
+const TO_CRADLE_1 = [
+  ['hold, mid floor', -29.0, -5.6],
+  ['cradle 1', -29.5, -7.55, { arrive: 0.55 }],
+];
+
+const HOME_WITH_CELL_1 = [
+  ['hold, centre', -24.0, -2.0],
   ['hold entrance', -20.5, 0],
   ['corridor A', -13, 0],
+  ['bay centre', 0, 0],
+  ['socket 1', 1.72, -5.9, { arrive: 0.5 }],
+];
+
+const TO_SWITCH_2 = [
   ['bay centre', 0, 0],
   ['corridor B door', 6.2, 0],
   // Straight down the centreline into the pile: this must stop the player,
   // which is what makes the blockage read as collapsed debris rather than as
   // a corridor that happens to be narrow.
   ['debris pile (expect blocked)', 16.5, 0, { expectBlocked: true, timeoutMs: 12000 }],
-  // Then the squeeze itself, aimed at the gap the way a player would after
-  // bumping into the pile once.
-  ['squeeze, along the south wall', 16.5, 0.7, { timeoutMs: 30000 }],
+  // Back off and line up on the gap, which is what a player does after walking
+  // into the pile — rather than grinding along its face at a shallow angle.
+  // z = 0.45 is the middle of the passable window: the pile ends at z = 0.05
+  // and the south wall starts at 1.1, so a 0.68 m-wide player fits anywhere in
+  // z ∈ [0.39, 0.76]. Aiming at either edge of that is how this leg was flaky.
+  ['back off the pile', 9.9, 0.45],
+  // Then the squeeze itself.
+  ['squeeze, along the south wall', 16.5, 0.45, { timeoutMs: 30000 }],
   ['annex entrance', 20.5, 0],
   ['switch 2', 31.9, 1.6, { arrive: 0.5 }],
 ];
 
-const SHORTCUT_HOME = [
+const TO_CRADLE_2 = [
+  ['annex, mid floor', 30.6, -4.6],
+  ['cradle 2', 31.2, -7.55, { arrive: 0.55 }],
+];
+
+const HOME_WITH_CELL_2 = [
+  ['annex, east floor', 30.0, 0],
   ['shortcut mouth', 20.5, 4.6],
   ['shortcut passage', 13, 4.6],
   ['bay, via hatch', 5.5, 4.6],
+  ['socket 2', 2.58, -5.9, { arrive: 0.5 }],
+];
+
+const INTO_THE_AIRLOCK = [
   ['airlock threshold', 0, -5.5],
   ['airlock chamber', 0, -9.5, { arrive: 1.2 }],
 ];
@@ -162,35 +230,95 @@ await page.click('#start');
 await page.waitForFunction(() => window.__derelict?.phase === 'playing', null, { timeout: 15000 });
 await page.waitForTimeout(1600);
 
+// ---- 1. Switch 1 -----------------------------------------------------------
 console.log('\n  Airlock Bay → Storage Hold');
-for (const l of ROUTE) await leg(l);
+for (const l of TO_SWITCH_1) await leg(l);
 
-let s = await read();
-if (!s.prompt) throw new Error('walked to switch 1 but no interact prompt appeared');
-await page.keyboard.press('KeyE');
+await interactWith('switch 1', -32.72, -3.4, 'Restore Power');
 await page.waitForTimeout(1500);
-s = await read();
-if (s.cells !== 1) throw new Error(`switch 1 did not register on foot (cells=${s.cells})`);
-console.log('  switch 1 flipped');
+let s = await read();
+if (!s.released.includes('cradle1')) throw new Error('switch 1 did not release cradle 1 on foot');
+if (s.cells !== 0) throw new Error(`switch 1 credited a cell on its own (cells=${s.cells})`);
+console.log('  switch 1 flipped, cradle 1 released');
 if (SHOTS) await page.screenshot({ path: path.join(OUT, 'w1-switch1.png') });
 
-console.log('\n  Storage Hold → Engine Annex, through the squeeze');
-for (const l of RETURN_AND_EAST) await leg(l);
+// ---- 2. Take cell 1 --------------------------------------------------------
+console.log('\n  Storage Hold → cradle 1');
+for (const l of TO_CRADLE_1) await leg(l);
 
+await interactWith('cradle 1', -29.5, -8.46, 'Take Power Cell');
+await page.waitForTimeout(400);
 s = await read();
-if (!s.prompt) throw new Error('walked to switch 2 but no interact prompt appeared');
+if (s.carrying !== 'cell1') throw new Error(`cell 1 did not come off the cradle (carrying ${s.carrying})`);
+console.log('  cell 1 in hand');
+if (SHOTS) await page.screenshot({ path: path.join(OUT, 'w2-cell1.png') });
+
+// ---- 3. Carry it home, testing set-down on the way -------------------------
+console.log('\n  Storage Hold → Airlock Bay, carrying cell 1');
+for (const l of HOME_WITH_CELL_1.slice(0, 3)) await leg(l);
+
+// Put it down mid-corridor and take it back: the drop lands at the player's
+// feet, so this is the only check that a set-down cell can still be aimed at.
 await page.keyboard.press('KeyE');
+await page.waitForTimeout(400);
+s = await read();
+if (s.carrying !== null) throw new Error('pressing interact on nothing did not set the cell down');
+if (!s.prompt?.includes('Take Power Cell')) {
+  throw new Error(`a cell set down at the player's feet offered no prompt (got "${s.prompt}")`);
+}
+await page.keyboard.press('KeyE');
+await page.waitForTimeout(400);
+s = await read();
+if (s.carrying !== 'cell1') throw new Error(`could not pick a set-down cell back up (carrying ${s.carrying})`);
+console.log('  set down and picked back up in corridor A');
+
+for (const l of HOME_WITH_CELL_1.slice(3)) await leg(l);
+
+await interactWith('socket 1', 1.72, -6.7, 'Seat Power Cell');
+await page.waitForTimeout(1500);
+s = await read();
+if (s.cells !== 1) throw new Error(`seating cell 1 did not read 1/2 (cells=${s.cells})`);
+if (s.released.includes('cradle2')) throw new Error('the Bay coming live released cradle 2 on its own');
+console.log('  cell 1 seated — 1/2, Bay live');
+if (SHOTS) await page.screenshot({ path: path.join(OUT, 'w3-seated1.png') });
+
+// ---- 4. Switch 2 -----------------------------------------------------------
+console.log('\n  Airlock Bay → Engine Annex, through the squeeze');
+for (const l of TO_SWITCH_2) await leg(l);
+
+await interactWith('switch 2', 32.72, 1.6, 'Restore Power');
 await page.waitForTimeout(2600);
 s = await read();
-if (s.cells !== 2) throw new Error(`switch 2 did not register on foot (cells=${s.cells})`);
-console.log('  switch 2 flipped, airlock cycling');
-if (SHOTS) await page.screenshot({ path: path.join(OUT, 'w2-switch2.png') });
+if (!s.released.includes('cradle2')) throw new Error('switch 2 plus a live Bay did not release cradle 2');
+console.log('  switch 2 flipped, cradle 2 released, hatch cycling');
+if (SHOTS) await page.screenshot({ path: path.join(OUT, 'w4-switch2.png') });
 
-console.log('\n  Engine Annex → Airlock, via the shortcut hatch');
-for (const l of SHORTCUT_HOME) await leg(l);
+// ---- 5. Take cell 2 --------------------------------------------------------
+console.log('\n  Engine Annex → cradle 2');
+for (const l of TO_CRADLE_2) await leg(l);
+
+await interactWith('cradle 2', 31.2, -8.46, 'Take Power Cell');
+await page.waitForTimeout(400);
+s = await read();
+if (s.carrying !== 'cell2') throw new Error(`cell 2 did not come off the cradle (carrying ${s.carrying})`);
+console.log('  cell 2 in hand');
+
+// ---- 6. Home via the shortcut ----------------------------------------------
+console.log('\n  Engine Annex → Airlock Bay, via the shortcut hatch');
+for (const l of HOME_WITH_CELL_2) await leg(l);
+
+await interactWith('socket 2', 2.58, -6.7, 'Seat Power Cell');
+await page.waitForTimeout(2600);
+s = await read();
+if (s.cells !== 2) throw new Error(`seating cell 2 did not read 2/2 (cells=${s.cells})`);
+console.log('  cell 2 seated — 2/2, airlock cycling');
+if (SHOTS) await page.screenshot({ path: path.join(OUT, 'w5-seated2.png') });
+
+console.log('\n  Airlock Bay → out');
+for (const l of INTO_THE_AIRLOCK) await leg(l);
 
 await page.waitForFunction(() => window.__derelict?.phase === 'ended', null, { timeout: 20000 });
-if (SHOTS) await page.screenshot({ path: path.join(OUT, 'w3-end.png') });
+if (SHOTS) await page.screenshot({ path: path.join(OUT, 'w6-end.png') });
 
 const runTime = await page.evaluate(() => window.__derelict.runTime);
 console.log(

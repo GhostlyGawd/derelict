@@ -73,6 +73,36 @@ const BUILDERS = {
     return g;
   },
 
+  power_cell() {
+    const g = new THREE.Group();
+    g.add(meshAt(new THREE.BoxGeometry(0.26, 0.34, 0.26), mat(GREY), 0, 0.17, 0));
+    g.add(meshAt(new THREE.BoxGeometry(0.31, 0.07, 0.31), mat(DARK), 0, 0.035, 0));
+    g.add(meshAt(new THREE.BoxGeometry(0.31, 0.07, 0.31), mat(DARK), 0, 0.305, 0));
+    g.add(meshAt(new THREE.BoxGeometry(0.15, 0.11, 0.03), mat(DARK), 0, 0.19, 0.14));
+    g.add(meshAt(new THREE.BoxGeometry(0.07, 0.05, 0.07), mat(DARK), 0, 0.37, 0));
+    return g;
+  },
+
+  // The shelf top lands on CELL_MOUNT.y, so the cell it holds straddles the
+  // player's eye line and can be aimed at from any distance.
+  cell_cradle() {
+    const g = new THREE.Group();
+    g.add(meshAt(new THREE.BoxGeometry(0.66, 1.35, 0.36), mat(GREY), 0, 0.675, 0.18));
+    g.add(meshAt(new THREE.BoxGeometry(0.78, 0.1, 0.48), mat(DARK), 0, 1.4, 0.2));
+    // Clamp arms either side of where the cell sits.
+    g.add(meshAt(new THREE.BoxGeometry(0.07, 0.32, 0.26), mat(DARK), -0.21, 1.58, 0.22));
+    g.add(meshAt(new THREE.BoxGeometry(0.07, 0.32, 0.26), mat(DARK), 0.21, 1.58, 0.22));
+    g.add(meshAt(new THREE.BoxGeometry(0.5, 0.12, 0.06), mat(DARK), 0, 0.95, 0.38));
+    return g;
+  },
+
+  cell_socket() {
+    const g = new THREE.Group();
+    g.add(meshAt(new THREE.BoxGeometry(0.36, 0.4, 0.18), mat(GREY), 0, 0.2, 0.09));
+    g.add(meshAt(new THREE.BoxGeometry(0.28, 0.3, 0.06), mat(DARK), 0, 0.22, 0.2));
+    return g;
+  },
+
   power_switch() {
     const g = new THREE.Group();
     g.add(meshAt(new THREE.BoxGeometry(0.62, 1.34, 0.2), mat(GREY), 0, 0.67, 0.1));

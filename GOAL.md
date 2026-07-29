@@ -118,6 +118,21 @@ maximise freedom:
 - Sockets are one-way. Once a cell is seated it is spent. This deletes an entire
   class of failure rather than testing for it.
 
+**Where fixtures are mounted.** Every fixture the crosshair has to find is
+placed so its body straddles the player's eye line. The interact ray leaves the
+eye travelling flat, so a fixture sitting entirely below eye height can be aimed
+at only from a distance and stops being aimable at all as the player walks up to
+it — exactly when they are trying to use it. Cradles present their cell across
+the eye line; sockets are mounted at the same height and the airlock readout
+moves up to sit above them. This is a rule about aiming, not decoration, and it
+is why the readout is no longer at waist height.
+
+The one thing that cannot obey that rule is a cell lying on the deck, which is
+under the crosshair from every angle. So a set-down cell is taken by proximity
+alone, with no aiming: standing over it is enough. Put down and pick back up is
+therefore the same button pressed twice in the same spot, and never requires
+staring at the floor.
+
 Setting a cell down anywhere is the more expensive of the options considered,
 and was chosen deliberately. It means the dead-end harness cannot simply assume
 a cell is always in one of two places — it has to establish that every floor
@@ -148,12 +163,12 @@ space and not from more verbs.
 | | Verified by |
 |---|---|
 | **No unwinnable states.** No sequence of player actions leaves the game uncompletable. A cell can always be recovered and every socket can always be reached. | Claude — an adversarial harness that searches action sequences for dead ends, run in CI |
-| **Real dependency depth.** The critical path is six ordered steps and no step can be completed before its predecessor. | Claude — asserted structurally against the interaction table, not by playing |
+| **Real dependency depth.** The critical path is six ordered steps and no step can be completed before its predecessor. | Claude — a harness that drives each interaction directly, with aim taken out, and asserts every step refuses to work before its predecessor |
 | **Still a short vignette.** A player who knows the route finishes inside five minutes. | Claude — the on-foot walkthrough harness reports game-clock duration |
 | **Solvable without hints.** A player finishes cold, with no tutorial text and no instruction beyond the existing controls card. | **The owner.** Claude cannot verify this and must not claim to |
 
 Plus everything v1 §11 already required, which must not regress: the loop stays
-playable start to finish, all three harnesses stay green, every asset still comes
+playable start to finish, every harness stays green, every asset still comes
 from the pipeline, and the Vercel deployment stays live.
 
 ## P7. The box

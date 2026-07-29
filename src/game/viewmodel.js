@@ -60,6 +60,20 @@ export function buildViewmodel(assets) {
   readout.rotation.set(-Math.PI / 2 + 0.28, 0, 0);
   rig.add(readout);
 
+  // Phase 2: a carried cell replaces the scanner rather than sitting beside it,
+  // so the HUD never has to say anything (v1 §4) and empty hands are the
+  // difference between having the tool and not.
+  const cellModel = assets.model('power_cell') || placeholderModel('power_cell');
+  const cellBounds = measure(cellModel);
+  cellModel.position.sub(cellBounds.center);
+  const cellRig = new THREE.Group();
+  cellRig.add(cellModel);
+  const cellScale = 0.26 / (Math.max(cellBounds.size.x, cellBounds.size.y, cellBounds.size.z) || 1);
+  cellRig.scale.setScalar(cellScale);
+  cellRig.rotation.set(0.15, 0.5, -0.08);
+  cellRig.visible = false;
+  holder.add(cellRig);
+
   holder.position.copy(REST);
   holder.rotation.copy(REST_ROT);
 
@@ -84,11 +98,19 @@ export function buildViewmodel(assets) {
       // a phone in portrait is not half scanner.
       const trim = THREE.MathUtils.clamp(aspect / 1.2, 0.68, 1);
       rig.scale.setScalar(scale * trim);
+      cellRig.scale.setScalar(cellScale * trim);
     },
 
     /** Fires the short animation the spec asks for on every interaction. */
     play() {
       pulse = 1;
+    },
+
+    /** Swaps the tool for a power cell. One or the other, never both. */
+    setCarrying(carrying) {
+      rig.visible = !carrying;
+      readout.visible = !carrying;
+      cellRig.visible = carrying;
     },
 
     /** Keeps the tool sitting in the same light as the room around it. */

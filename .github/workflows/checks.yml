@@ -14,7 +14,10 @@ jobs:
   playtest:
     name: build and playtest
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Phase 2 made the walkthrough a round trip — each cell is carried back to
+    # the airlock — so the on-foot leg roughly doubled, and there is a fourth
+    # harness now. The runners render in software at a third of real time.
+    timeout-minutes: 35
 
     steps:
       - uses: actions/checkout@v4
@@ -53,10 +56,15 @@ jobs:
           done
           echo "preview server never came up"; cat /tmp/preview.log; exit 1
 
-      # Three altitudes. smoke teleports between rooms to reach each system
-      # quickly; walkthrough refuses to teleport and so is the only one that
-      # can catch the level becoming un-navigable; mobile drives the touch
-      # scheme. They have caught different bugs and none subsumes another.
+      # Four altitudes. chain drives the interactions directly and proves the
+      # six steps refuse to work out of order; smoke teleports between rooms to
+      # reach each system quickly; walkthrough refuses to teleport and so is the
+      # only one that can catch the level becoming un-navigable; mobile drives
+      # the touch scheme. They have caught different bugs and none subsumes
+      # another.
+      - name: Playtest — the dependency chain
+        run: node tools/chain.mjs http://127.0.0.1:4173/
+
       - name: Playtest — systems
         run: node tools/smoke.mjs http://127.0.0.1:4173/ --shots
 

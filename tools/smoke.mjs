@@ -1,7 +1,12 @@
 /**
- * Headless playtest. Boots the built game in Chromium, walks the full route
- * (bay → hold → flip → annex → flip → shortcut → airlock), and reports console
- * errors plus a frame-rate sample. Used as the pre-deploy gate.
+ * Headless playtest. Boots the built game in Chromium, moves through the full
+ * six-step chain (switch 1 → cell 1 → socket 1 → switch 2 → cell 2 → socket 2 →
+ * airlock), and reports console errors plus a frame-rate sample. Used as the
+ * pre-deploy gate.
+ *
+ * This one teleports between fixtures: it is the systems check — audio, frame
+ * rate, restart, screenshots. walkthrough.mjs walks the same chain on foot and
+ * chain.mjs proves the ordering.
  *
  *   node tools/smoke.mjs [baseUrl] [--shots]
  */
@@ -71,15 +76,29 @@ async function walk(keys, ms) {
  * wall-clock time. None of these assertions are about how fast the renderer
  * is, so none of them should be written against a stopwatch.
  */
-async function advanceUntil(done, { bursts = 8, ms = 1200 } = {}) {
-  let previous = null;
+async function advanceUntil(done, { timeoutMs = 40000, ms = 900 } = {}) {
+  const start = Date.now();
   let now = await state();
-  for (let i = 0; i < bursts; i++) {
+  let previous = now.pos;
+  let lastProgressClock = now.clock;
+  let sinceProgress = 0;
+  while (Date.now() - start < timeoutMs) {
     await walk(['KeyW'], ms);
     now = await state();
     if (done(now)) return now;
-    if (previous && Math.hypot(now.pos[0] - previous[0], now.pos[1] - previous[1]) < 0.25) return now;
+
+    sinceProgress += Math.hypot(now.pos[0] - previous[0], now.pos[1] - previous[1]);
     previous = now.pos;
+    // Stalling is measured against the game clock, which advances with dt.
+    // A burst count, a per-burst distance and a wall-clock deadline are all
+    // really measurements of the renderer: under a software rasteriser, or a
+    // host that hitches, a walking player looks identical to a stuck one.
+    if (sinceProgress >= 0.25) {
+      sinceProgress = 0;
+      lastProgressClock = now.clock;
+    } else if (now.clock - lastProgressClock > 3) {
+      return now;
+    }
   }
   return now;
 }
@@ -88,7 +107,10 @@ const state = () => page.evaluate(() => {
   const g = window.__derelict;
   return {
     phase: g.phase,
+    clock: g.runTime,
     cells: g.cells,
+    carrying: g.carry.held ? g.carry.held.id : null,
+    released: g.carryables.cradles.filter((c) => c.released).map((c) => c.id),
     pos: [+g.player.position.x.toFixed(2), +g.player.position.z.toFixed(2)],
     prompt: document.getElementById('prompt').textContent,
     airlockOpen: g.doorsById.get('airlock').open,
@@ -145,11 +167,37 @@ await shot('switch-1-aim');
 await page.keyboard.press('KeyE');
 await page.waitForTimeout(1600);
 s = await state();
-if (s.cells !== 1) throw new Error(`switch 1 did not register (cells=${s.cells})`);
-console.log('  switch 1 flipped, hold powered');
+if (!s.released.includes('cradle1')) throw new Error(`switch 1 did not release cradle 1 (${JSON.stringify(s)})`);
+if (s.cells !== 0) throw new Error(`switch 1 credited a cell on its own (cells=${s.cells})`);
+console.log('  switch 1 flipped, hold powered, cradle 1 released');
 await place(-21.5, 0, Math.PI / 2);
 await page.waitForTimeout(500);
 await shot('hold-powered');
+
+// ---- Take cell 1 and carry it to the airlock ------------------------------
+await place(-29.5, -7.55, 0);
+await page.waitForTimeout(300);
+s = await state();
+if (!s.prompt) throw new Error(`no prompt at cradle 1 (${JSON.stringify(s)})`);
+await shot('cradle-1-aim');
+await page.keyboard.press('KeyE');
+await page.waitForTimeout(400);
+s = await state();
+if (s.carrying !== 'cell1') throw new Error(`cell 1 did not come off the cradle (${JSON.stringify(s)})`);
+console.log('  cell 1 taken');
+
+await place(1.72, -5.9, 0);
+await page.waitForTimeout(300);
+s = await state();
+if (!s.prompt) throw new Error(`no prompt at socket 1 (${JSON.stringify(s)})`);
+await shot('socket-1-aim');
+await page.keyboard.press('KeyE');
+await page.waitForTimeout(1600);
+s = await state();
+if (s.cells !== 1) throw new Error(`seating cell 1 did not read 1/2 (${JSON.stringify(s)})`);
+if (s.released.includes('cradle2')) throw new Error('a live Bay released cradle 2 on its own');
+console.log('  cell 1 seated — 1/2, bay powered');
+await shot('bay-powered');
 
 // ---- Route to the Engine Annex and flip switch 2 -------------------------
 await place(8.0, 0, -Math.PI / 2); // corridor B, facing east
@@ -170,15 +218,25 @@ if (!s.prompt) throw new Error(`no interact prompt at switch 2 (${JSON.stringify
 await page.keyboard.press('KeyE');
 await page.waitForTimeout(400);
 s = await state();
-if (s.cells !== 2) throw new Error(`switch 2 did not register (cells=${s.cells})`);
+if (!s.released.includes('cradle2')) throw new Error(`switch 2 plus a live bay did not release cradle 2 (${JSON.stringify(s)})`);
 await page
   .waitForFunction(() => window.__derelict.doorsById.get('hatch-bay').open, null, { timeout: 30000 })
   .catch(() => {
-    throw new Error('shortcut hatch did not open at 2/2');
+    throw new Error('shortcut hatch did not open with the annex');
   });
-s = await state();
-console.log('  switch 2 flipped, annex powered, hatch open');
+console.log('  switch 2 flipped, annex powered, hatch open, cradle 2 released');
 await shot('annex-powered');
+
+// ---- Take cell 2 and carry it home ----------------------------------------
+await place(31.2, -7.55, 0);
+await page.waitForTimeout(300);
+s = await state();
+if (!s.prompt) throw new Error(`no prompt at cradle 2 (${JSON.stringify(s)})`);
+await page.keyboard.press('KeyE');
+await page.waitForTimeout(400);
+s = await state();
+if (s.carrying !== 'cell2') throw new Error(`cell 2 did not come off the cradle (${JSON.stringify(s)})`);
+console.log('  cell 2 taken');
 
 // ---- Shortcut home, then out through the airlock -------------------------
 // Walked in bursts until progress stops rather than for a fixed duration:
@@ -190,6 +248,16 @@ console.log('  shortcut →', JSON.stringify(s.pos));
 if (s.pos[0] > 8.5) throw new Error(`shortcut passage is blocked, stuck at x=${s.pos[0]}`);
 await shot('shortcut');
 
+await place(2.58, -5.9, 0);
+await page.waitForTimeout(300);
+s = await state();
+if (!s.prompt) throw new Error(`no prompt at socket 2 (${JSON.stringify(s)})`);
+await page.keyboard.press('KeyE');
+await page.waitForTimeout(400);
+s = await state();
+if (s.cells !== 2) throw new Error(`seating cell 2 did not read 2/2 (${JSON.stringify(s)})`);
+console.log('  cell 2 seated — 2/2');
+
 await page
   .waitForFunction(() => window.__derelict.doorsById.get('airlock').open, null, { timeout: 30000 })
   .catch(() => {
@@ -199,7 +267,7 @@ s = await state();
 await shot('airlock-open');
 
 await place(0, -5.5, 0);
-await advanceUntil((v) => v.phase !== 'playing', { bursts: 6, ms: 900 });
+await advanceUntil((v) => v.phase !== 'playing', { ms: 900 });
 await page.waitForFunction(() => window.__derelict?.phase === 'ended', null, { timeout: 12000 });
 console.log('  escaped');
 await shot('endcard');
@@ -224,7 +292,9 @@ await page.click('#restart');
 await page.waitForFunction(() => window.__derelict?.phase === 'playing', null, { timeout: 15000 });
 await page.waitForTimeout(1200);
 s = await state();
-if (s.cells !== 0 || s.airlockOpen) throw new Error(`restart did not reset state: ${JSON.stringify(s)}`);
+if (s.cells !== 0 || s.airlockOpen || s.carrying || s.released.length) {
+  throw new Error(`restart did not reset state: ${JSON.stringify(s)}`);
+}
 console.log('  restart clean');
 await shot('restarted');
 

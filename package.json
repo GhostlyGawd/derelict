@@ -13,7 +13,8 @@
     "pipeline:models": "node pipeline/run.js models",
     "pipeline:audio": "node pipeline/run.js audio",
     "pipeline:manifest": "node pipeline/run.js manifest",
-    "test": "npm run test:smoke && npm run test:walkthrough && npm run test:mobile",
+    "test": "npm run test:chain && npm run test:smoke && npm run test:walkthrough && npm run test:mobile",
+    "test:chain": "node tools/chain.mjs",
     "test:smoke": "node tools/smoke.mjs",
     "test:walkthrough": "node tools/walkthrough.mjs",
     "test:mobile": "node tools/mobile.mjs"
