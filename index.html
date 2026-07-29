@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#000000" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="description"
+      content="DERELICT — a short first-person vignette aboard a dead ship. Every asset is AI-generated."
+    />
+    <title>DERELICT</title>
+    <link rel="icon" href="data:," />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="view"></canvas>
+
+      <!-- HUD -->
+      <div id="hud" class="hidden">
+        <div id="crosshair"></div>
+        <div id="prompt"></div>
+      </div>
+
+      <!-- Mobile controls -->
+      <div id="touch" class="hidden">
+        <div id="stick">
+          <div id="stick-base"></div>
+          <div id="stick-knob"></div>
+        </div>
+        <button id="touch-interact" type="button" aria-label="Interact">INTERACT</button>
+      </div>
+
+      <!-- Overlays -->
+      <div id="fade"></div>
+
+      <div id="loading" class="overlay">
+        <div class="panel">
+          <h1>DERELICT</h1>
+          <div class="bar"><div id="loading-fill"></div></div>
+          <p id="loading-text">Waking systems…</p>
+        </div>
+      </div>
+
+      <div id="title" class="overlay hidden">
+        <div class="panel">
+          <h1>DERELICT</h1>
+          <p class="sub">Ship is dead. Two power cells will open the airlock.</p>
+          <button id="start" type="button">BEGIN</button>
+          <p class="keys" id="keys-desktop">WASD move &nbsp;·&nbsp; MOUSE look &nbsp;·&nbsp; E interact</p>
+          <p class="keys hidden" id="keys-mobile">LEFT STICK move &nbsp;·&nbsp; DRAG RIGHT look &nbsp;·&nbsp; TAP interact</p>
+        </div>
+      </div>
+
+      <div id="paused" class="overlay hidden">
+        <div class="panel">
+          <h2>PAUSED</h2>
+          <button id="resume" type="button">RESUME</button>
+        </div>
+      </div>
+
+      <div id="endcard" class="overlay hidden">
+        <div class="panel">
+          <h1>YOU ESCAPED</h1>
+          <p class="sub">DERELICT</p>
+          <p class="stat" id="end-time"></p>
+          <button id="restart" type="button">RESTART</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
