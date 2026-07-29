@@ -78,10 +78,11 @@ switches actually do.
    clamp. Take the cell.
 3. **Back to the Bay.** Seat the cell. The panel reads 1/2, and the Bay comes up
    on its own power.
-4. **Engine Annex.** Cell 2's cradle is dead until the Bay is live — so it
-   cannot be taken before step 3. The Annex switch powers the room and the
-   shortcut hatch as it does today; the cradle releases only once the Bay has a
-   cell in it.
+4. **Engine Annex.** Cell 2's cradle needs two things: the Annex under power,
+   and the Bay live. The Annex switch supplies the first and works as it does
+   today, opening the shortcut hatch with it. Seating cell 1 supplies the
+   second. Neither alone is enough, so the cell cannot be taken before step 3
+   and the Annex switch cannot be skipped.
 5. **Back through the shortcut.** Seat the second cell. 2/2, airlock cycles,
    walk out.
 
