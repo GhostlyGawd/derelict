@@ -7,7 +7,11 @@ import { resolveParts } from './props.js';
  * the airlock's 0/2 readout.
  */
 
-const HIGHLIGHT = new THREE.Color(0x1c4a2a);
+// The highlight brightens the switch rather than adding light to it: a strong
+// emissive tint flattens the surface and fights the colour of the room, which
+// is the whole point of the lighting states.
+const HIGHLIGHT_GAIN = 2.1;
+const HIGHLIGHT_GLOW = new THREE.Color(0x0a0e0b);
 const OFF = new THREE.Color(0x000000);
 
 function instantiate(parts) {
@@ -49,7 +53,7 @@ function boundsOf(objects) {
 
 // ------------------------------------------------------------- switches ---
 
-export function buildSwitches(assets, cache, materials) {
+export function buildSwitches(assets, cache) {
   return SWITCHES.map((def) => {
     const group = new THREE.Group();
     group.name = `switch:${def.id}`;
@@ -58,6 +62,7 @@ export function buildSwitches(assets, cache, materials) {
 
     const body = new THREE.Group();
     const meshes = instantiate(resolveParts('power_switch', assets, cache));
+    const baseColours = meshes.map((m) => m.material.color.clone());
     for (const m of meshes) body.add(m);
     // The model's origin is at floor-centre; recentre it on the mount height.
     const size = new THREE.Vector3();
@@ -65,23 +70,29 @@ export function buildSwitches(assets, cache, materials) {
     body.position.y = -size.y / 2;
     group.add(body);
 
-    // A chunky throw lever, built in engine so the flip is unmistakable.
+    // A chunky throw lever seated in the model's lever slot, built in engine
+    // so the flip itself is unmistakable.
     const pivot = new THREE.Group();
-    pivot.position.set(0, size.y * 0.16, 0.16);
+    pivot.position.set(0, size.y * 0.37, 0.2);
     const lever = new THREE.Mesh(
-      new THREE.BoxGeometry(0.09, 0.34, 0.11),
-      materials.surface('door_trim')
+      new THREE.BoxGeometry(0.085, 0.3, 0.1),
+      new THREE.MeshLambertMaterial({ color: 0xb0442a })
     );
-    lever.position.y = 0.17;
-    pivot.add(lever);
+    lever.position.y = 0.15;
+    const knob = new THREE.Mesh(
+      new THREE.BoxGeometry(0.11, 0.07, 0.12),
+      new THREE.MeshLambertMaterial({ color: 0x3b3f3a })
+    );
+    knob.position.y = 0.3;
+    pivot.add(lever, knob);
     pivot.rotation.x = -0.75;
     body.add(pivot);
 
     const indicator = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.2, 0.2),
+      new THREE.PlaneGeometry(0.11, 0.11),
       new THREE.MeshBasicMaterial({ color: 0xff2a18, toneMapped: false, fog: true })
     );
-    indicator.position.set(0, size.y * 0.72, 0.2);
+    indicator.position.set(0, size.y * 0.86, 0.16);
     body.add(indicator);
 
     const state = {
@@ -101,14 +112,18 @@ export function buildSwitches(assets, cache, materials) {
       indicator,
       canUse: () => !state.used,
       highlight(on) {
-        for (const m of meshes) m.material.emissive.copy(on && !state.used ? HIGHLIGHT : OFF);
+        const lit = on && !state.used;
+        meshes.forEach((m, i) => {
+          m.material.color.copy(baseColours[i]).multiplyScalar(lit ? HIGHLIGHT_GAIN : 1);
+          m.material.emissive.copy(lit ? HIGHLIGHT_GLOW : OFF);
+        });
       },
       activate() {
         if (state.used) return false;
         state.used = true;
         state.recoil = 1;
         indicator.material.color.setHex(0x7bff9a);
-        for (const m of meshes) m.material.emissive.copy(OFF);
+        state.highlight(false);
         return true;
       },
       update(dt) {

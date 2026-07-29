@@ -34,7 +34,7 @@ export function buildLighting(materials) {
   group.name = 'lighting';
 
   // Just enough bounce that unlit corners read as dark, not as holes.
-  group.add(new THREE.AmbientLight(0x2b3831, 1.0));
+  group.add(new THREE.AmbientLight(0x2c322e, 1.0));
 
   const zones = new Map(); // zone -> { t, powered, lights, shafts, conduits }
   const zoneOf = (id) => {

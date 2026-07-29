@@ -1,0 +1,164 @@
+{
+  "generator": "derelict pipeline",
+  "backend": "offline",
+  "generatedAt": "2026-07-29T04:31:04.707Z",
+  "styleBible": "Late-1990s retro sci-fi FPS aesthetic. Derelict industrial spaceship interior. Dark gunmetal and olive metal, heavy rivets, scuffed grimy surfaces, utilitarian machinery. Sickly green energy glow from conduits and readouts. Low-resolution game-texture look, slightly desaturated, moody. No text, no watermarks, no people.",
+  "providers": {
+    "image": "offline-synth",
+    "mesh": "offline-synth",
+    "audio": "offline-synth"
+  },
+  "totals": {
+    "textures": 7,
+    "models": 8,
+    "audio": 8,
+    "bytes": 2277789
+  },
+  "textures": {
+    "wall_panel_a": {
+      "file": "textures/wall_panel_a.png",
+      "size": 512,
+      "bytes": 100957
+    },
+    "wall_panel_b": {
+      "file": "textures/wall_panel_b.png",
+      "size": 512,
+      "bytes": 88275
+    },
+    "floor_plate": {
+      "file": "textures/floor_plate.png",
+      "size": 512,
+      "bytes": 123005
+    },
+    "ceiling_plate": {
+      "file": "textures/ceiling_plate.png",
+      "size": 256,
+      "bytes": 22425
+    },
+    "greeble_panel": {
+      "file": "textures/greeble_panel.png",
+      "size": 512,
+      "bytes": 56108
+    },
+    "door_trim": {
+      "file": "textures/door_trim.png",
+      "size": 256,
+      "bytes": 29287
+    },
+    "conduit_strip": {
+      "file": "textures/conduit_strip.png",
+      "size": 256,
+      "bytes": 18800,
+      "emissive": true
+    }
+  },
+  "models": {
+    "scanner": {
+      "file": "models/scanner.glb",
+      "triangles": 264,
+      "budget": 8000,
+      "metres": 0.35,
+      "fit": "longest",
+      "bytes": 39088
+    },
+    "power_switch": {
+      "file": "models/power_switch.glb",
+      "triangles": 260,
+      "budget": 3000,
+      "metres": 1.4,
+      "fit": "height",
+      "bytes": 39676
+    },
+    "airlock_door": {
+      "file": "models/airlock_door.glb",
+      "triangles": 408,
+      "budget": 5000,
+      "metres": 2.4,
+      "fit": "height",
+      "bytes": 51476
+    },
+    "cargo_crate": {
+      "file": "models/cargo_crate.glb",
+      "triangles": 336,
+      "budget": 3000,
+      "metres": 0.8,
+      "fit": "height",
+      "bytes": 47976
+    },
+    "canister": {
+      "file": "models/canister.glb",
+      "triangles": 408,
+      "budget": 3000,
+      "metres": 1.2,
+      "fit": "height",
+      "bytes": 57152
+    },
+    "wall_console": {
+      "file": "models/wall_console.glb",
+      "triangles": 304,
+      "budget": 3000,
+      "metres": 1.6,
+      "fit": "height",
+      "bytes": 42780
+    },
+    "pipe_cluster": {
+      "file": "models/pipe_cluster.glb",
+      "triangles": 464,
+      "budget": 3000,
+      "metres": 2,
+      "fit": "height",
+      "bytes": 59112
+    },
+    "floor_debris": {
+      "file": "models/floor_debris.glb",
+      "triangles": 168,
+      "budget": 2000,
+      "metres": 0.9,
+      "fit": "longest",
+      "bytes": 29416
+    }
+  },
+  "audio": {
+    "ambient_hum": {
+      "file": "audio/ambient_hum.wav",
+      "seconds": 30,
+      "bytes": 1323044,
+      "loop": true
+    },
+    "switch_clunk": {
+      "file": "audio/switch_clunk.mp3",
+      "seconds": 1.4,
+      "bytes": 17241
+    },
+    "power_surge": {
+      "file": "audio/power_surge.mp3",
+      "seconds": 2.4,
+      "bytes": 29153
+    },
+    "door_motor": {
+      "file": "audio/door_motor.mp3",
+      "seconds": 3.4,
+      "bytes": 41378
+    },
+    "footstep_1": {
+      "file": "audio/footstep_1.mp3",
+      "seconds": 0.45,
+      "bytes": 5956
+    },
+    "footstep_2": {
+      "file": "audio/footstep_2.mp3",
+      "seconds": 0.45,
+      "bytes": 5956
+    },
+    "footstep_3": {
+      "file": "audio/footstep_3.mp3",
+      "seconds": 0.45,
+      "bytes": 5956
+    },
+    "end_sting": {
+      "file": "audio/end_sting.mp3",
+      "seconds": 3.6,
+      "bytes": 43572
+    }
+  }
+}

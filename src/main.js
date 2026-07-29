@@ -101,7 +101,7 @@ class Derelict {
     this.lighting = buildLighting(this.materials);
     this.scene.add(this.lighting.group);
 
-    this.switches = buildSwitches(this.assets, modelCache, this.materials);
+    this.switches = buildSwitches(this.assets, modelCache);
     for (const sw of this.switches) this.scene.add(sw.object);
 
     this.doors = buildDoors(this.assets, modelCache);

@@ -10,7 +10,7 @@ import { placeholderModel } from './placeholders.js';
  * the power state of the room the player is standing in.
  */
 
-const REST = new THREE.Vector3(0.33, -0.27, -0.72);
+const REST = new THREE.Vector3(0.31, -0.225, -0.72);
 const REST_ROT = new THREE.Euler(0.05, -0.38, 0.08);
 const TOOL_LENGTH = 0.3;
 
@@ -21,7 +21,7 @@ export function buildViewmodel(assets) {
   const key = new THREE.DirectionalLight(0xffd9c8, 2.2);
   key.position.set(0.6, 0.8, 0.9);
   scene.add(key);
-  const fill = new THREE.AmbientLight(0x5b6560, 1.4);
+  const fill = new THREE.AmbientLight(0x2e3532, 1.1);
   scene.add(fill);
 
   const holder = new THREE.Group();
@@ -38,13 +38,18 @@ export function buildViewmodel(assets) {
   rig.scale.setScalar(scale);
   holder.add(rig);
 
-  // In-engine readout so the tool visibly reacts even if the generated mesh
-  // has no screen of its own.
+  // In-engine readout, placed from the model's own bounds so it lands on the
+  // upper face of whatever mesh the pipeline produced.
   const readoutMat = new THREE.MeshBasicMaterial({ color: 0x1d3a28, toneMapped: false });
-  const readout = new THREE.Mesh(new THREE.PlaneGeometry(0.09, 0.055), readoutMat);
-  readout.position.set(0.0, 0.055, 0.035);
-  readout.rotation.set(-0.9, 0, 0);
-  holder.add(readout);
+  // Proportions of the tool's own bounds, so it lands on the upper deck of the
+  // casing rather than on top of the antenna.
+  const readout = new THREE.Mesh(
+    new THREE.PlaneGeometry(size.x * 0.42, size.z * 0.115),
+    readoutMat
+  );
+  readout.position.set(0, size.y * 0.19, -size.z * 0.04);
+  readout.rotation.set(-Math.PI / 2 + 0.28, 0, 0);
+  rig.add(readout);
 
   holder.position.copy(REST);
   holder.rotation.copy(REST_ROT);
@@ -68,9 +73,11 @@ export function buildViewmodel(assets) {
       pulse = 1;
     },
 
+    /** Keeps the tool sitting in the same light as the room around it. */
     setTint(color, intensity) {
       key.color.copy(color);
       key.intensity = intensity;
+      fill.color.copy(color).multiplyScalar(0.22).addScalar(0.06);
     },
 
     update(dt, { look, speed, powered }) {

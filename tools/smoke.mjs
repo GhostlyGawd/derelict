@@ -22,7 +22,12 @@ let shotIndex = 0;
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROME_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-  args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--no-sandbox'],
+  args: [
+    '--use-gl=swiftshader',
+    '--enable-unsafe-swiftshader',
+    '--no-sandbox',
+    '--autoplay-policy=no-user-gesture-required',
+  ],
 });
 const page = await browser.newPage({ viewport: { width: 1024, height: 640 } });
 
@@ -84,6 +89,22 @@ await page.waitForFunction(() => window.__derelict?.phase === 'playing', null, {
 await page.waitForTimeout(1800);
 console.log('  playing:', JSON.stringify(await state()));
 await shot('bay-emergency');
+
+// ---- Every generated sound decoded and is audible --------------------------
+const sounds = await page.evaluate(() => {
+  const bus = window.__derelict.audio;
+  return {
+    ready: bus.ready,
+    buffers: [...bus.buffers.entries()].map(([id, b]) => [id, +b.duration.toFixed(2)]),
+    ambient: Boolean(bus.ambient),
+  };
+});
+if (!sounds.ready) throw new Error('audio bus never became ready');
+if (!sounds.ambient) throw new Error('ambient loop did not start');
+const silent = sounds.buffers.filter(([, d]) => d <= 0);
+if (silent.length) throw new Error(`empty audio buffers: ${silent.map(([id]) => id).join(', ')}`);
+if (sounds.buffers.length !== 8) throw new Error(`expected 8 sounds, decoded ${sounds.buffers.length}`);
+console.log('  audio:', sounds.buffers.map(([id, d]) => `${id} ${d}s`).join(', '));
 
 // ---- Route to the Storage Hold and flip switch 1 -------------------------
 await place(-6.0, 0, Math.PI / 2); // face west, in the corridor A doorway

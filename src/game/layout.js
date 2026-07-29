@@ -143,12 +143,15 @@ export const LIGHTS = [
   { zone: 'bay', pos: [0, 3.15, 3.4], distance: 20 },
   { zone: 'corrA', pos: [-10.6, 2.3, 0], distance: 15 },
   { zone: 'corrA', pos: [-16.4, 2.3, 0], distance: 15 },
-  { zone: 'hold', pos: [-26, 3.35, -4.5], distance: 22 },
-  { zone: 'hold', pos: [-26, 3.35, 4.5], distance: 22 },
+  // Placed off-centre so each room's switch wall gets a working lamp: on
+  // emergency power the corners go genuinely dark, and a switch nobody can
+  // see is a soft-lock in all but name.
+  { zone: 'hold', pos: [-29.6, 3.35, -3.6], distance: 22 },
+  { zone: 'hold', pos: [-23.4, 3.35, 4.4], distance: 22 },
   { zone: 'corrB', pos: [9.4, 2.3, 0], distance: 15 },
   { zone: 'corrB', pos: [16.6, 2.3, 0], distance: 15 },
-  { zone: 'annex', pos: [26, 3.35, -4.5], distance: 22 },
-  { zone: 'annex', pos: [26, 3.35, 4.5], distance: 22 },
+  { zone: 'annex', pos: [29.6, 3.35, 1.8], distance: 22 },
+  { zone: 'annex', pos: [23.4, 3.35, -4.4], distance: 22 },
   { zone: 'shortcut', pos: [13, 2.1, 4.6], distance: 16 },
   { zone: 'chamber', pos: [0, 2.4, -9.6], distance: 14 },
 ];
@@ -158,8 +161,8 @@ export const LIGHTS = [
  * mid-grey albedo at the ~3 m distance from a ceiling lamp to the deck: dim
  * red pools on emergency power, a clear green-white wash once energised.
  */
-export const EMERGENCY = { color: 0xff3a22, intensity: 5.2 };
-export const POWERED = { color: 0xd8ffe4, intensity: 16.0 };
+export const EMERGENCY = { color: 0xff3a22, intensity: 11.0 };
+export const POWERED = { color: 0xd8ffe4, intensity: 19.5 };
 /** The airlock chamber floods white once the outer door cycles. */
 export const ESCAPE_LIGHT = { color: 0xffffff, intensity: 46.0 };
 

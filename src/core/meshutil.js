@@ -9,7 +9,8 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
  * roughly a dozen draw calls.
  */
 
-const KEEP = ['position', 'normal', 'uv'];
+// `color` is kept because the generated props carry per-part vertex tints.
+const KEEP = ['position', 'normal', 'uv', 'color'];
 
 /** Strips a geometry down to the attribute set that merges cleanly. */
 export function normalizeGeometry(source) {
