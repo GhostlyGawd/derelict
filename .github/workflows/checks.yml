@@ -1,0 +1,80 @@
+name: checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  playtest:
+    name: build and playtest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # The generators are deterministic, so whatever is committed under
+      # public/assets must be exactly what the pipeline produces. This catches
+      # a generator being changed without its output being regenerated, and
+      # the reverse — an asset edited by hand that no generator would emit.
+      - name: Assets match their generators
+        run: |
+          rm -rf public/assets
+          npm run pipeline
+          git diff --exit-code --stat -- public/assets
+
+      - run: npm run build
+
+      - name: Serve the built site
+        run: |
+          nohup npx vite preview --port 4173 --host 127.0.0.1 > /tmp/preview.log 2>&1 &
+          for _ in $(seq 1 30); do
+            if curl -sf -o /dev/null http://127.0.0.1:4173/; then
+              echo "preview up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "preview server never came up"; cat /tmp/preview.log; exit 1
+
+      # Three altitudes. smoke teleports between rooms to reach each system
+      # quickly; walkthrough refuses to teleport and so is the only one that
+      # can catch the level becoming un-navigable; mobile drives the touch
+      # scheme. They have caught different bugs and none subsumes another.
+      - name: Playtest — systems
+        run: node tools/smoke.mjs http://127.0.0.1:4173/ --shots
+
+      - name: Playtest — the route, on foot
+        run: node tools/walkthrough.mjs http://127.0.0.1:4173/ --shots
+
+      - name: Playtest — touch controls
+        run: node tools/mobile.mjs http://127.0.0.1:4173/ --shots
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playtest-screenshots
+          path: tools/shots/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Preview server log
+        if: failure()
+        run: cat /tmp/preview.log || true

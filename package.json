@@ -12,7 +12,11 @@
     "pipeline:textures": "node pipeline/run.js textures",
     "pipeline:models": "node pipeline/run.js models",
     "pipeline:audio": "node pipeline/run.js audio",
-    "pipeline:manifest": "node pipeline/run.js manifest"
+    "pipeline:manifest": "node pipeline/run.js manifest",
+    "test": "npm run test:smoke && npm run test:walkthrough && npm run test:mobile",
+    "test:smoke": "node tools/smoke.mjs",
+    "test:walkthrough": "node tools/walkthrough.mjs",
+    "test:mobile": "node tools/mobile.mjs"
   },
   "dependencies": {
     "three": "^0.169.0"
@@ -23,6 +27,7 @@
     "@gltf-transform/extensions": "^4.1.0",
     "@gltf-transform/functions": "^4.1.0",
     "meshoptimizer": "^0.22.0",
+    "playwright": "1.56.1",
     "pngjs": "^7.0.0",
     "sharp": "^0.35.0",
     "vite": "^8.1.5"

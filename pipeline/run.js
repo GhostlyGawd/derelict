@@ -65,9 +65,12 @@ async function writeManifest(collected) {
     0
   );
 
+  // Deliberately no timestamp: it was the only non-deterministic byte the
+  // pipeline emitted, so every run dirtied the tree and the deployed manifest
+  // never matched the committed one. Without it the whole output is
+  // reproducible, which is what lets CI regenerate and diff against git.
   const manifest = {
     generator: 'derelict pipeline',
-    generatedAt: new Date().toISOString(),
     styleBible: STYLE_BIBLE,
     totals: {
       textures: Object.keys(collected.textures).length,

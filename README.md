@@ -86,12 +86,21 @@ moment a player flips a switch.
 
 ```bash
 npm run build
-npm run preview
-
-node tools/smoke.mjs       http://127.0.0.1:4173/ --shots  # systems
-node tools/walkthrough.mjs http://127.0.0.1:4173/ --shots  # the route, on foot
-node tools/mobile.mjs      http://127.0.0.1:4173/ --shots  # touch controls
+npm run preview     # in another shell
+npm test            # all three harnesses
 ```
+
+Individually, optionally with `--shots` to write screenshots to `tools/shots`:
+
+```bash
+npm run test:smoke        # systems
+npm run test:walkthrough  # the route, on foot
+npm run test:mobile       # touch controls
+```
+
+All three run in CI on every pull request, alongside a check that regenerating
+`public/assets` reproduces exactly what is committed — so a generator cannot
+change without its output changing with it, and vice versa.
 
 **smoke** drives the full sequence in headless Chromium, teleporting between
 rooms to get at each system quickly. It fails on any console error, on a switch
@@ -109,4 +118,8 @@ can stroll through is not a blockage.
 walks the player, a right-side drag turns the camera, the context button flips
 a switch.
 
-`--shots` writes screenshots to `tools/shots`.
+Every assertion is written against a condition, never against a stopwatch:
+movement and door animations advance in game time with a clamped delta, so a
+slow renderer covers less ground per real second. Tests that measured elapsed
+time were really measuring frame rate, and they failed the moment the browser
+changed.

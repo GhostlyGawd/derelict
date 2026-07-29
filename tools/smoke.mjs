@@ -5,12 +5,10 @@
  *
  *   node tools/smoke.mjs [baseUrl] [--shots]
  */
-import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-const require = createRequire('/opt/node22/lib/node_modules/');
-const { chromium } = require('playwright');
+import { chromium } from 'playwright';
 
 const BASE = process.argv[2] || 'http://127.0.0.1:4173/';
 const SHOTS = process.argv.includes('--shots');
@@ -21,7 +19,7 @@ const errors = [];
 let shotIndex = 0;
 
 const browser = await chromium.launch({
-  executablePath: process.env.CHROME_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
   args: [
     '--use-gl=swiftshader',
     '--enable-unsafe-swiftshader',
@@ -63,6 +61,27 @@ async function walk(keys, ms) {
   await page.waitForTimeout(ms);
   for (const k of keys) await page.keyboard.up(k);
   await page.waitForTimeout(60);
+}
+
+/**
+ * Walks forward in bursts until `done(state)` holds or progress stops.
+ *
+ * Fixed-duration walks are frame-rate sensitive: movement is dt-based but dt
+ * is clamped to a floor, so a slower browser covers less ground in the same
+ * wall-clock time. None of these assertions are about how fast the renderer
+ * is, so none of them should be written against a stopwatch.
+ */
+async function advanceUntil(done, { bursts = 8, ms = 1200 } = {}) {
+  let previous = null;
+  let now = await state();
+  for (let i = 0; i < bursts; i++) {
+    await walk(['KeyW'], ms);
+    now = await state();
+    if (done(now)) return now;
+    if (previous && Math.hypot(now.pos[0] - previous[0], now.pos[1] - previous[1]) < 0.25) return now;
+    previous = now.pos;
+  }
+  return now;
 }
 
 const state = () => page.evaluate(() => {
@@ -108,7 +127,7 @@ console.log('  audio:', sounds.buffers.map(([id, d]) => `${id} ${d}s`).join(', '
 
 // ---- Route to the Storage Hold and flip switch 1 -------------------------
 await place(-6.0, 0, Math.PI / 2); // face west, in the corridor A doorway
-await walk(['KeyW'], 2600);
+await advanceUntil((v) => v.pos[0] <= -13);
 console.log('  corridor A →', JSON.stringify((await state()).pos));
 await shot('corridor-a');
 
@@ -134,14 +153,13 @@ await shot('hold-powered');
 
 // ---- Route to the Engine Annex and flip switch 2 -------------------------
 await place(8.0, 0, -Math.PI / 2); // corridor B, facing east
-await walk(['KeyW'], 2200);
+await advanceUntil((v) => v.pos[0] >= 10.8);
 console.log('  corridor B squeeze →', JSON.stringify((await state()).pos));
 await shot('corridor-b-blockage');
 
 // Thread the gap along the south wall.
 await place(11.0, 0.75, -Math.PI / 2);
-await walk(['KeyW'], 2600);
-s = await state();
+s = await advanceUntil((v) => v.pos[0] >= 14.5);
 if (s.pos[0] < 13.8) throw new Error(`squeeze route is impassable, stuck at x=${s.pos[0]}`);
 console.log('  squeeze cleared →', JSON.stringify(s.pos));
 
@@ -150,10 +168,15 @@ await page.waitForTimeout(300);
 s = await state();
 if (!s.prompt) throw new Error(`no interact prompt at switch 2 (${JSON.stringify(s)})`);
 await page.keyboard.press('KeyE');
-await page.waitForTimeout(2400);
+await page.waitForTimeout(400);
 s = await state();
 if (s.cells !== 2) throw new Error(`switch 2 did not register (cells=${s.cells})`);
-if (!s.hatchOpen) throw new Error('shortcut hatch did not open at 2/2');
+await page
+  .waitForFunction(() => window.__derelict.doorsById.get('hatch-bay').open, null, { timeout: 30000 })
+  .catch(() => {
+    throw new Error('shortcut hatch did not open at 2/2');
+  });
+s = await state();
 console.log('  switch 2 flipped, annex powered, hatch open');
 await shot('annex-powered');
 
@@ -162,25 +185,21 @@ await shot('annex-powered');
 // movement is dt-based but dt is clamped, so under a slow software rasteriser
 // a fixed wall-clock walk covers less ground. Stalling is the real signal.
 await place(18.0, 4.6, Math.PI / 2);
-let previousX = Infinity;
-for (let burst = 0; burst < 6; burst++) {
-  await walk(['KeyW'], 1500);
-  s = await state();
-  if (s.pos[0] < 8) break;
-  if (Math.abs(previousX - s.pos[0]) < 0.25) break;
-  previousX = s.pos[0];
-}
+s = await advanceUntil((v) => v.pos[0] <= 8);
 console.log('  shortcut →', JSON.stringify(s.pos));
 if (s.pos[0] > 8.5) throw new Error(`shortcut passage is blocked, stuck at x=${s.pos[0]}`);
 await shot('shortcut');
 
-await page.waitForTimeout(2000);
+await page
+  .waitForFunction(() => window.__derelict.doorsById.get('airlock').open, null, { timeout: 30000 })
+  .catch(() => {
+    throw new Error('airlock never finished cycling');
+  });
 s = await state();
-if (!s.airlockOpen) throw new Error('airlock never finished cycling');
 await shot('airlock-open');
 
 await place(0, -5.5, 0);
-await walk(['KeyW'], 3000);
+await advanceUntil((v) => v.phase !== 'playing', { bursts: 6, ms: 900 });
 await page.waitForFunction(() => window.__derelict?.phase === 'ended', null, { timeout: 12000 });
 console.log('  escaped');
 await shot('endcard');

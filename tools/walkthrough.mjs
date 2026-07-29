@@ -6,12 +6,10 @@
  *
  *   node tools/walkthrough.mjs [baseUrl] [--shots]
  */
-import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
-const require = createRequire('/opt/node22/lib/node_modules/');
-const { chromium } = require('playwright');
+import { chromium } from 'playwright';
 
 const BASE = process.argv[2] || 'http://127.0.0.1:4173/';
 const SHOTS = process.argv.includes('--shots');
@@ -20,7 +18,7 @@ if (SHOTS) mkdirSync(OUT, { recursive: true });
 
 const errors = [];
 const browser = await chromium.launch({
-  executablePath: process.env.CHROME_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
   args: [
     '--use-gl=swiftshader',
     '--enable-unsafe-swiftshader',
@@ -51,11 +49,14 @@ const face = (yaw) => page.evaluate((y) => void (window.__derelict.player.yaw = 
  * Walks to a point by holding W and re-aiming, the way a player would.
  * Fails loudly if progress stalls — that is the soft-lock detector.
  */
-async function walkTo(name, tx, tz, { arrive = 0.75, timeoutMs = 22000, expectBlocked = false } = {}) {
+async function walkTo(name, tx, tz, { arrive = 0.75, timeoutMs = 45000, expectBlocked = false } = {}) {
   const start = Date.now();
   let travelled = 0;
   let last = await read();
-  let stalledFor = 0;
+  // Stalling is measured in wall-clock, not in poll count: each poll costs a
+  // couple of round-trips to the page, so a slower browser makes "26 polls"
+  // mean something completely different from one run to the next.
+  let lastProgressAt = Date.now();
 
   await page.keyboard.down('KeyW');
   try {
@@ -77,17 +78,22 @@ async function walkTo(name, tx, tz, { arrive = 0.75, timeoutMs = 22000, expectBl
       // yaw 0 looks down -Z, so forward is (-sin, -cos).
       await face(Math.atan2(-dx, -dz));
 
-      stalledFor = step < 0.012 ? stalledFor + 1 : 0;
-      if (stalledFor >= 26) {
-        if (expectBlocked) {
-          return { travelled, seconds: (Date.now() - start) / 1000, end: now, blocked: true };
-        }
+      if (step >= 0.012) lastProgressAt = Date.now();
+      const stalled = Date.now() - lastProgressAt > 2500;
+      const timedOut = Date.now() - start > timeoutMs;
+
+      // Failing to arrive is the whole assertion for a leg that expects a wall,
+      // so either exit condition confirms it.
+      if ((stalled || timedOut) && expectBlocked) {
+        return { travelled, seconds: (Date.now() - start) / 1000, end: now, blocked: true };
+      }
+      if (stalled) {
         throw new Error(
           `stuck walking to ${name}: held at (${now.x.toFixed(2)}, ${now.z.toFixed(2)}), ` +
             `${distance.toFixed(2)} m short`
         );
       }
-      if (Date.now() - start > timeoutMs) {
+      if (timedOut) {
         throw new Error(
           `timed out walking to ${name}: reached (${now.x.toFixed(2)}, ${now.z.toFixed(2)}), ` +
             `${distance.toFixed(2)} m short`
