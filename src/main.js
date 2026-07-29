@@ -15,10 +15,11 @@ import { buildLevel } from './game/level.js';
 import { buildLighting } from './game/lighting.js';
 import { Player } from './game/player.js';
 import { buildStaticProps } from './game/props.js';
-import { buildViewmodel } from './game/viewmodel.js';
+import { buildViewmodel, fovFor } from './game/viewmodel.js';
 
 const FOG_NEAR = 5;
 const FOG_FAR = 30;
+const BASE_FOV = 72;
 const EMERGENCY_TINT = new THREE.Color(0xff7a5a);
 const POWERED_TINT = new THREE.Color(0xd6f4e2);
 
@@ -42,7 +43,7 @@ class Derelict {
     this.scene.background = new THREE.Color(0x05070a);
     this.scene.fog = new THREE.Fog(0x05070a, FOG_NEAR, FOG_FAR);
 
-    this.camera = new THREE.PerspectiveCamera(72, 1, 0.05, 60);
+    this.camera = new THREE.PerspectiveCamera(BASE_FOV, 1, 0.05, 60);
     this.player = new Player(this.camera);
     this.player.onFootstep = () => this.#footstep();
 
@@ -267,6 +268,7 @@ class Derelict {
 
   #resize() {
     const aspect = this.view.resize();
+    this.camera.fov = fovFor(BASE_FOV, aspect);
     this.camera.aspect = aspect;
     this.camera.updateProjectionMatrix();
     this.viewmodel?.resize(aspect);

@@ -10,13 +10,22 @@ import { placeholderModel } from './placeholders.js';
  * the power state of the room the player is standing in.
  */
 
-const REST = new THREE.Vector3(0.31, -0.225, -0.72);
+const REST_DEPTH = -0.72;
 const REST_ROT = new THREE.Euler(0.05, -0.38, 0.08);
 const TOOL_LENGTH = 0.3;
+const BASE_FOV = 58;
+
+/** Widens the view on tall screens so a phone in portrait is not a letterbox. */
+export function fovFor(base, aspect) {
+  return THREE.MathUtils.clamp(base * Math.sqrt(Math.max(1, 1.25 / aspect)), base, base * 1.2);
+}
 
 export function buildViewmodel(assets) {
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(58, 1, 0.01, 4);
+  const camera = new THREE.PerspectiveCamera(BASE_FOV, 1, 0.01, 4);
+  // Anchored as a fraction of the visible frame rather than in world units, so
+  // the tool stays in the bottom-right corner at any aspect ratio.
+  const REST = new THREE.Vector3(0.31, -0.225, REST_DEPTH);
 
   const key = new THREE.DirectionalLight(0xffd9c8, 2.2);
   key.position.set(0.6, 0.8, 0.9);
@@ -64,8 +73,17 @@ export function buildViewmodel(assets) {
     camera,
 
     resize(aspect) {
+      camera.fov = fovFor(BASE_FOV, aspect);
       camera.aspect = aspect;
       camera.updateProjectionMatrix();
+
+      const halfHeight = Math.abs(REST_DEPTH) * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+      REST.set(halfHeight * aspect * 0.48, -halfHeight * 0.56, REST_DEPTH);
+
+      // A narrow frame gives the tool proportionally more screen; pull it in so
+      // a phone in portrait is not half scanner.
+      const trim = THREE.MathUtils.clamp(aspect / 1.2, 0.68, 1);
+      rig.scale.setScalar(scale * trim);
     },
 
     /** Fires the short animation the spec asks for on every interaction. */
