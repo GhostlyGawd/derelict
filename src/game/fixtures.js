@@ -223,6 +223,9 @@ export function buildDoors(assets, cache) {
 
 // ---------------------------------------------------------- power panel ---
 
+/** Seated is seated: a filled pip is green whether or not the door is live. */
+const PIP_LIVE = '#7bff9a';
+
 export function buildPowerPanel(materials) {
   const canvas = document.createElement('canvas');
   canvas.width = 320;
@@ -259,7 +262,13 @@ export function buildPowerPanel(materials) {
     ctx.fillStyle = '#060b08';
     ctx.fillRect(0, 0, 320, 200);
 
-    const lit = count >= 2 ? '#7bff9a' : '#ff5a3c';
+    // The count stays red until the door is live, because until then it is
+    // still saying "this airlock is dead". A pip is a different statement — it
+    // reports one socket, and a cell that is seated is done. Red there put the
+    // colour that means "not yet" on the one thing the player had just
+    // finished, which is the single place the ship's colour language
+    // contradicted itself. Phase 3, spec 3.3.
+    const lit = count >= 2 ? PIP_LIVE : '#ff5a3c';
     ctx.strokeStyle = 'rgba(120,160,132,0.35)';
     ctx.lineWidth = 3;
     ctx.strokeRect(8, 8, 304, 184);
@@ -275,7 +284,7 @@ export function buildPowerPanel(materials) {
 
     for (let i = 0; i < 2; i++) {
       const x = 100 + i * 84;
-      ctx.fillStyle = i < count ? lit : '#20302a';
+      ctx.fillStyle = i < count ? PIP_LIVE : '#20302a';
       ctx.fillRect(x, 150, 56, 20);
       ctx.strokeStyle = 'rgba(140,180,155,0.45)';
       ctx.lineWidth = 2;
