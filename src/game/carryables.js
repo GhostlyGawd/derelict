@@ -21,8 +21,12 @@ const HIGHLIGHT_GAIN = 2.1;
 const HIGHLIGHT_GLOW = new THREE.Color(0x0a0e0b);
 const OFF = new THREE.Color(0x000000);
 
-const LOCKED_CLAMP = new THREE.Color(0x3a0f08);
-const OPEN_CLAMP = new THREE.Color(0x1d5c34);
+// A clamped cell offers no prompt and no highlight, because it cannot be taken
+// — so the cradle's own lamp is the only thing that tells a player why. It uses
+// the same red-until-done vocabulary as the wall switches, and it has to be
+// bright enough to read across a room lit only by emergency light.
+const LOCKED_CLAMP = new THREE.Color(0xd8261a);
+const OPEN_CLAMP = new THREE.Color(0x3fbf63);
 const CELL_GLOW = 0x3aa957;
 
 function instantiate(parts) {

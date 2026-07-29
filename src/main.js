@@ -305,11 +305,14 @@ class Derelict {
     for (const cradle of this.carryables.cradles) {
       if (cradle.released || !cradle.needs.every(satisfied)) continue;
       cradle.release();
+      // Loud enough to carry across the room it is in, since it lands under the
+      // power surge from the switch that just earned it — cradle 2 is 10 m from
+      // switch 2, and distance falloff had it near-masked at half volume.
       this.audio.playAt(
         'door_motor',
         cradle.mount.toArray(),
         this.player.position,
-        { volume: 0.5, rate: 1.6 }
+        { volume: 0.9, rate: 1.6 }
       );
     }
   }
