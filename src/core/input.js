@@ -70,9 +70,18 @@ export class Input {
     }
   }
 
+  /**
+   * Pointer lock is best-effort. Safari can refuse it outright and Chrome
+   * refuses a re-request made too soon after an exit — neither is fatal, since
+   * movement still works and clicking the view asks again.
+   */
   requestPointerLock() {
     if (this.touch) return;
-    this.canvas.requestPointerLock?.();
+    try {
+      this.canvas.requestPointerLock?.()?.catch?.(() => {});
+    } catch {
+      /* unavailable — play continues without mouse look until the next click */
+    }
   }
 
   releasePointerLock() {
@@ -136,8 +145,11 @@ export class Input {
     });
 
     this.canvas.addEventListener('mousedown', (e) => {
-      if (this.touch || !this.enabled) return;
-      if (e.button === 0 && this.locked) this.interactQueued = true;
+      if (this.touch || !this.enabled || e.button !== 0) return;
+      // Clicking the view re-acquires a lock that was refused or dropped,
+      // rather than leaving the player without mouse look.
+      if (this.locked) this.interactQueued = true;
+      else this.requestPointerLock();
     });
   }
 
