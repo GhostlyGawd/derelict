@@ -31,7 +31,9 @@ export const SPACES = [
   { id: 'hold', name: 'Storage Hold', x: [-33, -19], z: [-9, 9], h: 3.8 },
   { id: 'corrB', name: 'Corridor B', x: [7, 19], z: [-1.3, 1.3], h: 2.6 },
   { id: 'annex', name: 'Engine Annex', x: [19, 33], z: [-9, 9], h: 3.8 },
-  { id: 'shortcut', name: 'Shortcut Passage', x: [7, 19], z: [3.6, 5.6], h: 2.4 },
+  // "Shortcut" was a level-design word; a bulkhead would not say it. Renamed
+  // for phase 3, since the compartment labels read these names verbatim.
+  { id: 'shortcut', name: 'Service Passage', x: [7, 19], z: [3.6, 5.6], h: 2.4 },
   { id: 'chamber', name: 'Airlock', x: [-2.2, 2.2], z: [-11.4, -7], h: 2.8 },
 ];
 
@@ -419,6 +421,33 @@ export const SOCKETS = [
  * clutter on the deck.
  */
 export const CELL_MOUNT = [0, 1.45, 0.22];
+
+/**
+ * Phase 3 — compartment labels. One per space, on the bulkhead beside the
+ * opening you come in through, facing back into the room.
+ *
+ * `space` names the SPACES entry whose `name` gets sprayed here, so a label can
+ * never drift from the room it is on. `cap` is cap height in metres: 0.22 puts
+ * roughly a dozen backbuffer pixels through the letterforms from the doorway at
+ * the shipped render scale, which is what the harness checks.
+ *
+ * These name spaces and nothing else. No arrows, no distances, nothing pointing
+ * at an objective — see spec 3.3.
+ */
+export const LABEL_CAP = 0.22;
+
+export const LABELS = [
+  // Beside the airlock, so it is the first thing the spawn faces.
+  { space: 'bay', pos: [-2.9, 2.15, -6.78], facing: [0, 0, 1] },
+  { space: 'corrA', pos: [-9.4, 1.95, -1.08], facing: [0, 0, 1] },
+  // The hold and annex sit on the far side of their dividing wall, so their
+  // inner faces are at ∓19.2 — 19.18 puts the label inside the slab.
+  { space: 'hold', pos: [-19.22, 1.95, 3.0], facing: [-1, 0, 0] },
+  { space: 'corrB', pos: [9.4, 1.95, -1.08], facing: [0, 0, 1] },
+  { space: 'annex', pos: [19.22, 1.95, 3.0], facing: [1, 0, 0] },
+  { space: 'shortcut', pos: [12.2, 1.72, 3.82], facing: [0, 0, 1] },
+  { space: 'chamber', pos: [0, 1.9, -11.18], facing: [0, 0, 1] },
+];
 
 /** Point-in-space lookup, used for footsteps, ambience and objective text. */
 export function spaceAt(x, z) {

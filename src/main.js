@@ -11,6 +11,7 @@ import { createRenderer } from './core/renderer.js';
 import { buildCarryables } from './game/carryables.js';
 import { buildDoors, buildPowerPanel, buildSwitches } from './game/fixtures.js';
 import { Interactor } from './game/interact.js';
+import { buildSignage } from './game/signage.js';
 import { ESCAPE_TRIGGER, SPACES, SPAWN, ZONE_POWER, spaceAt } from './game/layout.js';
 import { buildLevel } from './game/level.js';
 import { buildLighting } from './game/lighting.js';
@@ -121,6 +122,10 @@ class Derelict {
 
     this.panel = buildPowerPanel(this.materials);
     this.scene.add(this.panel.group);
+
+    // Compartment labels, composed from the generated glyph atlas.
+    this.signage = buildSignage(this.assets);
+    this.scene.add(this.signage.group);
 
     this.viewmodel = buildViewmodel(this.assets);
 
