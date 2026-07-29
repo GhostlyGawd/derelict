@@ -74,6 +74,8 @@ const read = () =>
     return {
       phase: g.phase,
       cells: g.cells,
+      carrying: g.carry.held ? g.carry.held.id : null,
+      released: g.carryables.cradles.filter((c) => c.released).map((c) => c.id),
       touch: g.input.usingTouch,
       touchUiVisible: !document.getElementById('touch').classList.contains('hidden'),
       pos: [+g.player.position.x.toFixed(2), +g.player.position.z.toFixed(2)],
@@ -131,9 +133,62 @@ if (SHOTS) await page.screenshot({ path: path.join(OUT, 'm2-switch.png') });
 await page.tap('#touch-interact');
 await page.waitForTimeout(1200);
 s = await read();
-if (s.cells !== 1) throw new Error(`context tap did not flip the switch (cells=${s.cells})`);
+if (!s.released.includes('cradle1')) throw new Error(`context tap did not flip the switch (${JSON.stringify(s)})`);
 console.log('  context tap → switch flipped');
 if (SHOTS) await page.screenshot({ path: path.join(OUT, 'm3-powered.png') });
+
+// ---- Carrying, on touch ----------------------------------------------------
+// The whole phase 2 verb has to work with one thumb: take, put down, take back,
+// seat. The set-down is the part that could quietly not exist on a phone, since
+// it is the one action with nothing in the crosshair to light the button.
+await page.evaluate(() => {
+  const g = window.__derelict;
+  g.player.position.set(-29.5, 0, -7.55);
+  g.player.yaw = 0;
+  g.player.pitch = 0;
+});
+await page.waitForTimeout(400);
+s = await read();
+if (!s.button) throw new Error('context button did not light up at the cradle');
+await page.tap('#touch-interact');
+await page.waitForTimeout(500);
+s = await read();
+if (s.carrying !== 'cell1') throw new Error(`context tap did not take the cell (${JSON.stringify(s)})`);
+console.log('  context tap → cell taken');
+if (SHOTS) await page.screenshot({ path: path.join(OUT, 'm4-carrying.png') });
+
+// Turn to face open floor, so nothing is targeted and only the carry is left.
+await page.evaluate(() => void (window.__derelict.player.yaw = Math.PI));
+await page.waitForTimeout(400);
+s = await read();
+if (!s.button) throw new Error('context button went dark while carrying, so a cell could never be put down on touch');
+if (!s.prompt?.includes('Set Down')) throw new Error(`carrying offered no set-down prompt (got "${s.prompt}")`);
+await page.tap('#touch-interact');
+await page.waitForTimeout(500);
+s = await read();
+if (s.carrying !== null) throw new Error(`context tap did not set the cell down (${JSON.stringify(s)})`);
+
+await page.tap('#touch-interact');
+await page.waitForTimeout(500);
+s = await read();
+if (s.carrying !== 'cell1') throw new Error(`could not pick the cell back up on touch (${JSON.stringify(s)})`);
+console.log('  context tap → set down and picked back up');
+
+await page.evaluate(() => {
+  const g = window.__derelict;
+  g.player.position.set(1.72, 0, -5.9);
+  g.player.yaw = 0;
+  g.player.pitch = 0;
+});
+await page.waitForTimeout(400);
+s = await read();
+if (!s.button) throw new Error('context button did not light up at the socket');
+await page.tap('#touch-interact');
+await page.waitForTimeout(1200);
+s = await read();
+if (s.cells !== 1) throw new Error(`context tap did not seat the cell (${JSON.stringify(s)})`);
+console.log('  context tap → cell seated, 1/2');
+if (SHOTS) await page.screenshot({ path: path.join(OUT, 'm5-seated.png') });
 
 await browser.close();
 

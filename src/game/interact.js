@@ -69,6 +69,17 @@ export class Interactor {
         best = target;
       }
     }
-    return best;
+    if (best) return best;
+
+    // Last: anything the player is standing over. A cell set down at your feet
+    // lands under the crosshair no matter which way you face, so aim cannot be
+    // part of picking it back up — proximity has to be the whole test, or
+    // "put it down and take it again" would mean staring at the deck.
+    for (const target of this.targets) {
+      if (!target.underfoot || !target.canUse()) continue;
+      this._toTarget.copy(target.point).sub(this.camera.position).setY(0);
+      if (this._toTarget.length() <= target.underfoot) return target;
+    }
+    return null;
   }
 }

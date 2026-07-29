@@ -8,9 +8,10 @@ import { Input } from './core/input.js';
 import { MaterialLibrary } from './core/materials.js';
 import { createRenderer } from './core/renderer.js';
 
+import { buildCarryables } from './game/carryables.js';
 import { buildDoors, buildPowerPanel, buildSwitches } from './game/fixtures.js';
 import { Interactor } from './game/interact.js';
-import { ESCAPE_TRIGGER, SPAWN, ZONE_POWER, spaceAt } from './game/layout.js';
+import { ESCAPE_TRIGGER, SPACES, SPAWN, ZONE_POWER, spaceAt } from './game/layout.js';
 import { buildLevel } from './game/level.js';
 import { buildLighting } from './game/lighting.js';
 import { Player } from './game/player.js';
@@ -48,7 +49,12 @@ class Derelict {
     this.player.onFootstep = () => this.#footstep();
 
     this.phase = 'loading';
+    /** Seated cells, not switch flips — the panel counts what is in the sockets. */
     this.cells = 0;
+    /** The single carry slot. Shared by reference with the interactives. */
+    this.carry = { held: null };
+    /** The room table, so tools/deadend.mjs can tell inside from outside. */
+    this.spaces = SPACES;
     this.poweredZones = new Set();
     this.elapsed = 0;
     this.runTime = 0;
@@ -105,6 +111,10 @@ class Derelict {
     this.switches = buildSwitches(this.assets, modelCache);
     for (const sw of this.switches) this.scene.add(sw.object);
 
+    this.carryables = buildCarryables(this.assets, modelCache, this.carry, this.materials);
+    this.scene.add(this.carryables.group);
+    this.staticColliders = this.staticColliders.concat(this.carryables.colliders);
+
     this.doors = buildDoors(this.assets, modelCache);
     for (const door of this.doors) this.scene.add(door.object);
     this.doorsById = new Map(this.doors.map((d) => [d.id, d]));
@@ -116,6 +126,7 @@ class Derelict {
 
     this.interactor = new Interactor(this.camera);
     for (const sw of this.switches) this.interactor.register(sw);
+    for (const target of this.carryables.interactives) this.interactor.register(target);
 
     this.player.reset(SPAWN.pos, SPAWN.yaw);
     this.lighting.reset();
@@ -171,6 +182,9 @@ class Derelict {
     this.hud.fade(1, 0.01);
 
     this.cells = 0;
+    this.carry.held = null;
+    this.carryables.reset();
+    this.viewmodel.setCarrying(false);
     this.escapeArmed = false;
     this.poweredZones.clear();
     for (const sw of this.switches) {
@@ -194,13 +208,25 @@ class Derelict {
 
   // ------------------------------------------------------------- events --
 
+  /**
+   * One interact press. A null target means the crosshair is on nothing, which
+   * is how a carried cell gets set down.
+   */
+  #press(target) {
+    if (target) this.#use(target);
+    else if (this.carry.held) this.#setDown();
+  }
+
+  /** Dispatch for whatever the crosshair is on. */
+  #use(target) {
+    if (target.kind === 'switch') this.#flip(target);
+    else if (target.kind === 'cell') this.#take(target);
+    else if (target.kind === 'socket') this.#seat(target);
+  }
+
   #flip(sw) {
     if (!sw.activate()) return;
-
-    this.cells++;
-    this.panel.setCount(this.cells);
     this.viewmodel.play();
-
     this.audio.playAt('switch_clunk', sw.point.toArray(), this.player.position, { volume: 1 });
     this.audio.play('power_surge', { volume: 0.55, delay: 0.18 });
 
@@ -220,7 +246,75 @@ class Derelict {
       }
     }
 
+    this.#updateGates();
+  }
+
+  #take(cell) {
+    if (!cell.canUse()) return;
+    cell.take();
+    this.carry.held = cell;
+    this.viewmodel.setCarrying(true);
+    this.viewmodel.play();
+    this.audio.playAt('cell_lift', cell.point.toArray(), this.player.position, { volume: 1 });
+  }
+
+  #seat(socket) {
+    const cell = this.carry.held;
+    if (!cell || socket.filled) return;
+    this.carryables.seat(cell, socket);
+    this.carry.held = null;
+    this.viewmodel.setCarrying(false);
+    this.viewmodel.play();
+
+    this.cells = this.carryables.sockets.filter((s) => s.filled).length;
+    this.panel.setCount(this.cells);
+    // cell_seat already carries the circuit waking up behind the latch, so the
+    // room surge comes in later and quieter than it does off a wall switch.
+    this.audio.playAt('cell_seat', socket.point.toArray(), this.player.position, { volume: 1 });
+    this.audio.play('power_surge', { volume: 0.4, delay: 0.55 });
+
+    // Seating the first cell brings the Bay up on its own power.
+    if (this.cells >= 1 && !this.poweredZones.has('bay')) {
+      this.lighting.setPowered('bay', true);
+      this.poweredZones.add('bay');
+    }
+
+    this.#updateGates();
     if (this.cells >= 2) this.#openAirlock();
+  }
+
+  #setDown() {
+    const cell = this.carry.held;
+    if (!cell) return;
+    this.carryables.setDown(cell, this.player.position, this.player.yaw);
+    this.carry.held = null;
+    this.viewmodel.setCarrying(false);
+    this.audio.play('footstep_1', { volume: 0.5, rate: 0.7 });
+  }
+
+  /**
+   * Releases any cradle whose conditions are now all met. Called after every
+   * state change rather than polled, so the release is always the direct
+   * consequence of the action that earned it.
+   */
+  #updateGates() {
+    const satisfied = (need) => {
+      if (need === 'bay-live') return this.cells >= 1;
+      return this.switches.some((sw) => sw.id === need && sw.used);
+    };
+    for (const cradle of this.carryables.cradles) {
+      if (cradle.released || !cradle.needs.every(satisfied)) continue;
+      cradle.release();
+      // Loud enough to carry across the room it is in, since it lands under the
+      // power surge from the switch that just earned it — cradle 2 is 10 m from
+      // switch 2, and distance falloff had it near-masked at half volume.
+      this.audio.playAt(
+        'door_motor',
+        cradle.mount.toArray(),
+        this.player.position,
+        { volume: 0.9, rate: 1.6 }
+      );
+    }
   }
 
   #openAirlock() {
@@ -316,11 +410,22 @@ class Derelict {
 
   #updateInteraction() {
     const target = this.interactor.update();
-    this.hud.setPrompt(
-      target ? (this.input.usingTouch ? target.prompt : `[E] ${target.prompt}`) : null
-    );
-    const pressed = this.input.takeInteract();
-    if (pressed && target) this.#flip(target);
+    // Carrying with nothing in the crosshair still has an action — putting the
+    // cell down — and on touch the context button is lit only when a prompt is
+    // showing. Without this the set-down gesture would be invisible on a phone.
+    const action = target?.prompt ?? (this.carry.held ? 'Set Down Cell' : null);
+    this.hud.setPrompt(action && (this.input.usingTouch ? action : `[E] ${action}`));
+    if (this.input.takeInteract()) this.#press(target);
+  }
+
+  /**
+   * The interact press with the aim taken out of it, for tools/chain.mjs. The
+   * chain harness is about ordering, not about whether a thing is reachable —
+   * walkthrough.mjs owns reachability. Routing through #press means the two can
+   * never test different dispatch.
+   */
+  pressInteractForTest(target = null) {
+    if (this.phase === 'playing') this.#press(target);
   }
 
   #checkEscape() {

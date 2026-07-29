@@ -120,8 +120,12 @@ export const WALLS = [
 
 /**
  * Lighting zones. Every zone starts on dim red emergency power; flipping the
- * switch listed in `poweredBy` snaps it to green-white. `bay` and `chamber`
- * come up when both cells are in.
+ * switch named here snaps that zone to green-white.
+ *
+ * `bay` and `chamber` are not driven from this table — since phase 2 the Bay
+ * comes up when the first cell is seated, and the chamber floods when the
+ * airlock finishes cycling. They are listed only so the set of zones is
+ * complete in one place.
  */
 export const ZONE_POWER = {
   bay: 'both',
@@ -246,8 +250,13 @@ export const SWITCHES = [
   },
 ];
 
-/** The 0/2 readout beside the airlock. */
-export const POWER_PANEL = { pos: [2.15, 1.55, -6.74], facing: [0, 0, 1], size: [1.5, 0.95] };
+/**
+ * The 0/2 readout beside the airlock, sitting above the two cell sockets. It
+ * rides high enough to clear them, since the sockets are the fixtures with a
+ * height requirement — see SOCKETS. Reading a display is not aiming at it, so
+ * the panel is free to sit above the eye line.
+ */
+export const POWER_PANEL = { pos: [2.15, 2.45, -6.74], facing: [0, 0, 1], size: [1.5, 0.95] };
 
 const rad = (deg) => (deg * Math.PI) / 180;
 
@@ -359,6 +368,57 @@ export const BLOCKERS = [
   // ±0.37 m of steering room around a 0.68 m-wide player.
   { x: [11.3, 13.6], z: [-1.4, 0.05], h: 2.1 },
 ];
+
+/**
+ * Phase 2 — carryable power cells and the machinery that holds and accepts
+ * them. Two cradles, two cells, two sockets, and that is the whole of it.
+ *
+ * A cradle releases its cell only when every id in `needs` is satisfied, which
+ * is what makes the chain ordered rather than merely suggested.
+ */
+export const CRADLES = [
+  {
+    id: 'cradle1',
+    zone: 'hold',
+    cell: 'cell1',
+    pos: [-29.5, 0, -8.68],
+    facing: [0, 0, 1],
+    needs: ['switch1'],
+  },
+  {
+    id: 'cradle2',
+    zone: 'annex',
+    cell: 'cell2',
+    pos: [31.2, 0, -8.68],
+    facing: [0, 0, 1],
+    // Annex under power AND the Bay live. Either alone leaves a way to skip a
+    // step; both together is what P3 step 4 requires.
+    needs: ['switch2', 'bay-live'],
+  },
+];
+
+/**
+ * The two receptacles under the airlock readout. One-way: nothing comes back.
+ *
+ * Mounted so the receptacle mouth straddles PLAYER_EYE. The crosshair ray
+ * leaves the eye travelling flat, so a fixture that sits entirely below eye
+ * level can only be aimed at from a distance and stops being aimable at all
+ * once the player walks right up to it — which is precisely when they are
+ * trying to use it. Everything the crosshair must find is placed across the
+ * eye line, not under it.
+ */
+export const SOCKETS = [
+  { id: 'socket1', pos: [1.72, 1.42, -6.7], facing: [0, 0, 1] },
+  { id: 'socket2', pos: [2.58, 1.42, -6.7], facing: [0, 0, 1] },
+];
+
+/**
+ * Where a cell sits in its cradle, relative to the cradle's own origin. Set so
+ * the cell body straddles the eye line for the same reason the sockets do, and
+ * so a cell across a dim room reads as a presented object rather than as
+ * clutter on the deck.
+ */
+export const CELL_MOUNT = [0, 1.45, 0.22];
 
 /** Point-in-space lookup, used for footsteps, ambience and objective text. */
 export function spaceAt(x, z) {

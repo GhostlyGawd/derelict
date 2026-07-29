@@ -156,9 +156,34 @@ export const MODELS = [
       'A pile of collapsed ceiling debris, buckled metal floor panels, twisted strut fragments and broken plating lying in a heap.'
     ),
   },
+
+  // ---- Phase 2 -----------------------------------------------------------
+  // Authored at the exact heights src/game/layout.js expects: the cell body has
+  // to straddle the player's eye line, and the cradle shelf has to land on
+  // CELL_MOUNT.y so it does.
+  {
+    id: 'power_cell',
+    size: 0.4,
+    fit: 'height',
+    tris: 2000,
+    synth: 'power_cell',
+    prompt: modelPrompt(
+      'A portable fusion power cell, chunky armoured battery block with corner ribs and a carry handle across the top, heavy contact pins underneath, a small charge readout and a sickly green glow strip down the front.'
+    ),
+  },
+  {
+    id: 'cell_cradle',
+    size: 1.6,
+    fit: 'height',
+    tris: 3000,
+    synth: 'cell_cradle',
+    prompt: modelPrompt(
+      'A wall-mounted charging cradle for a power cell, armoured pedestal with a shelf that presents the cell at eye level, two sprung clamp arms either side of the cell bay, a status lamp strip on the front and a thick conduit running down into the deck.'
+    ),
+  },
 ];
 
-/** The eight sounds, all generated. */
+/** The ten sounds, all generated. Eight from v1, two added by phase 2. */
 export const SOUNDS = [
   {
     id: 'ambient_hum',
@@ -221,6 +246,26 @@ export const SOUNDS = [
     gain: 0.9,
     synth: 'sting',
     prompt: audioPrompt('A short cinematic resolution sting, low synth drone opening into a clean rising fifth, cold and hopeful.'),
+  },
+
+  // ---- Phase 2 -----------------------------------------------------------
+  {
+    id: 'cell_lift',
+    seconds: 1.0,
+    gain: 0.9,
+    synth: 'lift',
+    prompt: audioPrompt(
+      'A heavy power cell being pulled out of its charging cradle: magnetic clamps releasing with a short servo whir, contacts parting with a soft electrical pop, then the dull weight of it coming free.'
+    ),
+  },
+  {
+    id: 'cell_seat',
+    seconds: 1.6,
+    gain: 0.95,
+    synth: 'seat',
+    prompt: audioPrompt(
+      'A power cell sliding home into a socket: metal guide rails, a solid latching clunk, then contacts engaging and the circuit coming alive with a rising hum.'
+    ),
   },
 ];
 

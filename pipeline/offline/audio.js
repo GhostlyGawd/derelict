@@ -96,6 +96,10 @@ export function synthesiseSound(spec, sampleRate) {
       return footstep(spec, sampleRate);
     case 'sting':
       return sting(spec, sampleRate);
+    case 'lift':
+      return lift(spec, sampleRate);
+    case 'seat':
+      return seat(spec, sampleRate);
     default:
       return clunk(spec, sampleRate);
   }
@@ -309,5 +313,101 @@ function sting(spec, sampleRate) {
     v += lp(random() * 2 - 1, 900 + shimmer * 2400) * 0.05 * swell;
 
     return v * tail * window(t, spec.seconds, 0.02, 0.6);
+  });
+}
+
+/**
+ * Taking a cell: clamps letting go, contacts parting, then the weight of it.
+ *
+ * Deliberately the inverse shape of `seat` — this one starts tight and opens
+ * out, that one starts loose and closes. They are the only pair of sounds in
+ * the game that read as opposites, and the player hears them dozens of times.
+ */
+function lift(spec, sampleRate) {
+  const random = rng(0x3d90c);
+  const lp = lowpass(sampleRate);
+  const bp = bandpass(sampleRate);
+
+  return render(spec.seconds, sampleRate, (t) => {
+    let v = 0;
+
+    // Magnetic clamps unlatching: a short servo whir falling in pitch.
+    if (t < 0.34) {
+      const spin = 1 - clamp01(t / 0.34);
+      v += Math.sin(TAU * (280 + spin * 190) * t) * 0.1 * Math.sin(clamp01(t / 0.06) * Math.PI * 0.5);
+      v += bp(random() * 2 - 1, 1900 + spin * 900, 7) * 0.09 * spin;
+    }
+
+    // Clamps releasing — two sprung arms, a beat apart.
+    for (const at of [0.16, 0.23]) {
+      const local = t - at;
+      if (local >= 0 && local < 0.12) {
+        v += bp(random() * 2 - 1, 2600, 11) * expDecay(local, 62) * 0.42;
+        v += Math.sin(TAU * 340 * local) * expDecay(local, 55) * 0.16;
+      }
+    }
+
+    // Contacts parting: a soft electrical pop with a little crackle.
+    const part = t - 0.3;
+    if (part >= 0 && part < 0.18) {
+      v += bp(random() * 2 - 1, 4200, 6) * expDecay(part, 46) * 0.2;
+      v += Math.sin(TAU * 1450 * part) * expDecay(part, 70) * 0.07;
+    }
+
+    // The cell coming free: dull mass sliding off the shelf.
+    const free = t - 0.36;
+    if (free >= 0) {
+      v += lp(random() * 2 - 1, 620) * expDecay(free, 9) * 0.3;
+      v += Math.sin(TAU * 74 * free) * expDecay(free, 12) * 0.42;
+      v += modes(free, [
+        [438, 0.05, 9],
+        [905, 0.028, 13],
+      ]);
+    }
+
+    return v * window(t, spec.seconds, 0.003, 0.3);
+  });
+}
+
+/** Seating a cell: rails, a latch, then the circuit waking up behind it. */
+function seat(spec, sampleRate) {
+  const random = rng(0x6f221);
+  const lp = lowpass(sampleRate);
+  const bp = bandpass(sampleRate);
+
+  return render(spec.seconds, sampleRate, (t) => {
+    let v = 0;
+
+    // Sliding down the guide rails: filtered noise closing up as it seats.
+    if (t < 0.3) {
+      const slide = clamp01(t / 0.3);
+      v += bp(random() * 2 - 1, 3200 - slide * 1600, 4) * 0.16 * Math.sin(slide * Math.PI);
+    }
+
+    // The latch. Heavier than the switch clunk — this one is the payoff.
+    const hit = t - 0.3;
+    if (hit >= 0) {
+      const pitch = 82 * (1 - 0.36 * clamp01(hit * 12));
+      v += Math.sin(TAU * pitch * hit) * expDecay(hit, 14) * 0.9;
+      v += lp(random() * 2 - 1, 1300) * expDecay(hit, 40) * 0.5;
+      v += modes(hit, [
+        [524, 0.1, 5.5],
+        [1042, 0.055, 7.5],
+        [1655, 0.026, 11],
+      ]);
+    }
+
+    // Contacts biting, then the circuit coming up behind them.
+    const live = t - 0.42;
+    if (live >= 0) {
+      const rise = ramp(live, 0, 0.55);
+      v += bp(random() * 2 - 1, 3600, 8) * expDecay(live, 34) * 0.18;
+      v += (Math.sin(TAU * 50 * live) * 0.12 + Math.sin(TAU * 100 * live) * 0.06) * rise;
+      v += Math.sin(TAU * (300 + rise * 520) * live) * 0.05 * Math.sin(rise * Math.PI);
+      // Settle, so it hands over to the room's own hum rather than competing.
+      v *= 1 - clamp01((live - 0.7) / 0.45) * 0.55;
+    }
+
+    return v * window(t, spec.seconds, 0.004, 0.35);
   });
 }

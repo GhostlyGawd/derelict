@@ -38,9 +38,10 @@ to tri budget, crunch textures to 256 px).
 
 # Phase 2 — v1.1
 
-**Status: DRAFT, awaiting ratification.** Derived from the interview of 29 July
-2026. Nothing here is built yet. Once ratified this is locked on the same terms
-as v1: if we change something during the build, we change this document first.
+**Status: LOCKED.** Ratified 29 July 2026 by merging PR #12, following the
+interview of the same day. On the same terms as v1: nothing here is a
+suggestion, and if we change something during the build we change this document
+first.
 
 Supersedes part of v1 §4. Everything in v1 not named here still stands,
 including Amendment 1. Where the two disagree, this section wins.
@@ -77,10 +78,11 @@ switches actually do.
    clamp. Take the cell.
 3. **Back to the Bay.** Seat the cell. The panel reads 1/2, and the Bay comes up
    on its own power.
-4. **Engine Annex.** Cell 2's cradle is dead until the Bay is live — so it
-   cannot be taken before step 3. The Annex switch powers the room and the
-   shortcut hatch as it does today; the cradle releases only once the Bay has a
-   cell in it.
+4. **Engine Annex.** Cell 2's cradle needs two things: the Annex under power,
+   and the Bay live. The Annex switch supplies the first and works as it does
+   today, opening the shortcut hatch with it. Seating cell 1 supplies the
+   second. Neither alone is enough, so the cell cannot be taken before step 3
+   and the Annex switch cannot be skipped.
 5. **Back through the shortcut.** Seat the second cell. 2/2, airlock cycles,
    walk out.
 
@@ -101,8 +103,11 @@ squeeze and the shortcut all keep working as they do now.
 maximise freedom:
 
 - One cell at a time.
-- Interact with a cell to take it; interact with a socket while carrying to seat
-  it; interact with anything else while carrying to set the cell down.
+- Interact with a cell to take it. While carrying: interact with a socket to
+  seat it, interact with nothing to set it down. Every other interactive still
+  behaves normally with your hands full — you can flip a switch while holding a
+  cell, and you must be able to, because nothing in the chain guarantees you are
+  empty-handed when you reach one.
 - **A carried cell replaces the scanner in the viewmodel**, which stows while
   your hands are full. The HUD does not change — v1 §4 still holds. Carrying is
   therefore always visible without a HUD element, and the tool being unavailable
@@ -112,6 +117,21 @@ maximise freedom:
   cannot re-enter.
 - Sockets are one-way. Once a cell is seated it is spent. This deletes an entire
   class of failure rather than testing for it.
+
+**Where fixtures are mounted.** Every fixture the crosshair has to find is
+placed so its body straddles the player's eye line. The interact ray leaves the
+eye travelling flat, so a fixture sitting entirely below eye height can be aimed
+at only from a distance and stops being aimable at all as the player walks up to
+it — exactly when they are trying to use it. Cradles present their cell across
+the eye line; sockets are mounted at the same height and the airlock readout
+moves up to sit above them. This is a rule about aiming, not decoration, and it
+is why the readout is no longer at waist height.
+
+The one thing that cannot obey that rule is a cell lying on the deck, which is
+under the crosshair from every angle. So a set-down cell is taken by proximity
+alone, with no aiming: standing over it is enough. Put down and pick back up is
+therefore the same button pressed twice in the same spot, and never requires
+staring at the floor.
 
 Setting a cell down anywhere is the more expensive of the options considered,
 and was chosen deliberately. It means the dead-end harness cannot simply assume
@@ -123,6 +143,11 @@ asset work.
 **New assets**, through the existing pipeline: `power_cell` and `cell_cradle`
 models, and two sounds — cell lift and cell seat. Existing style bible, existing
 budgets, existing post-process.
+
+The socket is the third interactive type but not a third model. It is a shallow
+wall fixture of the same kind as the airlock readout, which v1 already builds in
+engine from the generated wall surfaces, and it is built the same way. Two new
+models is the box, and it holds.
 
 **Unchanged:** the five spaces, the two wall switches, the lighting states, the
 airlock, the shortcut hatch, the retro rendering treatment, the HUD.
@@ -142,13 +167,36 @@ space and not from more verbs.
 
 | | Verified by |
 |---|---|
-| **No unwinnable states.** No sequence of player actions leaves the game uncompletable. A cell can always be recovered and every socket can always be reached. | Claude — an adversarial harness that searches action sequences for dead ends, run in CI |
-| **Real dependency depth.** The critical path is six ordered steps and no step can be completed before its predecessor. | Claude — asserted structurally against the interaction table, not by playing |
+| **No unwinnable states.** No sequence of player actions leaves the game uncompletable. A cell can always be recovered and every socket can always be reached. | Claude — a harness that reasons over the whole walkable floor rather than over action sequences, run in CI. See below. |
+| **Real dependency depth.** The critical path is six ordered steps and no step can be completed before its predecessor. | Claude — a harness that drives each interaction directly, with aim taken out, and asserts every step refuses to work before its predecessor |
 | **Still a short vignette.** A player who knows the route finishes inside five minutes. | Claude — the on-foot walkthrough harness reports game-clock duration |
 | **Solvable without hints.** A player finishes cold, with no tutorial text and no instruction beyond the existing controls card. | **The owner.** Claude cannot verify this and must not claim to |
 
+**How the no-unwinnable-states bar is actually met.** Searching action
+sequences turned out to be the wrong shape. The only action that can strand
+anything is setting a cell down, the cell always lands where the player is
+standing, and cells add no colliders — so the question is never "which order
+did they do things in", it is "is every floor position the player can stand on
+a position they can walk back from". That is a statement about the floor, and
+it is decided directly:
+
+- Grid the level at 10 cm and mark a square walkable when the player's real
+  collision box, centred there, hits none of the real colliders read out of the
+  running game.
+- Flood fill from the spawn, allowing a step only when the union of the two
+  player boxes is clear. That is stricter than testing the endpoints, so the
+  fill can under-report reachability but never over-report it.
+- The step relation is symmetric, so the filled component is mutually
+  reachable — which is the guarantee. That symmetry is checked rather than
+  assumed, by filling again from a socket and requiring an identical component.
+- Repeat at every gate state and require that the reachable set only grows. A
+  door that closed is the one way this level could trap someone.
+
+Floor that is walkable but sealed behind a door that has not opened yet is
+gated, not orphaned, so each state is judged against the final one.
+
 Plus everything v1 §11 already required, which must not regress: the loop stays
-playable start to finish, all three harnesses stay green, every asset still comes
+playable start to finish, every harness stays green, every asset still comes
 from the pipeline, and the Vercel deployment stays live.
 
 ## P7. The box
