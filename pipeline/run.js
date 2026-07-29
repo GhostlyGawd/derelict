@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { MODELS, SOUNDS, TEXTURES } from './manifest.js';
 import { STYLE_BIBLE } from './style-bible.js';
-import { ASSETS, bytes, readJson, rel, writeJson } from './lib/io.js';
+import { ASSETS, bytes, rel, writeJson } from './lib/io.js';
 import { log } from './lib/log.js';
 import { runAudio } from './stages/audio.js';
 import { runModels } from './stages/models.js';
@@ -57,16 +57,19 @@ async function main() {
     `manifest: ${TEXTURES.length} textures, ${MODELS.length} models, ${SOUNDS.length} sounds`
   );
 
-  const existing = (await readJson(path.join(ASSETS, 'manifest.json'))) || {};
-  const collected = {
-    textures: existing.textures || {},
-    models: existing.models || {},
-    audio: existing.audio || {},
+  const collected = {};
+  const run = async (name, stage) => {
+    const requested = stages.includes(name);
+    // The manifest has to describe what is actually on disk, so stages that
+    // were not asked for still get walked — with `force` off they only read
+    // back what a previous run left behind.
+    if (!requested && !stages.includes('manifest')) return;
+    collected[name] = await stage({ backend, force: requested && force });
   };
 
-  if (stages.includes('textures')) collected.textures = await runTextures({ backend, force });
-  if (stages.includes('models')) collected.models = await runModels({ backend, force });
-  if (stages.includes('audio')) collected.audio = await runAudio({ backend, force });
+  await run('textures', runTextures);
+  await run('models', runModels);
+  await run('audio', runAudio);
 
   if (stages.includes('manifest')) await writeManifest(collected, backend, providers);
 }

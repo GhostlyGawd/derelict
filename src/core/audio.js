@@ -71,28 +71,65 @@ export class AudioBus {
     return this.play(id, { volume: volume * falloff * falloff, rate });
   }
 
+  /**
+   * The 30 s bed, looped by overlapping two voices with an equal-power
+   * crossfade rather than with `loop = true`.
+   *
+   * Compressed audio decodes with silent padding on both ends, so a plain
+   * loop ticks once a cycle — very audible on a continuous bed. Overlapping
+   * voices sidesteps the codec entirely, and keeps the ambience from settling
+   * into an obvious period.
+   */
   startAmbient() {
     if (!this.ready || this.ambient) return;
     const buffer = this.buffers.get('ambient_hum');
     if (!buffer) return;
-    const source = this.ctx.createBufferSource();
-    source.buffer = buffer;
-    source.loop = true;
-    const gain = this.ctx.createGain();
-    gain.gain.value = 0.0;
-    gain.gain.linearRampToValueAtTime(0.34, this.ctx.currentTime + 3);
-    source.connect(gain).connect(this.master);
-    source.start();
-    this.ambient = { source, gain };
+
+    const bus = this.ctx.createGain();
+    bus.gain.value = 0.0001;
+    bus.gain.linearRampToValueAtTime(AMBIENT_LEVEL, this.ctx.currentTime + 3);
+    bus.connect(this.master);
+
+    const pad = 0.06;
+    const body = Math.max(2, buffer.duration - pad * 2);
+    const overlap = Math.min(1.5, body / 3);
+    const state = { bus, stopped: false, timer: null, next: this.ctx.currentTime + 0.05 };
+
+    const voice = (at) => {
+      const source = this.ctx.createBufferSource();
+      source.buffer = buffer;
+      const gain = this.ctx.createGain();
+      gain.gain.setValueCurveAtTime(FADE_IN, at, overlap);
+      gain.gain.setValueAtTime(1, at + overlap + 0.001);
+      gain.gain.setValueCurveAtTime(FADE_OUT, at + body - overlap, overlap);
+      source.connect(gain).connect(bus);
+      source.start(at, pad, body);
+      source.stop(at + body + 0.05);
+    };
+
+    const pump = () => {
+      if (state.stopped) return;
+      while (state.next < this.ctx.currentTime + 2.5) {
+        voice(state.next);
+        state.next += body - overlap;
+      }
+      state.timer = setTimeout(pump, 1000);
+    };
+
+    pump();
+    this.ambient = state;
   }
 
   stopAmbient() {
     if (!this.ambient) return;
-    try {
-      this.ambient.source.stop();
-    } catch {
-      /* already stopped */
-    }
+    this.ambient.stopped = true;
+    clearTimeout(this.ambient.timer);
+    const { bus } = this.ambient;
+    const now = this.ctx.currentTime;
+    bus.gain.cancelScheduledValues(now);
+    bus.gain.setValueAtTime(Math.max(0.0001, bus.gain.value), now);
+    bus.gain.linearRampToValueAtTime(0.0001, now + 0.3);
+    setTimeout(() => bus.disconnect(), 600);
     this.ambient = null;
   }
 
@@ -117,6 +154,18 @@ export class AudioBus {
     if (suspended && this.ctx.state === 'running') this.ctx.suspend();
     if (!suspended && this.ctx.state === 'suspended') this.ctx.resume();
   }
+}
+
+const AMBIENT_LEVEL = 0.34;
+
+/** Equal-power crossfade curves — a linear pair dips 3 dB at the midpoint. */
+const CURVE_POINTS = 64;
+const FADE_IN = new Float32Array(CURVE_POINTS);
+const FADE_OUT = new Float32Array(CURVE_POINTS);
+for (let i = 0; i < CURVE_POINTS; i++) {
+  const t = i / (CURVE_POINTS - 1);
+  FADE_IN[i] = Math.max(0.0001, Math.sin((t * Math.PI) / 2));
+  FADE_OUT[i] = Math.max(0.0001, Math.cos((t * Math.PI) / 2));
 }
 
 export const SOUND_IDS = [

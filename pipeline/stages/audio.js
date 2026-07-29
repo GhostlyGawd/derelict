@@ -5,7 +5,6 @@ import { synthesiseSound } from '../offline/audio.js';
 import {
   edgeFade,
   encodeMp3,
-  encodeWav,
   makeLoop,
   normalise,
   pcm16ToFloat,
@@ -19,14 +18,17 @@ import { generateSound } from '../providers/audio.js';
 /**
  * Stage 4 — audio.
  *
- * generate → loudness-normalise → save. Looping ambience is built into a
- * seamless loop of the requested length and shipped as WAV; MP3's encoder
- * padding leaves an audible gap at the loop point, which you notice
- * immediately on a 30 second bed.
+ * generate → loudness-normalise → save. Looping ambience is crossfaded into a
+ * seamless loop of the requested length and encoded at a lower bitrate: it is
+ * a low rumble, and at 30 seconds it would otherwise dominate the download.
+ * The runtime overlaps two voices to loop it, so the codec's padding never
+ * shows up as a tick.
  */
 
 const RATE = 44100;
-const LOOP_RATE = 22050;
+const LOOP_RATE = 32000;
+const LOOP_KBPS = 56;
+const CUE_KBPS = 96;
 
 export async function runAudio({ backend, force = false }) {
   log.stage('audio');
@@ -36,12 +38,11 @@ export async function runAudio({ backend, force = false }) {
   const entries = {};
 
   for (const spec of SOUNDS) {
-    const extension = spec.loop ? 'wav' : 'mp3';
-    const file = path.join(outDir, `${spec.id}.${extension}`);
+    const file = path.join(outDir, `${spec.id}.mp3`);
     if (!force && (await exists(file))) {
       log.step(`${spec.id} — up to date`);
       entries[spec.id] = {
-        file: `audio/${spec.id}.${extension}`,
+        file: `audio/${spec.id}.mp3`,
         seconds: spec.seconds,
         bytes: await size(file),
         ...(spec.loop ? { loop: true } : {}),
@@ -97,17 +98,17 @@ export async function runAudio({ backend, force = false }) {
     });
     seconds = levelled.length / rate;
 
-    buffer = spec.loop ? encodeWav(levelled, rate) : encodeMp3(levelled, rate, 96);
+    buffer = encodeMp3(levelled, rate, spec.loop ? LOOP_KBPS : CUE_KBPS);
     await write(file, buffer);
 
     entries[spec.id] = {
-      file: `audio/${spec.id}.${extension}`,
+      file: `audio/${spec.id}.mp3`,
       seconds: Number(seconds.toFixed(2)),
       bytes: buffer.length,
       ...(spec.loop ? { loop: true } : {}),
     };
     log.done(
-      `${spec.id} — ${seconds.toFixed(2)}s ${extension}, ` +
+      `${spec.id} — ${seconds.toFixed(2)}s mp3, ` +
         `${bytes(buffer.length)}, gain ×${gain.toFixed(2)} → rms ${rms.toFixed(3)} → ${rel(file)}`
     );
   }
