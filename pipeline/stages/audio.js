@@ -7,13 +7,11 @@ import {
   encodeMp3,
   makeLoop,
   normalise,
-  pcm16ToFloat,
   removeDc,
   resample,
 } from '../lib/audio.js';
 import { ASSETS, bytes, ensureDir, exists, rel, size, write } from '../lib/io.js';
 import { log } from '../lib/log.js';
-import { generateSound } from '../providers/audio.js';
 
 /**
  * Stage 4 — audio.
@@ -30,7 +28,7 @@ const LOOP_RATE = 32000;
 const LOOP_KBPS = 56;
 const CUE_KBPS = 96;
 
-export async function runAudio({ backend, force = false }) {
+export async function runAudio({ force = false }) {
   log.stage('audio');
   const outDir = path.join(ASSETS, 'audio');
   await ensureDir(outDir);
@@ -50,37 +48,10 @@ export async function runAudio({ backend, force = false }) {
       continue;
     }
 
-    let samples;
     let rate = RATE;
-    let passthrough = null;
-
-    if (backend === 'provider') {
-      const result = await generateSound(spec.prompt, { seconds: spec.seconds });
-      if (result.format === 'pcm') {
-        samples = pcm16ToFloat(result.data);
-        rate = result.sampleRate;
-      } else {
-        // Compressed audio we cannot decode without a codec — ship it as it
-        // came back and say so, rather than pretending it was normalised.
-        passthrough = result.data;
-        log.warn(`${spec.id} — provider returned ${result.format}; skipped loudness normalisation`);
-      }
-    } else {
-      samples = synthesiseSound(spec, RATE);
-    }
-
-    let buffer;
     let seconds = spec.seconds;
-
-    if (passthrough) {
-      buffer = passthrough;
-      await write(path.join(outDir, `${spec.id}.mp3`), buffer);
-      entries[spec.id] = { file: `audio/${spec.id}.mp3`, seconds, bytes: buffer.length };
-      log.done(`${spec.id} — ${bytes(buffer.length)} (passthrough)`);
-      continue;
-    }
-
-    samples = removeDc(samples);
+    let buffer;
+    let samples = removeDc(synthesiseSound(spec, RATE));
 
     if (spec.loop) {
       if (rate !== LOOP_RATE) {

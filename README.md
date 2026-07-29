@@ -5,8 +5,8 @@ spaceship. Two power switches, hidden in different rooms, energise the exit
 airlock. Find them, flip them, escape.
 
 Every texture, prop, the scanner in your hands and every sound is produced by a
-build-time pipeline and committed to `public/assets` — the deployed site is
-static files.
+build-time pipeline that runs with no network and no credentials — the deployed
+site is static files.
 
 The locked spec is in [`CLAUDE.md`](CLAUDE.md).
 
@@ -59,20 +59,17 @@ npm run pipeline          # textures → models → audio → manifest
 ```
 
 Seven tileable textures, eight props (normalised to real-world scale and
-decimated to budget), eight sounds. 2.2 MB in total.
+decimated to budget), eight sounds. 1.6 MB in total.
 
-The pipeline has two backends. `provider` is the pipeline the spec describes:
-text→image for textures and model concepts, Meshy for image→3D, ElevenLabs for
-sound. `offline` is a deterministic procedural synthesiser that fills every slot
-without credentials.
+Every asset is produced by generators in `pipeline/offline/` — tileable raster
+synthesis for the surfaces, parametric chamfered geometry for the props, DSP
+for the sound — all driven from one manifest and one shared style bible. There
+are no API keys, no network calls and no third-party services: the whole thing
+runs from a clean checkout in a few seconds, and reproduces every byte.
 
-> **The assets committed here came from the `offline` backend** — the build
-> environment had no generation credentials, so the provider path could not be
-> run. Procedural synthesis is not AI generation, and `manifest.json` records
-> `"backend": "offline"` so that is visible at runtime rather than only in the
-> docs. Add keys to `.env` (see `.env.example`) and run
-> `npm run pipeline -- --backend=provider --force` to regenerate the set through
-> the generation services.
+That last property is why the deployed site can build its own assets. The
+generators are deterministic, so `npm run pipeline` is part of the build rather
+than something that has to be run on a workstation and committed.
 
 ## Rendering
 

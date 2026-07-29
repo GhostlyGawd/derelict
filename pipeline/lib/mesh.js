@@ -10,8 +10,10 @@
  */
 
 export class MeshBuilder {
-  constructor({ uvScale = 1 } = {}) {
+  constructor({ uvScale = 1, chamfer = 0 } = {}) {
     this.uvScale = uvScale;
+    /** Applied to every `box()` that does not opt out or use a taper. */
+    this.defaultChamfer = chamfer;
     this.position = [];
     this.normal = [];
     this.uv = [];
@@ -42,6 +44,141 @@ export class MeshBuilder {
     return this;
   }
 
+  /**
+   * Quad with the winding chosen so the face points along `outward`. Lets the
+   * chamfer code emit geometry without hand-reasoning about 12 edge windings.
+   */
+  quadFacing(p0, p1, p2, p3, outward, colour, uvScale = this.uvScale) {
+    const n = normal(p0, p1, p3);
+    const facing = n[0] * outward[0] + n[1] * outward[1] + n[2] * outward[2];
+    return facing >= 0
+      ? this.quad(p0, p1, p2, p3, colour, uvScale)
+      : this.quad(p3, p2, p1, p0, colour, uvScale);
+  }
+
+  triangleFacing(p0, p1, p2, outward, colour, uvScale = this.uvScale) {
+    const n = normal(p0, p1, p2);
+    const facing = n[0] * outward[0] + n[1] * outward[1] + n[2] * outward[2];
+    return facing >= 0
+      ? this.triangle(p0, p1, p2, colour, uvScale)
+      : this.triangle(p2, p1, p0, colour, uvScale);
+  }
+
+  /**
+   * A box with its twelve edges cut back.
+   *
+   * 44 triangles instead of 12, and worth every one of them: a hard 90°
+   * corner under a point light is a single value step, while a chamfer picks
+   * up a bright rim that reads the silhouette from across a room. This is
+   * most of what separates "programmer box" from "prop" at this poly count.
+   */
+  chamferBox({
+    size,
+    chamfer = 0.02,
+    pos = [0, 0, 0],
+    rot = [0, 0, 0],
+    colour = [1, 1, 1],
+    uvScale,
+    edgeWear = 1.3,
+  }) {
+    const [w, h, d] = size;
+    const hx = w / 2;
+    const hy = h / 2;
+    const hz = d / 2;
+    const c = Math.min(chamfer, hx * 0.45, hy * 0.45, hz * 0.45);
+    if (c <= 1e-5) return this.box({ size, pos, rot, colour, uvScale, chamfer: 0 });
+
+    const m = matrix(pos, rot);
+    // Three vertices per box corner, each pushed out along one axis.
+    const V = (axis, sx, sy, sz) =>
+      apply(m, [
+        sx * (axis === 0 ? hx : hx - c),
+        sy * (axis === 1 ? hy : hy - c),
+        sz * (axis === 2 ? hz : hz - c),
+      ]);
+
+    const S = [-1, 1];
+    // Edges of a metal prop rub back to bare metal long before the faces do.
+    // Tinting the chamfer strips brighter bakes that wear in, and it is what
+    // actually makes the bevel read under diffuse light — the geometry alone
+    // barely separates from the face it borders.
+    const worn = colour.map((v) => Math.min(1, v * edgeWear));
+
+    // Six inset faces.
+    for (const axis of [0, 1, 2]) {
+      for (const s of S) {
+        const outward = [0, 0, 0];
+        outward[axis] = s;
+        const corners = [];
+        for (const a of S) {
+          for (const b of S) {
+            const sign = [0, 0, 0];
+            sign[axis] = s;
+            sign[(axis + 1) % 3] = a;
+            sign[(axis + 2) % 3] = b;
+            corners.push({ a, b, p: V(axis, sign[0], sign[1], sign[2]) });
+          }
+        }
+        // Order the four into a ring rather than the paired order above.
+        const ring = [
+          corners.find((k) => k.a === -1 && k.b === -1).p,
+          corners.find((k) => k.a === 1 && k.b === -1).p,
+          corners.find((k) => k.a === 1 && k.b === 1).p,
+          corners.find((k) => k.a === -1 && k.b === 1).p,
+        ];
+        this.quadFacing(ring[0], ring[1], ring[2], ring[3], outward, colour, uvScale);
+      }
+    }
+
+    // Twelve edge strips, one per pair of adjacent faces.
+    for (let axis = 0; axis < 3; axis++) {
+      const u = (axis + 1) % 3;
+      const v = (axis + 2) % 3;
+      for (const su of S) {
+        for (const sv of S) {
+          const outward = [0, 0, 0];
+          outward[u] = su;
+          outward[v] = sv;
+          const at = (along) => {
+            const sign = [0, 0, 0];
+            sign[axis] = along;
+            sign[u] = su;
+            sign[v] = sv;
+            return sign;
+          };
+          const a = at(-1);
+          const b = at(1);
+          this.quadFacing(
+            V(u, a[0], a[1], a[2]),
+            V(u, b[0], b[1], b[2]),
+            V(v, b[0], b[1], b[2]),
+            V(v, a[0], a[1], a[2]),
+            outward,
+            worn,
+            uvScale
+          );
+        }
+      }
+    }
+
+    // Eight corner triangles.
+    for (const sx of S) {
+      for (const sy of S) {
+        for (const sz of S) {
+          this.triangleFacing(
+            V(0, sx, sy, sz),
+            V(1, sx, sy, sz),
+            V(2, sx, sy, sz),
+            [sx, sy, sz],
+            worn,
+            uvScale
+          );
+        }
+      }
+    }
+    return this;
+  }
+
   triangle(p0, p1, p2, colour, uvScale = this.uvScale) {
     const n = normal(p0, p1, p2);
     const base = this.vertexCount;
@@ -60,7 +197,12 @@ export class MeshBuilder {
    * Axis-aligned-then-rotated box. `size` is full extent, `pos` is the centre,
    * `rot` is XYZ Euler in radians. `taper` shrinks the +Y face for wedges.
    */
-  box({ size, pos = [0, 0, 0], rot = [0, 0, 0], colour = [1, 1, 1], taper = 1, uvScale }) {
+  box({ size, pos = [0, 0, 0], rot = [0, 0, 0], colour = [1, 1, 1], taper = 1, uvScale, chamfer }) {
+    const bevel = chamfer ?? this.defaultChamfer;
+    if (bevel > 1e-5 && taper === 1) {
+      return this.chamferBox({ size, pos, rot, colour, uvScale, chamfer: bevel });
+    }
+
     const [w, h, d] = size;
     const hx = w / 2;
     const hy = h / 2;

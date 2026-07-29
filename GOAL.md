@@ -5,6 +5,34 @@
 
 ---
 
+## Amendment 1 — 29 July 2026: no third-party generation services
+
+Supersedes the parts of §1, §2, §7 and §8 that assume hosted generation
+services. Decided during the build; the rest of the spec stands unchanged.
+
+**What changed.** The asset pipeline no longer calls out to an image model,
+Meshy, or a sound-effect service. Every texture, prop and sound is produced by
+generators written for this project — tileable raster synthesis, parametric
+chamfered geometry, and DSP — driven from the same asset manifest and the same
+single style bible §8 already required.
+
+**What that means for §1.** "AI-generated" now describes how the *generators*
+were produced, not a diffusion model rendering pixels at build time. The
+distinction is real and the repo should not blur it: an AI wrote the code that
+draws the rivets, rather than an image model drawing them directly.
+
+**What it buys.** No API keys, no per-run cost, no rate limits, no service
+drift, and a clean checkout reproduces every asset byte-for-byte. That
+determinism is load-bearing — it lets the deploy build run the pipeline itself
+instead of depending on generated files staying in sync in git.
+
+**§8 stage 3 now reads:** per prop — build parametric geometry at real-world
+scale with chamfered edges and baked edge wear, generate its metal surface,
+then the same post-process as before (origin to floor-centre, scale, decimate
+to tri budget, crunch textures to 256 px).
+
+---
+
 ## 1. The one-liner
 
 DERELICT is a 3–5 minute first-person vignette playable in the browser. You wake on a dead spaceship. Two power switches, hidden in different rooms, energize the exit airlock. Find them, flip them, escape. Every asset the player sees or hears — textures, 3D props, the scanner in your hands, every sound — is AI-generated.
