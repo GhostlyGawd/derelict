@@ -449,6 +449,25 @@ export const LABELS = [
   { space: 'chamber', pos: [0, 1.9, -11.18], facing: [0, 0, 1] },
 ];
 
+/**
+ * Fixture placards — the equipment plates the machinery would carry in reality.
+ * Smaller than a compartment label, and read from arm's length rather than from
+ * a doorway, so they get their own cap height.
+ *
+ * These name machinery and warn about hazards. None of them says which room to
+ * power, which cell to take, or where anything is: the no-hints bar was proven
+ * with no signage at all and phase 3 does not get to spend it.
+ */
+export const PLACARD_CAP = 0.075;
+
+export const PLACARDS = [
+  { id: 'switch1', text: 'Lighting Bus 01', pos: [-32.78, 2.16, -3.4], facing: [1, 0, 0] },
+  { id: 'switch2', text: 'Lighting Bus 02', pos: [32.78, 2.16, 1.6], facing: [-1, 0, 0] },
+  { id: 'airlock', text: 'Caution: Vacuum', pos: [-1.86, 1.18, -6.78], facing: [0, 0, 1] },
+  { id: 'cradle1', text: 'Cell Charger 01', pos: [-30.5, 1.62, -8.78], facing: [0, 0, 1] },
+  { id: 'cradle2', text: 'Cell Charger 02', pos: [30.2, 1.62, -8.78], facing: [0, 0, 1] },
+];
+
 /** Point-in-space lookup, used for footsteps, ambience and objective text. */
 export function spaceAt(x, z) {
   for (const s of SPACES) {

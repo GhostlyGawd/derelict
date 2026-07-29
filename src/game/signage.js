@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { LABELS, LABEL_CAP, SPACES } from './layout.js';
+import { LABELS, LABEL_CAP, PLACARDS, PLACARD_CAP, SPACES } from './layout.js';
 
 /**
  * Phase 3 — markings composed in engine from the generated glyph atlas.
@@ -132,6 +132,17 @@ export function buildSignage(assets) {
       pos: [...def.pos],
       facing: [...def.facing],
     });
+  }
+
+  // Fixture placards. Same sheet, same material, smaller type — an equipment
+  // plate is read from arm's length, not from a doorway.
+  for (const def of PLACARDS) {
+    const geometry = labelGeometry(def.text, metrics, def.cap ?? PLACARD_CAP);
+    if (!geometry) continue;
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(...def.pos);
+    mesh.rotation.y = Math.atan2(def.facing[0], def.facing[2]);
+    group.add(mesh);
   }
 
   return { group, labels: placed, metrics };

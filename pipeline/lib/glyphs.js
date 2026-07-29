@@ -51,9 +51,16 @@ const BR = [0.44, 0.6];
  */
 export const GLYPHS = {
   A: { w: 0.76, s: [d(0.5, 1, 0.04, 0), d(0.5, 1, 0.96, 0), h(0.3, 0.22, 0.78), gap(0.4, 0.24, 0.6, 0.36)] },
-  // The bridge sits in the upper bowl rather than at BR, which would land on
-  // the middle bar and read as two stacked marks instead of a B.
-  B: { w: 0.72, s: [v(L, 0, 1), h(1, L, 0.74), h(MID, L, 0.74), h(0, L, 0.8), v(0.8, 0, MID), v(0.74, MID, 1), gap(L - 0.1, 0.66, L + 0.1, 0.82)] },
+  // B has two closed counters and one spine, so it is the one letter that
+  // cannot be opened by breaking its left stem — do that and the top-left
+  // corner reads as missing, turning it into an 8 or an a. Both bowls are
+  // bridged on their right instead, which is what a real stencil B does and
+  // leaves the spine continuous.
+  B: {
+    w: 0.72,
+    s: [v(L, 0, 1), h(1, L, 0.74), h(MID, L, 0.74), h(0, L, 0.8), v(0.8, 0, MID), v(0.74, MID, 1),
+        gap(0.66, 0.16, 0.94, 0.3), gap(0.6, 0.66, 0.88, 0.8)],
+  },
   C: { w: 0.72, s: [h(1, 0.2, R), h(0, 0.2, R), v(L, 0.14, 0.86), d(L, 0.86, 0.2, 1), d(L, 0.14, 0.2, 0)] },
   D: { w: 0.74, s: [v(L, 0, 1), h(1, L, 0.7), h(0, L, 0.7), v(R, 0.16, 0.84), d(0.7, 1, R, 0.84), d(0.7, 0, R, 0.16), gap(L - 0.1, BR[0], L + 0.1, BR[1])] },
   E: { w: 0.66, s: [v(L, 0, 1), h(1, L, R), h(MID, L, 0.76), h(0, L, R)] },
