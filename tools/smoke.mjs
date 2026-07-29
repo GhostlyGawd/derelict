@@ -158,9 +158,18 @@ console.log('  switch 2 flipped, annex powered, hatch open');
 await shot('annex-powered');
 
 // ---- Shortcut home, then out through the airlock -------------------------
+// Walked in bursts until progress stops rather than for a fixed duration:
+// movement is dt-based but dt is clamped, so under a slow software rasteriser
+// a fixed wall-clock walk covers less ground. Stalling is the real signal.
 await place(18.0, 4.6, Math.PI / 2);
-await walk(['KeyW'], 4200);
-s = await state();
+let previousX = Infinity;
+for (let burst = 0; burst < 6; burst++) {
+  await walk(['KeyW'], 1500);
+  s = await state();
+  if (s.pos[0] < 8) break;
+  if (Math.abs(previousX - s.pos[0]) < 0.25) break;
+  previousX = s.pos[0];
+}
 console.log('  shortcut →', JSON.stringify(s.pos));
 if (s.pos[0] > 8.5) throw new Error(`shortcut passage is blocked, stuck at x=${s.pos[0]}`);
 await shot('shortcut');

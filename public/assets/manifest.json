@@ -1,18 +1,12 @@
 {
   "generator": "derelict pipeline",
-  "backend": "offline",
-  "generatedAt": "2026-07-29T04:45:48.215Z",
+  "generatedAt": "2026-07-29T06:01:58.705Z",
   "styleBible": "Late-1990s retro sci-fi FPS aesthetic. Derelict industrial spaceship interior. Dark gunmetal and olive metal, heavy rivets, scuffed grimy surfaces, utilitarian machinery. Sickly green energy glow from conduits and readouts. Low-resolution game-texture look, slightly desaturated, moody. No text, no watermarks, no people.",
-  "providers": {
-    "image": "offline-synth",
-    "mesh": "offline-synth",
-    "audio": "offline-synth"
-  },
   "totals": {
     "textures": 7,
     "models": 8,
     "audio": 8,
-    "bytes": 1165165
+    "bytes": 1658629
   },
   "textures": {
     "wall_panel_a": {
@@ -55,67 +49,67 @@
   "models": {
     "scanner": {
       "file": "models/scanner.glb",
-      "triangles": 264,
+      "triangles": 808,
       "budget": 8000,
       "metres": 0.35,
       "fit": "longest",
-      "bytes": 39088
+      "bytes": 96212
     },
     "power_switch": {
       "file": "models/power_switch.glb",
-      "triangles": 260,
+      "triangles": 612,
       "budget": 3000,
       "metres": 1.4,
       "fit": "height",
-      "bytes": 39676
+      "bytes": 76640
     },
     "airlock_door": {
       "file": "models/airlock_door.glb",
-      "triangles": 408,
+      "triangles": 1496,
       "budget": 5000,
       "metres": 2.4,
       "fit": "height",
-      "bytes": 51476
+      "bytes": 165724
     },
     "cargo_crate": {
       "file": "models/cargo_crate.glb",
-      "triangles": 336,
+      "triangles": 1232,
       "budget": 3000,
       "metres": 0.8,
       "fit": "height",
-      "bytes": 47976
+      "bytes": 142064
     },
     "canister": {
       "file": "models/canister.glb",
-      "triangles": 408,
+      "triangles": 644,
       "budget": 3000,
       "metres": 1.2,
       "fit": "height",
-      "bytes": 57152
+      "bytes": 82336
     },
     "wall_console": {
       "file": "models/wall_console.glb",
-      "triangles": 304,
+      "triangles": 944,
       "budget": 3000,
       "metres": 1.6,
       "fit": "height",
-      "bytes": 42780
+      "bytes": 109988
     },
     "pipe_cluster": {
       "file": "models/pipe_cluster.glb",
-      "triangles": 464,
+      "triangles": 968,
       "budget": 3000,
       "metres": 2,
       "fit": "height",
-      "bytes": 59112
+      "bytes": 110716
     },
     "floor_debris": {
       "file": "models/floor_debris.glb",
-      "triangles": 168,
+      "triangles": 616,
       "budget": 2000,
       "metres": 0.9,
       "fit": "longest",
-      "bytes": 29416
+      "bytes": 76460
     }
   },
   "audio": {
