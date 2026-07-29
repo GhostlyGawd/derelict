@@ -1,4 +1,5 @@
 import { PALETTE as P } from '../style-bible.js';
+import { rasteriseGlyph } from '../lib/glyphs.js';
 import { Raster, fbm, mix, rng, tint } from '../lib/raster.js';
 
 /**
@@ -47,6 +48,45 @@ function rivetRow(r, x0, y0, x1, y1, count, radius, colour) {
 }
 
 /* ------------------------------------------------------------------ walls */
+
+/**
+ * Text-shaped stencil wear — the "suggestive small print" of spec 3.3.
+ *
+ * Drawn with the same glyph generator as the readable signage, at a scale and
+ * contrast where it registers as markings from across the room and never
+ * resolves into words. That is the point: without it the twelve legible
+ * markings look like the only writing on a ship that otherwise has none.
+ *
+ * The characters are drawn from a pool at random, so no run can accidentally
+ * spell anything, and `Raster.set` wraps at the edges so a run that overhangs
+ * simply continues on the far side and stays tileable.
+ */
+function stencilPrint(r, seed, { runs = 3, cap = 13, alpha = 0.17, colour } = {}) {
+  const place = rng(seed);
+  const shape = rng(seed + 3);
+  const pool = 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789-/';
+
+  for (let i = 0; i < runs; i++) {
+    const y = Math.round(place() * r.size);
+    let x = Math.round(place() * r.size);
+    const count = 3 + ((place() * 7) | 0);
+    // Each run fades along its length, so it reads as paint worn off rather
+    // than as type someone chose to set faintly.
+    for (let n = 0; n < count; n++) {
+      const ch = pool[(place() * pool.length) | 0];
+      const mask = rasteriseGlyph(ch, cap, { jitter: 0.06, random: shape });
+      const fade = alpha * (0.45 + 0.55 * (1 - n / count));
+      for (let my = 0; my < mask.h; my++) {
+        for (let mx = 0; mx < mask.w; mx++) {
+          const a = mask.data[my * mask.w + mx];
+          if (a <= 0.03) continue;
+          r.set(x + mx, y + my, colour, a * fade);
+        }
+      }
+      x += Math.round(mask.advance + cap * 0.2);
+    }
+  }
+}
 
 function wallPanel(size, seed, variant) {
   const r = new Raster(size, seed);
@@ -138,6 +178,20 @@ function wallPanel(size, seed, variant) {
   r.scratches({ count: 34, seed: seed + 83, bright: tint(P.gunmetalLight, 1.05) });
   // Broad soiling pass — keeps the sheet from reading as fresh from the mill.
   r.grime({ frequency: 2, octaves: 4, amount: 0.32, colour: P.grime, seed: seed + 151 });
+  // Small print goes on after the soiling, not before it. Under the grime
+  // passes a 0.2 alpha vanishes completely — the marks have to sit on top of
+  // the dirt the way sprayed paint actually does.
+  //
+  // The contrast is a balance the spec anticipated: this is a *tiling* sheet,
+  // so whatever is printed here repeats along the wall. Faint enough and the
+  // repetition reads as grime; bold enough to be legible and it reads as the
+  // same stencil stamped every two metres. Kept at the low end of visible.
+  stencilPrint(r, seed + (painted ? 311 : 419), {
+    runs: painted ? 4 : 3,
+    cap: Math.round(size / 22),
+    alpha: painted ? 0.46 : 0.38,
+    colour: tint(P.gunmetalLight, painted ? 1.2 : 1.1),
+  });
   r.each((x, y) => r.shade(x, y, 0.9));
   return r;
 }
