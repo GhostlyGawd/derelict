@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import { TEXTURES } from '../manifest.js';
 import { synthesiseGlyphAtlas } from '../offline/glyphatlas.js';
 import { synthesiseTexture } from '../offline/textures.js';
-import { contactSheet, crunchTexture, encodeRaster } from '../lib/image.js';
+import { contactSheet, crunchTexture, encodeMask, encodeRaster } from '../lib/image.js';
 import { ASSETS, CACHE, bytes, ensureDir, exists, rel, size, write } from '../lib/io.js';
 import { log } from '../lib/log.js';
 
@@ -37,8 +37,10 @@ export async function runTextures({ force = false }) {
     if (glyphs) {
       // Written at 1:1 with no palette quantisation. This is a coverage mask
       // rather than a picture, and both the downscale and the dither exist to
-      // make noisy colour cheap — on type they only cost contrast.
-      const png = await encodeRaster(glyphs.raster);
+      // make noisy colour cheap — on type they only cost contrast. Encoder
+      // options are pinned rather than defaulted, or the sheet reproduces
+      // differently on another libvips build.
+      const png = await encodeMask(glyphs.raster);
       await write(file, png);
       entries[spec.id] = manifestEntry(spec, png.length, glyphs.metrics);
       sheet.push({ buffer: png });

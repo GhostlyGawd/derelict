@@ -100,7 +100,8 @@ export function buildSignage(assets) {
   const metrics = assets.manifest?.textures?.glyph_atlas?.glyphs || null;
   const placed = [];
 
-  if (!atlas || !metrics) return { group, labels: placed, metrics: null };
+  const plates = [];
+  if (!atlas || !metrics) return { group, labels: placed, placards: plates, metrics: null };
 
   // One material for every marking on the ship: same sheet, same paint. Lit, so
   // a label in an unpowered room is as dim as the wall it is painted on.
@@ -143,7 +144,8 @@ export function buildSignage(assets) {
     mesh.position.set(...def.pos);
     mesh.rotation.y = Math.atan2(def.facing[0], def.facing[2]);
     group.add(mesh);
+    plates.push({ id: def.id, text: def.text.toUpperCase(), cap: def.cap ?? PLACARD_CAP });
   }
 
-  return { group, labels: placed, metrics };
+  return { group, labels: placed, placards: plates, metrics };
 }

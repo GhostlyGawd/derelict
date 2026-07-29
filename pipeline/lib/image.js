@@ -17,6 +17,25 @@ export function encodeRaster(raster) {
     .toBuffer();
 }
 
+/**
+ * Lossless PNG for a coverage mask, with every encoder knob pinned.
+ *
+ * sharp's `.png()` defaults are not a stable contract across libvips builds:
+ * the glyph atlas reproduced one byte differently on CI than locally, which is
+ * enough to fail the determinism gate. Every other texture already passes
+ * explicit options, which is why only this one drifted.
+ *
+ * `palette: false` deliberately: this is a greyscale coverage ramp, and
+ * quantising it would cost contrast inside the letterforms.
+ */
+export function encodeMask(raster) {
+  return sharp(raster.toBuffer(), {
+    raw: { width: raster.size, height: raster.size, channels: 3 },
+  })
+    .png({ compressionLevel: 9, effort: 10, palette: false, adaptiveFiltering: false })
+    .toBuffer();
+}
+
 export async function crunchTexture(input, targetSize, { colours = 160 } = {}) {
   return sharp(input)
     .resize(targetSize, targetSize, { kernel: 'mitchell', fit: 'fill' })

@@ -439,7 +439,8 @@ export const LABEL_CAP = 0.22;
 export const LABELS = [
   // Beside the airlock, so it is the first thing the spawn faces.
   { space: 'bay', pos: [-2.9, 2.15, -6.78], facing: [0, 0, 1] },
-  { space: 'corrA', pos: [-9.4, 1.95, -1.08], facing: [0, 0, 1] },
+  // Between the two pipe clusters on this wall; -9.4 put it inside one.
+  { space: 'corrA', pos: [-11.3, 1.95, -1.08], facing: [0, 0, 1] },
   // The hold and annex sit on the far side of their dividing wall, so their
   // inner faces are at ∓19.2 — 19.18 puts the label inside the slab.
   { space: 'hold', pos: [-19.22, 1.95, 3.0], facing: [-1, 0, 0] },

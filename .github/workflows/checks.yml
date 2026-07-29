@@ -69,6 +69,9 @@ jobs:
       - name: Playtest — dead-end search
         run: node tools/deadend.mjs http://127.0.0.1:4173/
 
+      - name: Playtest — signage legibility
+        run: node tools/legible.mjs http://127.0.0.1:4173/
+
       - name: Playtest — systems
         run: node tools/smoke.mjs http://127.0.0.1:4173/ --shots
 
