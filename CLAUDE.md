@@ -38,9 +38,10 @@ to tri budget, crunch textures to 256 px).
 
 # Phase 2 — v1.1
 
-**Status: DRAFT, awaiting ratification.** Derived from the interview of 29 July
-2026. Nothing here is built yet. Once ratified this is locked on the same terms
-as v1: if we change something during the build, we change this document first.
+**Status: LOCKED.** Ratified 29 July 2026 by merging PR #12, following the
+interview of the same day. On the same terms as v1: nothing here is a
+suggestion, and if we change something during the build we change this document
+first.
 
 Supersedes part of v1 §4. Everything in v1 not named here still stands,
 including Amendment 1. Where the two disagree, this section wins.
@@ -101,8 +102,11 @@ squeeze and the shortcut all keep working as they do now.
 maximise freedom:
 
 - One cell at a time.
-- Interact with a cell to take it; interact with a socket while carrying to seat
-  it; interact with anything else while carrying to set the cell down.
+- Interact with a cell to take it. While carrying: interact with a socket to
+  seat it, interact with nothing to set it down. Every other interactive still
+  behaves normally with your hands full — you can flip a switch while holding a
+  cell, and you must be able to, because nothing in the chain guarantees you are
+  empty-handed when you reach one.
 - **A carried cell replaces the scanner in the viewmodel**, which stows while
   your hands are full. The HUD does not change — v1 §4 still holds. Carrying is
   therefore always visible without a HUD element, and the tool being unavailable
