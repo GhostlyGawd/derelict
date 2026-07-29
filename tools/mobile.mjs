@@ -5,12 +5,10 @@
  *
  *   node tools/mobile.mjs [baseUrl] [--shots]
  */
-import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
-const require = createRequire('/opt/node22/lib/node_modules/');
-const { chromium, devices } = require('playwright');
+import { chromium, devices } from 'playwright';
 
 const BASE = process.argv[2] || 'http://127.0.0.1:4173/';
 const SHOTS = process.argv.includes('--shots');
@@ -19,7 +17,7 @@ if (SHOTS) mkdirSync(OUT, { recursive: true });
 
 const errors = [];
 const browser = await chromium.launch({
-  executablePath: process.env.CHROME_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
   args: [
     '--use-gl=swiftshader',
     '--enable-unsafe-swiftshader',
