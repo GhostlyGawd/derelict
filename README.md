@@ -90,10 +90,26 @@ moment a player flips a switch.
 ```bash
 npm run build
 npm run preview
-node tools/smoke.mjs http://127.0.0.1:4173/ --shots
+
+node tools/smoke.mjs       http://127.0.0.1:4173/ --shots  # systems
+node tools/walkthrough.mjs http://127.0.0.1:4173/ --shots  # the route, on foot
+node tools/mobile.mjs      http://127.0.0.1:4173/ --shots  # touch controls
 ```
 
-The playtest drives the full route in headless Chromium and fails on any console
-error, on the debris squeeze being impassable, on a switch or door not firing,
-on any sound failing to decode, or on a restart leaving state behind. `--shots`
-writes screenshots to `tools/shots`.
+**smoke** drives the full sequence in headless Chromium, teleporting between
+rooms to get at each system quickly. It fails on any console error, on a switch
+or door not firing, on any of the eight sounds failing to decode, or on a
+restart leaving state behind.
+
+**walkthrough** does not teleport. It walks the whole route with held movement
+keys and mouse look, so collision, doorway widths and the debris squeeze are
+genuinely exercised — this is what backs the no-soft-locks claim. Any leg that
+stalls fails the run with the coordinates it got stuck at. It also asserts that
+walking straight into the corridor B blockage *stops* you, since a blockage you
+can stroll through is not a blockage.
+
+**mobile** drives synthetic touch streams in an emulated phone: the left stick
+walks the player, a right-side drag turns the camera, the context button flips
+a switch.
+
+`--shots` writes screenshots to `tools/shots`.
