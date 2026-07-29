@@ -162,10 +162,33 @@ space and not from more verbs.
 
 | | Verified by |
 |---|---|
-| **No unwinnable states.** No sequence of player actions leaves the game uncompletable. A cell can always be recovered and every socket can always be reached. | Claude — an adversarial harness that searches action sequences for dead ends, run in CI |
+| **No unwinnable states.** No sequence of player actions leaves the game uncompletable. A cell can always be recovered and every socket can always be reached. | Claude — a harness that reasons over the whole walkable floor rather than over action sequences, run in CI. See below. |
 | **Real dependency depth.** The critical path is six ordered steps and no step can be completed before its predecessor. | Claude — a harness that drives each interaction directly, with aim taken out, and asserts every step refuses to work before its predecessor |
 | **Still a short vignette.** A player who knows the route finishes inside five minutes. | Claude — the on-foot walkthrough harness reports game-clock duration |
 | **Solvable without hints.** A player finishes cold, with no tutorial text and no instruction beyond the existing controls card. | **The owner.** Claude cannot verify this and must not claim to |
+
+**How the no-unwinnable-states bar is actually met.** Searching action
+sequences turned out to be the wrong shape. The only action that can strand
+anything is setting a cell down, the cell always lands where the player is
+standing, and cells add no colliders — so the question is never "which order
+did they do things in", it is "is every floor position the player can stand on
+a position they can walk back from". That is a statement about the floor, and
+it is decided directly:
+
+- Grid the level at 10 cm and mark a square walkable when the player's real
+  collision box, centred there, hits none of the real colliders read out of the
+  running game.
+- Flood fill from the spawn, allowing a step only when the union of the two
+  player boxes is clear. That is stricter than testing the endpoints, so the
+  fill can under-report reachability but never over-report it.
+- The step relation is symmetric, so the filled component is mutually
+  reachable — which is the guarantee. That symmetry is checked rather than
+  assumed, by filling again from a socket and requiring an identical component.
+- Repeat at every gate state and require that the reachable set only grows. A
+  door that closed is the one way this level could trap someone.
+
+Floor that is walkable but sealed behind a door that has not opened yet is
+gated, not orphaned, so each state is judged against the final one.
 
 Plus everything v1 §11 already required, which must not regress: the loop stays
 playable start to finish, every harness stays green, every asset still comes

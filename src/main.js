@@ -11,7 +11,7 @@ import { createRenderer } from './core/renderer.js';
 import { buildCarryables } from './game/carryables.js';
 import { buildDoors, buildPowerPanel, buildSwitches } from './game/fixtures.js';
 import { Interactor } from './game/interact.js';
-import { ESCAPE_TRIGGER, SPAWN, ZONE_POWER, spaceAt } from './game/layout.js';
+import { ESCAPE_TRIGGER, SPACES, SPAWN, ZONE_POWER, spaceAt } from './game/layout.js';
 import { buildLevel } from './game/level.js';
 import { buildLighting } from './game/lighting.js';
 import { Player } from './game/player.js';
@@ -53,6 +53,8 @@ class Derelict {
     this.cells = 0;
     /** The single carry slot. Shared by reference with the interactives. */
     this.carry = { held: null };
+    /** The room table, so tools/deadend.mjs can tell inside from outside. */
+    this.spaces = SPACES;
     this.poweredZones = new Set();
     this.elapsed = 0;
     this.runTime = 0;

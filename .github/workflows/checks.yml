@@ -56,14 +56,18 @@ jobs:
           done
           echo "preview server never came up"; cat /tmp/preview.log; exit 1
 
-      # Four altitudes. chain drives the interactions directly and proves the
-      # six steps refuse to work out of order; smoke teleports between rooms to
-      # reach each system quickly; walkthrough refuses to teleport and so is the
-      # only one that can catch the level becoming un-navigable; mobile drives
-      # the touch scheme. They have caught different bugs and none subsumes
-      # another.
+      # Five altitudes. chain drives the interactions directly and proves the
+      # six steps refuse to work out of order; deadend reasons over the whole
+      # walkable floor rather than playing at all; smoke teleports between rooms
+      # to reach each system quickly; walkthrough refuses to teleport and so is
+      # the only one that can catch the level becoming un-navigable; mobile
+      # drives the touch scheme. They have caught different bugs and none
+      # subsumes another.
       - name: Playtest — the dependency chain
         run: node tools/chain.mjs http://127.0.0.1:4173/
+
+      - name: Playtest — dead-end search
+        run: node tools/deadend.mjs http://127.0.0.1:4173/
 
       - name: Playtest — systems
         run: node tools/smoke.mjs http://127.0.0.1:4173/ --shots
