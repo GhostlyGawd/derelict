@@ -3,9 +3,9 @@
   "styleBible": "Late-1990s retro sci-fi FPS aesthetic. Derelict industrial spaceship interior. Dark gunmetal and olive metal, heavy rivets, scuffed grimy surfaces, utilitarian machinery. Sickly green energy glow from conduits and readouts. Low-resolution game-texture look, slightly desaturated, moody. No text, no watermarks, no people.",
   "totals": {
     "textures": 7,
-    "models": 8,
-    "audio": 8,
-    "bytes": 1658629
+    "models": 10,
+    "audio": 10,
+    "bytes": 1898353
   },
   "textures": {
     "wall_panel_a": {
@@ -109,6 +109,22 @@
       "metres": 0.9,
       "fit": "longest",
       "bytes": 76460
+    },
+    "power_cell": {
+      "file": "models/power_cell.glb",
+      "triangles": 704,
+      "budget": 2000,
+      "metres": 0.4,
+      "fit": "height",
+      "bytes": 85112
+    },
+    "cell_cradle": {
+      "file": "models/cell_cradle.glb",
+      "triangles": 1064,
+      "budget": 3000,
+      "metres": 1.6,
+      "fit": "height",
+      "bytes": 122324
     }
   },
   "audio": {
@@ -152,6 +168,16 @@
       "file": "audio/end_sting.mp3",
       "seconds": 3.6,
       "bytes": 43572
+    },
+    "cell_lift": {
+      "file": "audio/cell_lift.mp3",
+      "seconds": 1,
+      "bytes": 12539
+    },
+    "cell_seat": {
+      "file": "audio/cell_seat.mp3",
+      "seconds": 1.6,
+      "bytes": 19749
     }
   }
 }

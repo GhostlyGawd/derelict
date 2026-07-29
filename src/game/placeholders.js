@@ -96,13 +96,6 @@ const BUILDERS = {
     return g;
   },
 
-  cell_socket() {
-    const g = new THREE.Group();
-    g.add(meshAt(new THREE.BoxGeometry(0.36, 0.4, 0.18), mat(GREY), 0, 0.2, 0.09));
-    g.add(meshAt(new THREE.BoxGeometry(0.28, 0.3, 0.06), mat(DARK), 0, 0.22, 0.2));
-    return g;
-  },
-
   power_switch() {
     const g = new THREE.Group();
     g.add(meshAt(new THREE.BoxGeometry(0.62, 1.34, 0.2), mat(GREY), 0, 0.67, 0.1));

@@ -58,6 +58,8 @@ const SURFACE = {
   power_switch: 'device',
   airlock_door: 'plate',
   scanner: 'device',
+  power_cell: 'device',
+  cell_cradle: 'device',
 };
 
 /**
@@ -362,6 +364,103 @@ const BUILDERS = {
 
     // Conduit entering from the top.
     m.cylinder({ radiusTop: 0.05, radiusBottom: 0.05, height: 0.18, segments: 8, pos: [0, 1.34, 0.13], colour: C.oliveDark });
+    return m;
+  },
+
+  /**
+   * The carryable cell. Authored 0.4 m tall with its origin on its own base,
+   * because the game drops it at y = 0 and mounts it at CELL_MOUNT — so the
+   * body has to span the eye line from a shelf at 1.45 m without the model
+   * needing an offset anywhere.
+   */
+  power_cell(seed) {
+    const m = new MeshBuilder({ uvScale: 0.16, chamfer: 0.006 });
+
+    // Contact pins underneath, then the base and cap flanges.
+    for (const sx of [-1, 1]) {
+      m.box({ size: [0.03, 0.03, 0.05], pos: [sx * 0.06, 0.015, 0], colour: C.hazard });
+    }
+    m.box({ size: [0.31, 0.05, 0.31], pos: [0, 0.052, 0], colour: C.mid });
+    m.box({ size: [0.26, 0.27, 0.26], pos: [0, 0.21, 0], colour: C.body });
+    m.box({ size: [0.31, 0.05, 0.31], pos: [0, 0.37, 0], colour: C.mid });
+
+    // Corner ribs down the body.
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        m.box({ size: [0.04, 0.25, 0.04], pos: [sx * 0.12, 0.21, sz * 0.12], colour: C.oliveDark });
+      }
+    }
+
+    // Charge readout and the sickly green glow strip the style bible asks for.
+    m.box({ size: [0.15, 0.08, 0.02], pos: [0, 0.29, 0.135], colour: C.black });
+    m.box({ size: [0.11, 0.045, 0.012], pos: [0, 0.29, 0.145], colour: C.glass });
+    m.box({ size: [0.17, 0.025, 0.016], pos: [0, 0.15, 0.14], colour: C.glow });
+
+    // Hazard band round the back, and the carry handle across the top.
+    m.box({ size: [0.2, 0.05, 0.015], pos: [0, 0.2, -0.14], colour: C.hazard });
+    for (const sx of [-1, 1]) {
+      m.box({ size: [0.03, 0.06, 0.04], pos: [sx * 0.07, 0.42, 0], colour: C.dark });
+    }
+    m.box({ size: [0.19, 0.03, 0.045], pos: [0, 0.447, 0], colour: C.dark });
+    return m;
+  },
+
+  /**
+   * The wall cradle. The shelf top lands on 1.45 m — CELL_MOUNT.y — so the cell
+   * it presents sits across the player's eye line and can be aimed at from any
+   * distance, including from right up against it.
+   */
+  cell_cradle(seed) {
+    const m = new MeshBuilder({ uvScale: 0.34, chamfer: 0.012 });
+
+    // Backplate against the bulkhead, then the armoured pedestal.
+    m.box({ size: [0.72, 1.5, 0.06], pos: [0, 0.75, 0.03], colour: C.mid });
+    m.box({ size: [0.62, 1.3, 0.32], pos: [0, 0.65, 0.19], colour: C.body });
+    m.box({ size: [0.68, 0.08, 0.36], pos: [0, 0.06, 0.19], colour: C.mid });
+
+    // Bolts down the backplate flange.
+    for (const sx of [-1, 1]) {
+      for (const y of [0.14, 0.72, 1.3]) {
+        m.box({ size: [0.07, 0.07, 0.05], pos: [sx * 0.32, y, 0.055], colour: C.light });
+      }
+    }
+
+    // The shelf. Its upper face is the mount height.
+    m.box({ size: [0.78, 0.1, 0.46], pos: [0, 1.4, 0.2], colour: C.mid });
+    m.box({ size: [0.5, 0.03, 0.34], pos: [0, 1.46, 0.22], colour: C.black });
+
+    // Sprung clamp arms either side of where the cell stands.
+    for (const sx of [-1, 1]) {
+      m.box({ size: [0.07, 0.34, 0.26], pos: [sx * 0.22, 1.62, 0.22], colour: C.dark });
+      m.box({ size: [0.05, 0.1, 0.2], pos: [sx * 0.17, 1.62, 0.22], colour: C.oliveDark });
+      m.cylinder({
+        radiusTop: 0.045,
+        radiusBottom: 0.045,
+        height: 0.07,
+        segments: 8,
+        pos: [sx * 0.22, 1.44, 0.22],
+        rot: [0, 0, Math.PI / 2],
+        colour: C.mid,
+      });
+    }
+
+    // Status lamp housing. The lamp itself is drawn in engine so it can change
+    // colour the moment the cradle releases.
+    m.box({ size: [0.5, 0.12, 0.06], pos: [0, 0.95, 0.37], colour: C.black });
+    m.box({ size: [0.56, 0.18, 0.04], pos: [0, 0.95, 0.35], colour: C.mid });
+
+    // Conduit from the shelf down into the deck.
+    m.cylinder({ radiusTop: 0.055, radiusBottom: 0.055, height: 1.3, segments: 8, pos: [0.26, 0.68, 0.02], colour: C.oliveDark });
+
+    // Caution striping along the base.
+    for (let i = 0; i < 5; i++) {
+      m.box({
+        size: [0.1, 0.14, 0.02],
+        pos: [-0.26 + i * 0.13, 0.2, 0.36],
+        rot: [0, 0, 0.5],
+        colour: i % 2 === 0 ? C.hazard : C.black,
+      });
+    }
     return m;
   },
 

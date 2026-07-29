@@ -23,6 +23,7 @@ const OFF = new THREE.Color(0x000000);
 
 const LOCKED_CLAMP = new THREE.Color(0x3a0f08);
 const OPEN_CLAMP = new THREE.Color(0x1d5c34);
+const CELL_GLOW = 0x3aa957;
 
 function instantiate(parts) {
   return parts.map(({ geometry, material }) => new THREE.Mesh(geometry, material.clone()));
@@ -40,10 +41,35 @@ function highlighter(meshes, isLive) {
 }
 
 /**
+ * The socket, built in engine from the generated wall surfaces rather than as
+ * its own model. Phase 2's box is two new models, and the socket is a shallow
+ * wall fixture of the same kind as the airlock readout — which v1 already built
+ * this way. Its mouth straddles the eye line; see SOCKETS in layout.js.
+ */
+function socketParts(materials) {
+  // Cloned, not shared: the highlighter writes to material.color, and
+  // materials.surface() hands back one cached instance per id — tinting it
+  // would light up every greeble panel on the ship.
+  const build = (size, pos, id, color) => {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(...size),
+      materials.surface(id, color ? { color } : undefined).clone()
+    );
+    mesh.position.set(...pos);
+    return mesh;
+  };
+  return [
+    build([0.4, 0.44, 0.2], [0, 0.2, 0.1], 'greeble_panel'),
+    build([0.46, 0.07, 0.24], [0, 0.005, 0.11], 'door_trim'),
+    build([0.3, 0.32, 0.08], [0, 0.22, 0.2], 'greeble_panel', 0x3a423c),
+  ];
+}
+
+/**
  * `carry` is the single carry slot, shared by reference so interactives can
  * ask about it without the game wiring a callback into every one of them.
  */
-export function buildCarryables(assets, cache, carry) {
+export function buildCarryables(assets, cache, carry, materials) {
   const group = new THREE.Group();
   group.name = 'carryables';
   const colliders = [];
@@ -99,7 +125,7 @@ export function buildCarryables(assets, cache, carry) {
     const holder = new THREE.Group();
     holder.position.set(...def.pos);
     holder.rotation.y = Math.atan2(def.facing[0], def.facing[2]);
-    const meshes = instantiate(resolveParts('cell_socket', assets, cache));
+    const meshes = socketParts(materials);
     for (const mesh of meshes) holder.add(mesh);
     group.add(holder);
 
@@ -134,6 +160,16 @@ export function buildCarryables(assets, cache, carry) {
     const meshes = instantiate(resolveParts('power_cell', assets, cache));
     for (const mesh of meshes) holder.add(mesh);
     group.add(holder);
+
+    // The charge strip, unlit so it reads as a light source rather than as a
+    // green-painted face. The model carries the housing; this is the glow in
+    // it, the same split the scanner's readout and the conduit runs use.
+    const strip = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.15, 0.018),
+      materials.conduit(CELL_GLOW)
+    );
+    strip.position.set(0, 0.152, 0.142);
+    holder.add(strip);
 
     const state = {
       id: cradle.cellId,

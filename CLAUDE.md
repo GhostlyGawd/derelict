@@ -144,6 +144,11 @@ asset work.
 models, and two sounds — cell lift and cell seat. Existing style bible, existing
 budgets, existing post-process.
 
+The socket is the third interactive type but not a third model. It is a shallow
+wall fixture of the same kind as the airlock readout, which v1 already builds in
+engine from the generated wall surfaces, and it is built the same way. Two new
+models is the box, and it holds.
+
 **Unchanged:** the five spaces, the two wall switches, the lighting states, the
 airlock, the shortcut hatch, the retro rendering treatment, the HUD.
 

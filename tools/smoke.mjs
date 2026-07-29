@@ -144,7 +144,7 @@ if (!sounds.ready) throw new Error('audio bus never became ready');
 if (!sounds.ambient) throw new Error('ambient loop did not start');
 const silent = sounds.buffers.filter(([, d]) => d <= 0);
 if (silent.length) throw new Error(`empty audio buffers: ${silent.map(([id]) => id).join(', ')}`);
-if (sounds.buffers.length !== 8) throw new Error(`expected 8 sounds, decoded ${sounds.buffers.length}`);
+if (sounds.buffers.length !== 10) throw new Error(`expected 10 sounds, decoded ${sounds.buffers.length}`);
 console.log('  audio:', sounds.buffers.map(([id, d]) => `${id} ${d}s`).join(', '));
 
 // ---- Route to the Storage Hold and flip switch 1 -------------------------

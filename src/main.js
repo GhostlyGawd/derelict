@@ -111,7 +111,7 @@ class Derelict {
     this.switches = buildSwitches(this.assets, modelCache);
     for (const sw of this.switches) this.scene.add(sw.object);
 
-    this.carryables = buildCarryables(this.assets, modelCache, this.carry);
+    this.carryables = buildCarryables(this.assets, modelCache, this.carry, this.materials);
     this.scene.add(this.carryables.group);
     this.staticColliders = this.staticColliders.concat(this.carryables.colliders);
 
@@ -255,10 +255,7 @@ class Derelict {
     this.carry.held = cell;
     this.viewmodel.setCarrying(true);
     this.viewmodel.play();
-    this.audio.playAt('switch_clunk', cell.point.toArray(), this.player.position, {
-      volume: 0.6,
-      rate: 1.5,
-    });
+    this.audio.playAt('cell_lift', cell.point.toArray(), this.player.position, { volume: 1 });
   }
 
   #seat(socket) {
@@ -271,8 +268,10 @@ class Derelict {
 
     this.cells = this.carryables.sockets.filter((s) => s.filled).length;
     this.panel.setCount(this.cells);
-    this.audio.playAt('switch_clunk', socket.point.toArray(), this.player.position, { volume: 1 });
-    this.audio.play('power_surge', { volume: 0.55, delay: 0.18 });
+    // cell_seat already carries the circuit waking up behind the latch, so the
+    // room surge comes in later and quieter than it does off a wall switch.
+    this.audio.playAt('cell_seat', socket.point.toArray(), this.player.position, { volume: 1 });
+    this.audio.play('power_surge', { volume: 0.4, delay: 0.55 });
 
     // Seating the first cell brings the Bay up on its own power.
     if (this.cells >= 1 && !this.poweredZones.has('bay')) {

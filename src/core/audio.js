@@ -1,5 +1,5 @@
 /**
- * Web Audio playback for the eight generated sounds.
+ * Web Audio playback for the ten generated sounds.
  *
  * The context is created inside the Begin-button gesture so iOS Safari lets it
  * run. Anything the pipeline has not produced falls back to a synthesised
@@ -177,6 +177,8 @@ export const SOUND_IDS = [
   'footstep_2',
   'footstep_3',
   'end_sting',
+  'cell_lift',
+  'cell_seat',
 ];
 
 function decode(ctx, arrayBuffer) {
@@ -200,6 +202,8 @@ const SHAPES = {
   footstep_2: { seconds: 0.22, build: (t, d) => step(t, d, 1.15) },
   footstep_3: { seconds: 0.22, build: (t, d) => step(t, d, 0.86) },
   end_sting: { seconds: 2.6, build: sting },
+  cell_lift: { seconds: 0.5, build: (t, d) => thud(t, d, 150) },
+  cell_seat: { seconds: 0.7, build: (t, d) => thud(t, d, 72) },
 };
 
 function synthesise(ctx, id) {

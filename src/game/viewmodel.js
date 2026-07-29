@@ -68,6 +68,14 @@ export function buildViewmodel(assets) {
   cellModel.position.sub(cellBounds.center);
   const cellRig = new THREE.Group();
   cellRig.add(cellModel);
+  // Same unlit charge strip the world cell carries, so the thing in your hands
+  // is recognisably the thing you took off the cradle.
+  const cellStrip = new THREE.Mesh(
+    new THREE.PlaneGeometry(cellBounds.size.x * 0.55, cellBounds.size.y * 0.045),
+    new THREE.MeshBasicMaterial({ color: 0x3aa957, toneMapped: false })
+  );
+  cellStrip.position.set(0, -cellBounds.size.y * 0.13, cellBounds.size.z * 0.505);
+  cellRig.add(cellStrip);
   const cellScale = 0.26 / (Math.max(cellBounds.size.x, cellBounds.size.y, cellBounds.size.z) || 1);
   cellRig.scale.setScalar(cellScale);
   cellRig.rotation.set(0.15, 0.5, -0.08);
