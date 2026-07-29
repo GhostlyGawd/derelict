@@ -103,11 +103,22 @@ maximise freedom:
 - One cell at a time.
 - Interact with a cell to take it; interact with a socket while carrying to seat
   it; interact with anything else while carrying to set the cell down.
+- **A carried cell replaces the scanner in the viewmodel**, which stows while
+  your hands are full. The HUD does not change — v1 §4 still holds. Carrying is
+  therefore always visible without a HUD element, and the tool being unavailable
+  while loaded is a consequence we keep rather than work around.
 - Setting down places the cell on the floor at the player's feet. It is never
   thrown, never placed inside geometry, and never enters a room the player
   cannot re-enter.
 - Sockets are one-way. Once a cell is seated it is spent. This deletes an entire
   class of failure rather than testing for it.
+
+Setting a cell down anywhere is the more expensive of the options considered,
+and was chosen deliberately. It means the dead-end harness cannot simply assume
+a cell is always in one of two places — it has to establish that every floor
+position the player can stand on is a position they can return to. That search
+is the main cost in P8 step 2, and it is the reason that step exists before any
+asset work.
 
 **New assets**, through the existing pipeline: `power_cell` and `cell_cradle`
 models, and two sounds — cell lift and cell seat. Existing style bible, existing
@@ -155,13 +166,19 @@ first — not to add it.
 3. **Assets** — the two models and two sounds through the pipeline.
 4. **Integration and ship** — real assets, audio, deploy.
 
-## P9. Open — not yet decided
+## P9. Settled during the interview
 
-These are still being settled and must not be guessed at during the build:
+Recorded so the reasoning is not lost and neither gets reopened casually:
 
-- **How a carried cell is shown.** v1 §4 locks the HUD to a crosshair and the
-  interact prompt, so it has to be diegetic or nothing.
-- **Whether the player can set a cell down at all**, versus carry-until-seated.
+- **A carried cell replaces the scanner.** Rejected: a second viewmodel anchor
+  on the left (costs its own aspect-ratio tuning, which was the fiddliest part
+  of v1 on portrait phones), holding it low and centre (fights the crosshair),
+  and showing nothing at all (a player can walk away having forgotten they are
+  carrying it — the worst possible failure against the no-hints bar).
+- **A cell can be set down at your feet.** Rejected: returning it to its cradle
+  (recoverable by construction, but magical), and carry-until-seated (strictest,
+  but sticky if you pick a cell up before finding where it goes). The chosen
+  option keeps the player free and moves the cost into the harness.
 
 ---
 
