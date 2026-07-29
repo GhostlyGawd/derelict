@@ -2,6 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 
 import { TEXTURES } from '../manifest.js';
+import { synthesiseGlyphAtlas } from '../offline/glyphatlas.js';
 import { synthesiseTexture } from '../offline/textures.js';
 import { contactSheet, crunchTexture, encodeRaster } from '../lib/image.js';
 import { ASSETS, CACHE, bytes, ensureDir, exists, rel, size, write } from '../lib/io.js';
@@ -22,10 +23,27 @@ export async function runTextures({ force = false }) {
 
   for (const spec of TEXTURES) {
     const file = path.join(outDir, `${spec.id}.png`);
+    // The atlas's metrics are derived, not stored, so they have to be recomputed
+    // even on a cache hit — the glyph tables are the source of truth for them.
+    const glyphs = spec.atlas ? synthesiseGlyphAtlas(spec) : null;
+
     if (!force && (await exists(file))) {
       log.step(`${spec.id} — up to date`);
-      entries[spec.id] = manifestEntry(spec, await size(file));
+      entries[spec.id] = manifestEntry(spec, await size(file), glyphs?.metrics);
       sheet.push({ buffer: await fs.readFile(file) });
+      continue;
+    }
+
+    if (glyphs) {
+      // Written at 1:1 with no palette quantisation. This is a coverage mask
+      // rather than a picture, and both the downscale and the dither exist to
+      // make noisy colour cheap — on type they only cost contrast.
+      const png = await encodeRaster(glyphs.raster);
+      await write(file, png);
+      entries[spec.id] = manifestEntry(spec, png.length, glyphs.metrics);
+      sheet.push({ buffer: png });
+      const count = Object.keys(glyphs.metrics.chars).length;
+      log.done(`${spec.id} — ${spec.size}px, ${count} glyphs, ${bytes(png.length)} → ${rel(file)}`);
       continue;
     }
 
@@ -45,12 +63,13 @@ export async function runTextures({ force = false }) {
   return entries;
 }
 
-function manifestEntry(spec, byteLength) {
+function manifestEntry(spec, byteLength, glyphs) {
   return {
     file: `textures/${spec.id}.png`,
     size: spec.size,
     bytes: byteLength,
     ...(spec.emissive ? { emissive: true } : {}),
+    ...(glyphs ? { glyphs } : {}),
   };
 }
 

@@ -1,4 +1,4 @@
-import { audioPrompt, modelPrompt, texturePrompt } from './style-bible.js';
+import { GLYPH_BIBLE, audioPrompt, modelPrompt, texturePrompt } from './style-bible.js';
 
 /**
  * The asset manifest from section 7 of the spec, as data.
@@ -68,6 +68,18 @@ export const TEXTURES = [
     prompt: texturePrompt(
       'Narrow power conduit strip with a glowing sickly green light channel running down the centre, dark metal housing either side, bolted brackets.'
     ),
+  },
+
+  // ---- Phase 3 -----------------------------------------------------------
+  // Not tileable and not double-rendered: `atlas` marks the one texture that is
+  // rasterised straight at its final size, because the downsample every other
+  // surface benefits from is what would turn a stem into a smudge.
+  {
+    id: 'glyph_atlas',
+    size: 256,
+    synth: 'glyph_atlas',
+    atlas: true,
+    prompt: GLYPH_BIBLE,
   },
 ];
 

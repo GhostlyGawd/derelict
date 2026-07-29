@@ -13,10 +13,23 @@ export const STYLE_BIBLE = [
   'Dark gunmetal and olive metal, heavy rivets, scuffed grimy surfaces, utilitarian machinery.',
   'Sickly green energy glow from conduits and readouts.',
   'Low-resolution game-texture look, slightly desaturated, moody.',
-  'No text, no watermarks, no people.',
+  // Phase 3 narrowed this from "No text". The clause was always protecting
+  // against text baked into a tiling surface, which repeats down a
+  // fourteen-metre wall; illegible stencil-shaped wear is wanted.
+  'No legible text, no watermarks, no people.',
 ].join(' ');
 
 export const TEXTURE_SUFFIX = 'seamless tileable texture, flat frontal view, even lighting.';
+
+/**
+ * The glyph atlas is a new asset class and takes its own line, since it is
+ * nothing but text and the bible above forbids exactly that on every surface.
+ */
+export const GLYPH_BIBLE = [
+  'Uppercase industrial stencil lettering, the kind sprayed onto bulkheads and equipment plates.',
+  'Heavy, condensed, slightly irregular.',
+  'Legible at small size on a low-resolution screen.',
+].join(' ');
 
 export const MODEL_SUFFIX =
   'single object centered on a plain dark gray background, three-quarter view, entire object visible, video game prop.';
