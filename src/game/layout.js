@@ -352,8 +352,12 @@ export const PROPS = [
  * blockage, which must be solid as a mass rather than as individual pieces.
  */
 export const BLOCKERS = [
-  // Leaves a ~0.9 m gap against the south wall (clear span there is z ≤ 1.1).
-  { x: [11.3, 13.6], z: [-1.4, 0.2], h: 2.1 },
+  // Leaves a ~1.05 m gap against the south wall (clear span there is z ≤ 1.1).
+  // Collision resolves per axis, so walking into the pile stops the player
+  // rather than sliding them along it — the gap has to be wide enough to aim
+  // for with a thumbstick, not just wide enough to fit through. This leaves
+  // ±0.37 m of steering room around a 0.68 m-wide player.
+  { x: [11.3, 13.6], z: [-1.4, 0.05], h: 2.1 },
 ];
 
 /** Point-in-space lookup, used for footsteps, ambience and objective text. */

@@ -8,7 +8,10 @@ export default defineConfig({
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
-        manualChunks: { three: ['three'] },
+        // Function form rather than the object shorthand: Vite 8 bundles with
+        // rolldown, which only accepts a function here. Rollup takes either,
+        // so this builds identically on Vite 5 and 6.
+        manualChunks: (id) => (id.includes('node_modules/three') ? 'three' : undefined),
       },
     },
   },
