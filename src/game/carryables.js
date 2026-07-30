@@ -93,6 +93,20 @@ export function buildCarryables(assets, cache, carry, materials) {
     );
     lamp.position.set(0, 0.95, 0.42);
     holder.add(lamp);
+
+    // Two jaws across the cell's waist. Before phase 4 a cradle released its
+    // cell by setting a flag, so "clamped" was a word in the spec and a red
+    // lamp on the fixture — nothing on the ship actually held anything. These
+    // are what make the clamp legible as the *reason* the cell cannot be taken.
+    const jawGeometry = new THREE.BoxGeometry(0.1, 0.16, 0.34);
+    const jawMaterial = new THREE.MeshLambertMaterial({ color: 0x6d726a });
+    const jaws = [-1, 1].map((side) => {
+      const jaw = new THREE.Mesh(jawGeometry, jawMaterial);
+      jaw.position.set(side * 0.2, CELL_MOUNT[1], CELL_MOUNT[2]);
+      holder.add(jaw);
+      return { mesh: jaw, side, home: side * 0.2 };
+    });
+
     group.add(holder);
 
     colliders.push({
@@ -109,6 +123,8 @@ export function buildCarryables(assets, cache, carry, materials) {
       cellId: def.cell,
       needs: def.needs,
       released: false,
+      /** 0 closed, 1 fully parted. Cosmetic — the flag above is the state. */
+      clampT: 0,
       mount: new THREE.Vector3(...CELL_MOUNT).applyAxisAngle(
         new THREE.Vector3(0, 1, 0),
         holder.rotation.y
@@ -119,7 +135,21 @@ export function buildCarryables(assets, cache, carry, materials) {
       },
       reset() {
         this.released = false;
+        this.clampT = 0;
+        for (const jaw of jaws) jaw.mesh.position.x = jaw.home;
         lamp.material.color.copy(LOCKED_CLAMP);
+      },
+      /**
+       * The jaws part *after* the flag flips, never before it. Animation is a
+       * consequence you watch, not a wait you serve — the cell is takeable on
+       * the frame the room comes up, whatever the jaws are still doing.
+       */
+      update(dt) {
+        const target = this.released ? 1 : 0;
+        if (this.clampT === target) return;
+        this.clampT = THREE.MathUtils.damp(this.clampT, target, 9, dt);
+        if (Math.abs(this.clampT - target) < 0.003) this.clampT = target;
+        for (const jaw of jaws) jaw.mesh.position.x = jaw.home + jaw.side * this.clampT * 0.17;
       },
     };
   });
@@ -131,6 +161,16 @@ export function buildCarryables(assets, cache, carry, materials) {
     holder.rotation.y = Math.atan2(def.facing[0], def.facing[2]);
     const meshes = socketParts(materials);
     for (const mesh of meshes) holder.add(mesh);
+
+    // A shutter that closes over the mouth once a cell is in. Sockets have been
+    // one-way since phase 2; this is what makes them *look* one-way, which is
+    // the difference between a rule and a thing the player can see.
+    const shutter = new THREE.Mesh(
+      new THREE.BoxGeometry(0.3, 0.05, 0.05),
+      new THREE.MeshLambertMaterial({ color: 0x5a5f57 })
+    );
+    shutter.position.set(0, 0.34, 0.2);
+    holder.add(shutter);
     group.add(holder);
 
     const state = {
@@ -149,8 +189,15 @@ export function buildCarryables(assets, cache, carry, materials) {
       ),
       canUse: () => carry.held !== null && !state.filled,
       highlight: highlighter(meshes, () => carry.held !== null && !state.filled),
+      /** The cell on its way in: 0 at the player's hands, 1 fully seated. */
+      travel: 0,
+      shutterT: 0,
+      shutter,
       reset() {
         state.filled = false;
+        state.travel = 0;
+        state.shutterT = 0;
+        shutter.position.y = 0.34;
         state.highlight(false);
       },
     };
@@ -242,13 +289,44 @@ export function buildCarryables(assets, cache, carry, materials) {
       cell.holder.rotation.y = yaw;
     },
 
-    /** One-way. A seated cell is spent and is never takeable again. */
+    /**
+     * One-way. A seated cell is spent and is never takeable again.
+     *
+     * `filled` flips on this call, not when the animation ends — the panel
+     * reads the new count on the frame the button was pressed, and the travel
+     * below is a consequence the player watches rather than a wait they serve.
+     * That is the whole difference between feedback and latency.
+     */
     seat(cell, socket) {
       socket.filled = true;
-      cell.placeAt(socket.anchor, 'seated');
+      // Starts wherever the cell was last drawn and slides home.
+      socket.travel = 0;
+      socket.seating = cell;
+      cell.placeAt(cell.holder.position.clone(), 'seated');
       cell.holder.rotation.y = socket.facing;
       socket.highlight(false);
       cell.highlight(false);
+    },
+
+    /** Drives the parts that move. State has already changed by the time this runs. */
+    update(dt) {
+      for (const cradle of cradles) cradle.update(dt);
+      for (const socket of sockets) {
+        if (socket.seating && socket.travel < 1) {
+          socket.travel = Math.min(1, socket.travel + dt / 0.42);
+          // Frame-rate independent exponential approach — a loading mechanism
+          // decelerates into its seat rather than arriving at a constant rate.
+          socket.seating.holder.position.lerp(socket.anchor, 1 - 0.0015 ** dt);
+          if (socket.travel >= 1) socket.seating.holder.position.copy(socket.anchor);
+        }
+        // The shutter follows the cell in, closing behind it.
+        const target = socket.filled && socket.travel >= 1 ? 1 : 0;
+        if (socket.shutterT !== target) {
+          socket.shutterT = THREE.MathUtils.damp(socket.shutterT, target, 8, dt);
+          if (Math.abs(socket.shutterT - target) < 0.004) socket.shutterT = target;
+          socket.shutter.position.y = 0.34 - socket.shutterT * 0.12;
+        }
+      }
     },
 
     reset() {

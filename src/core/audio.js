@@ -143,7 +143,7 @@ export class AudioBus {
    * a phone speaker and costs almost nothing, which is the same argument that
    * kept HRTF out of the spec.
    */
-  playAt(id, position, { volume = 1, maxDistance = 26, rate = 1 } = {}) {
+  playAt(id, position, { volume = 1, maxDistance = 26, rate = 1, delay = 0 } = {}) {
     if (!this.ready || volume <= 0.001) return null;
     const buffer = this.buffers.get(id);
     if (!buffer) return null;
@@ -166,7 +166,7 @@ export class AudioBus {
     source.connect(gain).connect(panner);
     panner.connect(this.dry);
     panner.connect(this.send);
-    source.start();
+    source.start(this.ctx.currentTime + delay);
     return source;
   }
 

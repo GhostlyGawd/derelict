@@ -27,6 +27,7 @@ import {
 } from './game/layout.js';
 import { buildLevel } from './game/level.js';
 import { buildLighting } from './game/lighting.js';
+import { buildMechanism } from './game/mechanism.js';
 import { Player } from './game/player.js';
 import { buildStaticProps } from './game/props.js';
 import { buildViewmodel, fovFor } from './game/viewmodel.js';
@@ -137,6 +138,9 @@ class Derelict {
     this.lighting = buildLighting(this.materials);
     this.scene.add(this.lighting.group);
 
+    this.mechanism = buildMechanism(this.materials, this.lighting);
+    this.scene.add(this.mechanism.group);
+
     this.switches = buildSwitches(this.assets, modelCache);
     for (const sw of this.switches) this.scene.add(sw.object);
 
@@ -223,6 +227,7 @@ class Derelict {
     // Forget which compartment we were in, so restarting re-selects a response
     // rather than leaving the Annex's tail on the Bay.
     this.audio.space = null;
+    this.mechanism.reset();
     this.poweredZones.clear();
     for (const sw of this.switches) {
       sw.used = false;
@@ -264,7 +269,10 @@ class Derelict {
   #flip(sw) {
     if (!sw.activate()) return;
     this.viewmodel.play();
-    this.audio.playAt('switch_clunk', sw.point.toArray(), { volume: 1 });
+    // The lever takes about a sixth of a second to reach the end of its arc, and
+    // the clunk belongs there rather than under the player's thumb. The state
+    // has already changed — this is only the sound catching up with the metal.
+    this.audio.playAt('switch_clunk', sw.point.toArray(), { volume: 1, delay: 0.17 });
     this.audio.play('power_surge', { volume: 0.55, delay: 0.18 });
 
     for (const [zone, source] of Object.entries(ZONE_POWER)) {
@@ -429,7 +437,11 @@ class Derelict {
 
     for (const sw of this.switches) sw.update(dt);
     for (const door of this.doors) door.update(dt);
+    this.carryables.update(dt);
     this.lighting.update(dt, this.elapsed);
+    // After the lighting pass, so the failing lamp rides on top of whatever
+    // state its zone is in rather than fighting it for the same value.
+    this.mechanism.update(dt, this.camera);
 
     const space = spaceAt(this.player.position.x, this.player.position.z);
     // The ears go where the head is, and the compartment decides what the room
