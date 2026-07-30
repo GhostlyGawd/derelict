@@ -1,3 +1,4 @@
+import { SPACES } from '../src/game/layout.js';
 import { GLYPH_BIBLE, audioPrompt, modelPrompt, texturePrompt } from './style-bible.js';
 
 /**
@@ -14,6 +15,7 @@ export const TEXTURES = [
     id: 'wall_panel_a',
     size: 512,
     synth: 'wall',
+    relief: true,
     variant: 0,
     prompt: texturePrompt(
       'Riveted steel wall panel section of a spaceship corridor, large bolted plates with recessed seams, weld scars, streaks of grime running down from the joints.'
@@ -23,6 +25,7 @@ export const TEXTURES = [
     id: 'wall_panel_b',
     size: 512,
     synth: 'wall',
+    relief: true,
     variant: 1,
     prompt: texturePrompt(
       'Olive drab painted bulkhead panel, chipped paint over bare steel, stencilled hazard blocks worn away, heavy rivet rows, oil staining.'
@@ -32,6 +35,7 @@ export const TEXTURES = [
     id: 'floor_plate',
     size: 512,
     synth: 'floor',
+    relief: true,
     prompt: texturePrompt(
       'Industrial diamond tread deck plating, worn tread pattern polished smooth in the walk lines, bolt heads at the plate corners, dirt in the grooves.'
     ),
@@ -40,6 +44,7 @@ export const TEXTURES = [
     id: 'ceiling_plate',
     size: 256,
     synth: 'ceiling',
+    relief: true,
     prompt: texturePrompt(
       'Overhead ceiling panel of a spaceship, perforated vent grille sections between flat ribbed metal panels, dust and condensation staining.'
     ),
@@ -48,6 +53,7 @@ export const TEXTURES = [
     id: 'greeble_panel',
     size: 512,
     synth: 'greeble',
+    relief: true,
     prompt: texturePrompt(
       'Dense machinery greeble panel, cable looms, cooling fins, valve blocks, small dead indicator lamps, exposed conduit, packed technical detail.'
     ),
@@ -56,6 +62,7 @@ export const TEXTURES = [
     id: 'door_trim',
     size: 256,
     synth: 'trim',
+    relief: true,
     prompt: texturePrompt(
       'Heavy door-frame trim moulding of a blast door, diagonal caution striping worn to bare metal, thick bolted flange, scuffed edges.'
     ),
@@ -252,6 +259,36 @@ export const SOUNDS = [
     variant: 2,
     prompt: audioPrompt('A single boot step on a loose deck panel, softer thud with a rattle.'),
   },
+  // Phase 4 — the second surface underfoot. Grating rings where deck plate
+  // thuds, and it is what the two corridors and the Service Passage are made
+  // of. `spaceAt` already knows which is beneath the player.
+  {
+    id: 'footstep_grate_1',
+    seconds: 0.5,
+    gain: 0.66,
+    synth: 'footstep',
+    variant: 0,
+    surface: 'grate',
+    prompt: audioPrompt('A single boot step on open steel grating, bright metallic clatter with a short ringing tail.'),
+  },
+  {
+    id: 'footstep_grate_2',
+    seconds: 0.5,
+    gain: 0.66,
+    synth: 'footstep',
+    variant: 1,
+    surface: 'grate',
+    prompt: audioPrompt('A single boot step on open steel grating, bright metallic clatter with a short ringing tail.'),
+  },
+  {
+    id: 'footstep_grate_3',
+    seconds: 0.5,
+    gain: 0.66,
+    synth: 'footstep',
+    variant: 2,
+    surface: 'grate',
+    prompt: audioPrompt('A single boot step on open steel grating, bright metallic clatter with a short ringing tail.'),
+  },
   {
     id: 'end_sting',
     seconds: 3.6,
@@ -281,4 +318,69 @@ export const SOUNDS = [
   },
 ];
 
-export const ALL = { TEXTURES, MODELS, SOUNDS };
+
+/**
+ * Phase 4 — compartment acoustics.
+ *
+ * Derived from SPACES rather than restated. An impulse response is a function
+ * of the box it is generated from, so the level table stays the only place a
+ * room's size is written down, and resizing a compartment regenerates its
+ * acoustic for free.
+ *
+ * Keyed by the dimensions that produce the response, so identical compartments
+ * share one: Corridor A and Corridor B are the same 12 x 2.6 x 2.6 m box, and
+ * the Hold and the Annex are the same 14 x 18 x 3.8 m box. Seven compartments,
+ * five responses — which is correct rather than a shortcut, and is asserted in
+ * tools/acoustics.mjs rather than assumed.
+ */
+
+/**
+ * One absorption coefficient for the whole ship. Painted steel and bare plate
+ * are both quite reflective; this is the single number the spec calls "a
+ * chosen absorption", and it is what sets the 0.54 s to 1.38 s spread the
+ * feature is betting on being audible.
+ */
+export const ABSORPTION = 0.15;
+
+export const ACOUSTICS = buildAcoustics();
+
+function buildAcoustics() {
+  const byShape = new Map();
+  for (const space of SPACES) {
+    const w = round2(space.x[1] - space.x[0]);
+    const d = round2(space.z[1] - space.z[0]);
+    const h = round2(space.h);
+    const key = `${w}x${d}x${h}`;
+    if (!byShape.has(key)) {
+      byShape.set(key, {
+        id: `ir_${space.id}`,
+        w,
+        d,
+        h,
+        absorption: ABSORPTION,
+        // Seeded off the dimensions, not off position in the list, so the
+        // noise in a room's tail is a property of the room.
+        seed: hash(key),
+        spaces: [],
+      });
+    }
+    byShape.get(key).spaces.push(space.id);
+  }
+  return [...byShape.values()];
+}
+
+/** Kills float noise like 1.9999999999999996 before it reaches a key. */
+function round2(v) {
+  return Math.round(v * 100) / 100;
+}
+
+function hash(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+export const ALL = { TEXTURES, MODELS, SOUNDS, ACOUSTICS };

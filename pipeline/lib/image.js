@@ -18,22 +18,38 @@ export function encodeRaster(raster) {
 }
 
 /**
- * Lossless PNG for a coverage mask, with every encoder knob pinned.
+ * Lossless truecolour PNG with every encoder knob pinned.
  *
  * sharp's `.png()` defaults are not a stable contract across libvips builds:
  * the glyph atlas reproduced one byte differently on CI than locally, which is
  * enough to fail the determinism gate. Every other texture already passes
- * explicit options, which is why only this one drifted.
- *
- * `palette: false` deliberately: this is a greyscale coverage ramp, and
- * quantising it would cost contrast inside the letterforms.
+ * explicit options, which is why only that one drifted.
  */
-export function encodeMask(raster) {
+function encodeLossless(raster) {
   return sharp(raster.toBuffer(), {
     raw: { width: raster.size, height: raster.size, channels: 3 },
   })
     .png({ compressionLevel: 9, effort: 10, palette: false, adaptiveFiltering: false })
     .toBuffer();
+}
+
+/**
+ * A coverage mask. `palette: false` deliberately: this is a greyscale ramp, and
+ * quantising it would cost contrast inside the letterforms.
+ */
+export function encodeMask(raster) {
+  return encodeLossless(raster);
+}
+
+/**
+ * A normal map is a vector field, not a picture. The palette quantisation and
+ * dithering that `crunchTexture` applies to every diffuse would not cost it "a
+ * bit of colour" — 160 colours cannot span a hemisphere of directions, and the
+ * dither would scatter the surface normals into noise. So relief goes out
+ * losslessly, at full colour depth, already at its final resolution.
+ */
+export function encodeNormal(raster) {
+  return encodeLossless(raster);
 }
 
 export async function crunchTexture(input, targetSize, { colours = 160 } = {}) {

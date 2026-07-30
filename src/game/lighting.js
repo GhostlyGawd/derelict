@@ -188,5 +188,13 @@ export function buildLighting(materials) {
     }
   }
 
-  return { group, setPowered, floodChamber, reset, update };
+  /**
+   * The lamps in a zone. Phase 4's failing lamp rides on top of whatever state
+   * the zone is in rather than replacing it, so it needs the light itself.
+   */
+  function lampsIn(zoneId) {
+    return zones.get(zoneId)?.lights ?? [];
+  }
+
+  return { group, setPowered, floodChamber, reset, update, lampsIn };
 }

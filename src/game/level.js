@@ -97,11 +97,12 @@ export function buildLevel(materials) {
 
   // ------------------------------------------------------- extra blockers
   for (const b of BLOCKERS) {
+    const [floor, ceiling] = b.y ?? [0, b.h];
     colliders.push({
       minX: b.x[0],
       maxX: b.x[1],
-      minY: 0,
-      maxY: b.h,
+      minY: floor,
+      maxY: ceiling,
       minZ: b.z[0],
       maxZ: b.z[1],
     });

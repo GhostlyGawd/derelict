@@ -138,14 +138,27 @@ const sounds = await page.evaluate(() => {
     ready: bus.ready,
     buffers: [...bus.buffers.entries()].map(([id, b]) => [id, +b.duration.toFixed(2)]),
     ambient: Boolean(bus.ambient),
+    responses: [...bus.responses.entries()].map(([id, b]) => [id, +b.duration.toFixed(2)]),
+    spaces: [...bus.irOfSpace.entries()],
   };
 });
 if (!sounds.ready) throw new Error('audio bus never became ready');
 if (!sounds.ambient) throw new Error('ambient loop did not start');
 const silent = sounds.buffers.filter(([, d]) => d <= 0);
 if (silent.length) throw new Error(`empty audio buffers: ${silent.map(([id]) => id).join(', ')}`);
-if (sounds.buffers.length !== 10) throw new Error(`expected 10 sounds, decoded ${sounds.buffers.length}`);
+if (sounds.buffers.length !== 13) throw new Error(`expected 13 sounds, decoded ${sounds.buffers.length}`);
 console.log('  audio:', sounds.buffers.map(([id, d]) => `${id} ${d}s`).join(', '));
+
+// Phase 4: the impulse responses are a second asset class in the same bus.
+const dead = sounds.responses.filter(([, d]) => d <= 0);
+if (dead.length) throw new Error(`empty impulse responses: ${dead.map(([id]) => id).join(', ')}`);
+if (sounds.responses.length !== 5) {
+  throw new Error(`expected 5 compartment responses, decoded ${sounds.responses.length}`);
+}
+if (sounds.spaces.length !== 7) {
+  throw new Error(`expected all 7 compartments mapped to a response, got ${sounds.spaces.length}`);
+}
+console.log('  acoustics:', sounds.responses.map(([id, d]) => `${id} ${d}s`).join(', '));
 
 // ---- Route to the Storage Hold and flip switch 1 -------------------------
 await place(-6.0, 0, Math.PI / 2); // face west, in the corridor A doorway
@@ -205,11 +218,25 @@ await advanceUntil((v) => v.pos[0] >= 10.8);
 console.log('  corridor B squeeze →', JSON.stringify((await state()).pos));
 await shot('corridor-b-blockage');
 
-// Thread the gap along the south wall.
+// Thread the gap along the south wall. Since phase 4 the gap is hung with
+// collapsed structure at 1.2 m, so upright it is a wall and only a crouched
+// player gets through. Both halves are asserted: a squeeze that stopped being
+// a squeeze would pass the second check on its own.
 await place(11.0, 0.75, -Math.PI / 2);
 s = await advanceUntil((v) => v.pos[0] >= 14.5);
-if (s.pos[0] < 13.8) throw new Error(`squeeze route is impassable, stuck at x=${s.pos[0]}`);
-console.log('  squeeze cleared →', JSON.stringify(s.pos));
+if (s.pos[0] >= 13.8) throw new Error(`walked the squeeze upright to x=${s.pos[0]} — it is not a squeeze`);
+console.log('  squeeze refuses a standing player →', JSON.stringify(s.pos));
+
+await place(11.0, 0.75, -Math.PI / 2);
+await page.keyboard.down('KeyC');
+try {
+  s = await advanceUntil((v) => v.pos[0] >= 14.5);
+} finally {
+  await page.keyboard.up('KeyC');
+}
+if (s.pos[0] < 13.8) throw new Error(`squeeze route is impassable even crouched, stuck at x=${s.pos[0]}`);
+console.log('  squeeze cleared, crouched →', JSON.stringify(s.pos));
+await page.waitForTimeout(300);
 
 await place(31.6, 1.6, -Math.PI / 2);
 await page.waitForTimeout(300);

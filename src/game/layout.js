@@ -24,6 +24,15 @@ export const PLAYER_RADIUS = 0.34;
 export const PLAYER_HEIGHT = 1.72;
 export const PLAYER_EYE = 1.62;
 
+/**
+ * Phase 4 — the second stance. Collision height is what makes the squeeze work:
+ * `resolve()` ignores any collider whose `minY` clears the player's current
+ * height, so structure hanging at 1.2 m stops the standing box and passes the
+ * crouched one without a line of new collision code.
+ */
+export const PLAYER_CROUCH_HEIGHT = 1.15;
+export const PLAYER_CROUCH_EYE = 1.05;
+
 /** Every enclosed space: floor + ceiling rectangle and its ceiling height. */
 export const SPACES = [
   { id: 'bay', name: 'Airlock Bay', x: [-7, 7], z: [-7, 7], h: 3.6 },
@@ -326,6 +335,15 @@ export const PROPS = [
   { model: 'cargo_crate', pos: [13.05, 0, -1.05], rotY: rad(28) },
   { model: 'cargo_crate', pos: [12.0, 0.78, -0.6], rotY: rad(-18) },
   { model: 'canister', pos: [11.6, 0, -0.9], rotY: rad(96) },
+  // Phase 4: the pile has brought the ceiling down with it. These hang over the
+  // gap and are what the player reads before they read the collider — the
+  // BLOCKERS row underneath them starts at 1.2 m, so the route is a duck.
+  // No colliders of their own: floor_debris has no default box, and the one
+  // blocker is the whole of the physics here.
+  { model: 'floor_debris', pos: [11.75, 1.28, 0.45], rotY: rad(-6), scale: 1.55 },
+  { model: 'floor_debris', pos: [12.6, 1.42, 0.75], rotY: rad(102), scale: 1.35 },
+  { model: 'floor_debris', pos: [13.3, 1.24, 0.35], rotY: rad(-38), scale: 1.45 },
+  { model: 'pipe_cluster', pos: [12.45, 1.62, 1.02], rotY: rad(6), collide: null },
   { model: 'pipe_cluster', pos: [9.0, 0, 1.15], rotY: rad(180) },
   { model: 'pipe_cluster', pos: [16.4, 0, -1.15], rotY: 0 },
   { model: 'floor_debris', pos: [15.2, 0, 0.4], rotY: rad(-64), scale: 0.75 },
@@ -362,6 +380,11 @@ export const PROPS = [
  * Extra colliders that are not tied to a prop — used for the corridor B
  * blockage, which must be solid as a mass rather than as individual pieces.
  */
+/**
+ * Pure colliders with no geometry of their own — the debris they represent is
+ * dressed with `floor_debris` props. `y` gives the box a floor as well as a
+ * ceiling; without it the box starts at the deck and rises to `h`.
+ */
 export const BLOCKERS = [
   // Leaves a ~1.05 m gap against the south wall (clear span there is z ≤ 1.1).
   // Collision resolves per axis, so walking into the pile stops the player
@@ -369,6 +392,10 @@ export const BLOCKERS = [
   // for with a thumbstick, not just wide enough to fit through. This leaves
   // ±0.37 m of steering room around a 0.68 m-wide player.
   { x: [11.3, 13.6], z: [-1.4, 0.05], h: 2.1 },
+  // Phase 4: collapsed structure hanging over that gap, so the squeeze route
+  // v1 §5 has always claimed is finally one. The underside sits 5 cm above the
+  // crouched box and 52 cm below the standing one, which is the whole feature.
+  { x: [11.3, 13.6], z: [0, 1.2], y: [1.2, 2.6] },
 ];
 
 /**
@@ -473,6 +500,38 @@ export const PLACARDS = [
 ];
 
 /** Point-in-space lookup, used for footsteps, ambience and objective text. */
+/**
+ * Phase 4 — what is underfoot, and what the room tone sounds like.
+ *
+ * The two corridors and the Service Passage are open grating; the rooms and the
+ * airlock are deck plate. `spaceAt` already knows which compartment the player
+ * is standing in, so the footstep set falls out of the same lookup.
+ */
+export const SURFACES = {
+  bay: 'deck',
+  corrA: 'grate',
+  hold: 'deck',
+  corrB: 'grate',
+  annex: 'deck',
+  shortcut: 'grate',
+  chamber: 'deck',
+};
+
+/**
+ * The bed, per compartment. The convolver gives each space its reverb; this is
+ * the other half — how loud and how dark the ship itself sounds from inside it.
+ * A 3.8 m hold carries more low end than a 2.4 m crawl between bulkheads.
+ */
+export const ROOM_TONE = {
+  bay: { level: 1.0, cutoff: 4200 },
+  corrA: { level: 0.8, cutoff: 2500 },
+  hold: { level: 1.18, cutoff: 5400 },
+  corrB: { level: 0.8, cutoff: 2500 },
+  annex: { level: 1.18, cutoff: 5400 },
+  shortcut: { level: 0.6, cutoff: 1700 },
+  chamber: { level: 0.72, cutoff: 3000 },
+};
+
 export function spaceAt(x, z) {
   for (const s of SPACES) {
     if (x >= s.x[0] && x <= s.x[1] && z >= s.z[0] && z <= s.z[1]) return s;

@@ -79,13 +79,37 @@ export class MaterialLibrary {
     return this.placeholders.get(id);
   }
 
-  /** Opaque, lit surface. */
+  /**
+   * Opaque, lit surface.
+   *
+   * A surface with generated relief is Phong rather than Lambert: Lambert has
+   * no specular term, and a bolt that never catches a glint is a bolt you only
+   * notice when the lamp is already on it. Shininess is deliberately low and
+   * the specular colour deliberately dark — the brief is a bolt glinting as you
+   * walk past, not wet plastic. Phong and no further: PBR is out permanently
+   * (4.4), because it costs frames at a 0.5× internal scale and would make the
+   * ship look like a modern game wearing a low-resolution costume.
+   *
+   * Surfaces with no relief — and the whole greybox build, which has no
+   * generated assets at all — stay Lambert. There is nothing for a specular to
+   * do on a flat normal but cost fill rate.
+   */
   surface(id, { color = 0xffffff } = {}) {
     const key = `surf:${id}:${color}`;
     if (!this.cache.has(key)) {
+      const normalMap = this.assets.normal?.(id) || null;
       this.cache.set(
         key,
-        new THREE.MeshLambertMaterial({ map: this.textureFor(id), color, fog: true })
+        normalMap
+          ? new THREE.MeshPhongMaterial({
+              map: this.textureFor(id),
+              normalMap,
+              color,
+              fog: true,
+              shininess: 10,
+              specular: 0x23291f,
+            })
+          : new THREE.MeshLambertMaterial({ map: this.textureFor(id), color, fog: true })
       );
     }
     return this.cache.get(key);

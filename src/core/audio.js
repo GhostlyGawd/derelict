@@ -5,6 +5,11 @@
  * run. Anything the pipeline has not produced falls back to a synthesised
  * stand-in, which keeps the greybox build audible.
  */
+/** How much of every world sound is fed to the compartment's reverb. */
+const SEND_LEVEL = 0.42;
+/** Long enough that a threshold does not click, short enough to feel like a door. */
+const CROSSFADE = 0.4;
+
 export class AudioBus {
   constructor(assets) {
     this.assets = assets;
@@ -13,6 +18,14 @@ export class AudioBus {
     this.buffers = new Map();
     this.ambient = null;
     this.ready = false;
+
+    /** Impulse responses by id, and which one each compartment uses. */
+    this.responses = new Map();
+    this.irOfSpace = new Map();
+    /** Two convolvers, crossfaded. One that switched would click. */
+    this.wet = [];
+    this.activeWet = 0;
+    this.space = null;
   }
 
   async unlock() {
@@ -29,8 +42,43 @@ export class AudioBus {
     this.master.connect(this.ctx.destination);
     if (this.ctx.state === 'suspended') await this.ctx.resume();
 
-    await Promise.all(
-      SOUND_IDS.map(async (id) => {
+    // The mixer, phase 4. Every world sound goes through a panner into a dry
+    // bus and, in parallel, into a send feeding whichever compartment response
+    // is loaded. Two convolvers rather than one, because changing a
+    // ConvolverNode's buffer mid-stream is audible and crossing between two is
+    // not — and a doorway is exactly where you would hear the seam.
+    this.dry = this.ctx.createGain();
+    this.dry.connect(this.master);
+
+    this.send = this.ctx.createGain();
+    this.send.gain.value = SEND_LEVEL;
+
+    for (let i = 0; i < 2; i++) {
+      const conv = this.ctx.createConvolver();
+      // Equal-power normalisation, so compartments differ by how long and how
+      // dark their tail is rather than by how loud it arrives. Length and
+      // colour are what the ear reads as size; level just reads as level.
+      conv.normalize = true;
+      const gain = this.ctx.createGain();
+      gain.gain.value = 0;
+      this.send.connect(conv);
+      conv.connect(gain);
+      gain.connect(this.master);
+      // Stored as the param, not the node: every use of it is a ramp.
+      this.wet.push({ conv, level: gain.gain });
+    }
+
+    // Room tone: the bed runs through a filter whose corner follows the
+    // compartment, so the Hold booms and the Service Passage is close and dry.
+    this.toneFilter = this.ctx.createBiquadFilter();
+    this.toneFilter.type = 'lowpass';
+    this.toneFilter.frequency.value = 4000;
+    this.toneLevel = this.ctx.createGain();
+    this.toneLevel.gain.value = 1;
+    this.toneFilter.connect(this.toneLevel).connect(this.master);
+
+    await Promise.all([
+      ...SOUND_IDS.map(async (id) => {
         const raw = this.assets.audio(id);
         if (raw) {
           try {
@@ -41,10 +89,33 @@ export class AudioBus {
           }
         }
         this.buffers.set(id, synthesise(this.ctx, id));
-      })
-    );
+      }),
+      this.#loadAcoustics(),
+    ]);
 
     this.ready = true;
+  }
+
+  /**
+   * Compartment responses. The manifest says which spaces share which
+   * response, so the mapping is read rather than restated — identical boxes
+   * sharing one acoustic is a fact about the level, decided in the pipeline.
+   */
+  async #loadAcoustics() {
+    const table = this.assets.manifest?.acoustics;
+    if (!table) return;
+    await Promise.all(
+      Object.entries(table).map(async ([id, entry]) => {
+        const raw = this.assets.acoustic(id);
+        if (!raw) return;
+        try {
+          this.responses.set(id, await decode(this.ctx, raw.slice(0)));
+          for (const space of entry.spaces || []) this.irOfSpace.set(space, id);
+        } catch {
+          /* a compartment with no response simply stays dry */
+        }
+      })
+    );
   }
 
   play(id, { volume = 1, rate = 1, delay = 0 } = {}) {
@@ -62,13 +133,100 @@ export class AudioBus {
     return source;
   }
 
-  /** World sound with simple distance falloff — no panner, no cost. */
-  playAt(id, position, listener, { volume = 1, maxDistance = 26, rate = 1 } = {}) {
-    const dx = position[0] - listener.x;
-    const dz = position[2] - listener.z;
-    const distance = Math.hypot(dx, dz);
-    const falloff = Math.max(0, 1 - distance / maxDistance);
-    return this.play(id, { volume: volume * falloff * falloff, rate });
+  /**
+   * A sound with a place in the room.
+   *
+   * This used to be `1 - d/26`, squared, on a plain gain — the whole of the
+   * ship's spatial audio, and with no direction in it at all: a clunk behind
+   * you and a clunk in front of you were the same signal. It is a PannerNode
+   * now, on `equalpower`. Stereo placement without HRTF is the right trade for
+   * a phone speaker and costs almost nothing, which is the same argument that
+   * kept HRTF out of the spec.
+   */
+  playAt(id, position, { volume = 1, maxDistance = 26, rate = 1, delay = 0 } = {}) {
+    if (!this.ready || volume <= 0.001) return null;
+    const buffer = this.buffers.get(id);
+    if (!buffer) return null;
+
+    const source = this.ctx.createBufferSource();
+    source.buffer = buffer;
+    source.playbackRate.value = rate;
+
+    const gain = this.ctx.createGain();
+    gain.gain.value = volume;
+
+    const panner = this.ctx.createPanner();
+    panner.panningModel = 'equalpower';
+    panner.distanceModel = 'inverse';
+    panner.refDistance = 1.8;
+    panner.maxDistance = maxDistance;
+    panner.rolloffFactor = 1.2;
+    setPosition(panner, position[0], position[1] ?? 1.2, position[2]);
+
+    source.connect(gain).connect(panner);
+    panner.connect(this.dry);
+    panner.connect(this.send);
+    source.start(this.ctx.currentTime + delay);
+    return source;
+  }
+
+  /** Where the ears are. Called every frame from the game loop. */
+  setListener(x, y, z, yaw) {
+    if (!this.ready) return;
+    const l = this.ctx.listener;
+    // yaw 0 looks down -Z, matching the player.
+    const fx = -Math.sin(yaw);
+    const fz = -Math.cos(yaw);
+    if (l.positionX) {
+      l.positionX.value = x;
+      l.positionY.value = y;
+      l.positionZ.value = z;
+      l.forwardX.value = fx;
+      l.forwardY.value = 0;
+      l.forwardZ.value = fz;
+      l.upX.value = 0;
+      l.upY.value = 1;
+      l.upZ.value = 0;
+    } else {
+      // Safari still ships the deprecated form.
+      l.setPosition(x, y, z);
+      l.setOrientation(fx, 0, fz, 0, 1, 0);
+    }
+  }
+
+  /**
+   * Moves the listener into a compartment: crossfades its response in, and
+   * retunes the room tone. Cheap to call every frame — it returns immediately
+   * unless the compartment actually changed.
+   */
+  setSpace(spaceId, tone) {
+    if (!this.ready || spaceId === this.space) return;
+    this.space = spaceId;
+
+    if (tone) {
+      const now = this.ctx.currentTime;
+      this.toneFilter.frequency.setTargetAtTime(tone.cutoff, now, 0.25);
+      this.toneLevel.gain.setTargetAtTime(tone.level, now, 0.25);
+    }
+
+    const irId = this.irOfSpace.get(spaceId);
+    const buffer = irId ? this.responses.get(irId) : null;
+    const active = this.wet[this.activeWet];
+    if (!buffer) {
+      // Nowhere with a response: fade the tail out rather than cutting it.
+      ramp(active.level, 0, this.ctx.currentTime, CROSSFADE);
+      return;
+    }
+    // Already convolving this one — two compartments can share a response, and
+    // walking between them should be seamless rather than re-crossfaded.
+    if (active.conv.buffer === buffer && active.level.value > 0.01) return;
+
+    const next = this.wet[this.activeWet ^ 1];
+    next.conv.buffer = buffer;
+    const now = this.ctx.currentTime;
+    ramp(next.level, 1, now, CROSSFADE);
+    ramp(active.level, 0, now, CROSSFADE);
+    this.activeWet ^= 1;
   }
 
   /**
@@ -88,7 +246,7 @@ export class AudioBus {
     const bus = this.ctx.createGain();
     bus.gain.value = 0.0001;
     bus.gain.linearRampToValueAtTime(AMBIENT_LEVEL, this.ctx.currentTime + 3);
-    bus.connect(this.master);
+    bus.connect(this.toneFilter);
 
     const pad = 0.06;
     const body = Math.max(2, buffer.duration - pad * 2);
@@ -176,10 +334,31 @@ export const SOUND_IDS = [
   'footstep_1',
   'footstep_2',
   'footstep_3',
+  'footstep_grate_1',
+  'footstep_grate_2',
+  'footstep_grate_3',
   'end_sting',
   'cell_lift',
   'cell_seat',
 ];
+
+/** Sets a panner's position across both the current and the legacy API. */
+function setPosition(panner, x, y, z) {
+  if (panner.positionX) {
+    panner.positionX.value = x;
+    panner.positionY.value = y;
+    panner.positionZ.value = z;
+  } else {
+    panner.setPosition(x, y, z);
+  }
+}
+
+/** Equal-power-ish ramp that never lands on exactly zero, which mutes a node. */
+function ramp(param, to, now, seconds) {
+  param.cancelScheduledValues(now);
+  param.setValueAtTime(Math.max(0.0001, param.value), now);
+  param.linearRampToValueAtTime(Math.max(0.0001, to), now + seconds);
+}
 
 function decode(ctx, arrayBuffer) {
   return new Promise((resolve, reject) => {
@@ -201,6 +380,9 @@ const SHAPES = {
   footstep_1: { seconds: 0.22, build: (t, d) => step(t, d, 1) },
   footstep_2: { seconds: 0.22, build: (t, d) => step(t, d, 1.15) },
   footstep_3: { seconds: 0.22, build: (t, d) => step(t, d, 0.86) },
+  footstep_grate_1: { seconds: 0.24, build: (t, d) => step(t, d, 2.1) },
+  footstep_grate_2: { seconds: 0.24, build: (t, d) => step(t, d, 2.4) },
+  footstep_grate_3: { seconds: 0.24, build: (t, d) => step(t, d, 1.8) },
   end_sting: { seconds: 2.6, build: sting },
   cell_lift: { seconds: 0.5, build: (t, d) => thud(t, d, 150) },
   cell_seat: { seconds: 0.7, build: (t, d) => thud(t, d, 72) },

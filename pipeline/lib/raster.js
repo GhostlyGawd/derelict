@@ -60,10 +60,40 @@ export function fbm(u, v, frequency, octaves, seed) {
 
 const clamp255 = (v) => (v < 0 ? 0 : v > 255 ? 255 : v | 0);
 
+/**
+ * Relief amounts, in pixels of displacement at the raster's own resolution.
+ *
+ * Phase 4 gave the canvas a height channel beside its RGB. Before it, every
+ * call that meant depth faked the depth by painting a highlight one side and a
+ * shadow the other, straight into the diffuse — so a bolt was lit from a
+ * direction chosen when the texture was drawn and stayed lit that way when the
+ * room's only lamp was behind the player. These numbers are what the lighting
+ * now reads instead.
+ */
+const RELIEF = {
+  /** Height of a bolt head at its crown. */
+  rivetDome: 1.5,
+  /** The bolt sits in a shallow depression it was pulled down into. */
+  rivetSeat: 0.45,
+  /** Chamfer at a plate edge, deepest at the outermost band. */
+  bevelDrop: 1.1,
+  /** Paint flaked off is paint no longer standing proud of the metal. */
+  chipDepth: 0.7,
+  /** Broadband micro-relief, so a flat fill reads as rolled metal. */
+  mottle: 0.34,
+};
+
 export class Raster {
   constructor(size, seed = 1) {
     this.size = size;
     this.data = new Uint8ClampedArray(size * size * 3);
+    /**
+     * The height field, in pixels of displacement. Positive is proud of the
+     * surface. Composed by exactly the same calls, in exactly the same order,
+     * as the colour — which is the whole reason this lives here rather than in
+     * a second set of generators that would drift.
+     */
+    this.h = new Float32Array(size * size);
     this.random = rng(seed);
     this.seed = seed;
   }
@@ -71,6 +101,27 @@ export class Raster {
   index(x, y) {
     const s = this.size;
     return (mod(y | 0, s) * s + mod(x | 0, s)) * 3;
+  }
+
+  hIndex(x, y) {
+    const s = this.size;
+    return mod(y | 0, s) * s + mod(x | 0, s);
+  }
+
+  /** Displaces one pixel. Wraps, like every other operation here. */
+  raise(x, y, d) {
+    this.h[this.hIndex(x, y)] += d;
+  }
+
+  raiseRect(x, y, w, h, d) {
+    for (let j = 0; j < h; j++) {
+      for (let i = 0; i < w; i++) this.raise(x + i, y + j, d);
+    }
+    return this;
+  }
+
+  heightAt(x, y) {
+    return this.h[this.hIndex(x, y)];
   }
 
   fill(rgb) {
@@ -123,18 +174,28 @@ export class Raster {
     return this;
   }
 
-  /** Raised-panel shading: light on the top/left, shadow bottom/right. */
+  /**
+   * Raised-panel shading: light on the top/left, shadow bottom/right, plus the
+   * chamfer that shading was always standing in for. The outermost band sits
+   * lowest and ramps up to the plate face, so the geometry agrees with the
+   * paint instead of arguing with it once a lamp moves.
+   */
   bevel(x, y, w, h, weight = 1, thickness = 2) {
     for (let t = 0; t < thickness; t++) {
       const light = 1 + 0.34 * weight * (1 - t / thickness);
       const dark = 1 - 0.36 * weight * (1 - t / thickness);
+      const drop = -RELIEF.bevelDrop * Math.abs(weight) * (1 - t / thickness);
       for (let i = 0; i < w; i++) {
         this.shade(x + i, y + t, light);
+        this.raise(x + i, y + t, drop);
         this.shade(x + i, y + h - 1 - t, dark);
+        this.raise(x + i, y + h - 1 - t, drop);
       }
       for (let j = 0; j < h; j++) {
         this.shade(x + t, y + j, light);
+        this.raise(x + t, y + j, drop);
         this.shade(x + w - 1 - t, y + j, dark);
+        this.raise(x + w - 1 - t, y + j, drop);
       }
     }
     return this;
@@ -164,7 +225,12 @@ export class Raster {
     return this;
   }
 
-  /** A domed bolt head with a highlight and a contact shadow. */
+  /**
+   * A domed bolt head with a highlight and a contact shadow — and, since phase
+   * 4, an actual dome. The painted highlight stays: it is the bolt's own
+   * material variation, and a nearest-filtered normal map at 256 px cannot
+   * carry a 3-pixel dome on its own.
+   */
   rivet(cx, cy, r, base) {
     const r2 = r * r;
     for (let j = -r - 1; j <= r + 1; j++) {
@@ -173,6 +239,7 @@ export class Raster {
         if (d2 > (r + 1) * (r + 1)) continue;
         if (d2 > r2) {
           this.shade(cx + i, cy + j, 0.62);
+          this.raise(cx + i, cy + j, -RELIEF.rivetSeat);
           continue;
         }
         const nx = i / r;
@@ -184,6 +251,7 @@ export class Raster {
           clamp255(base[1] * k),
           clamp255(base[2] * k),
         ]);
+        this.raise(cx + i, cy + j, RELIEF.rivetDome * Math.sqrt(Math.max(0, 1 - d2 / r2)));
       }
     }
     return this;
@@ -214,7 +282,12 @@ export class Raster {
   mottle({ frequency = 8, octaves = 4, amount = 0.18, seed = this.seed + 11 } = {}) {
     return this.each((x, y, u, v) => {
       const n = fbm(u, v, frequency, octaves, seed);
-      this.shade(x, y, 1 + (n - 0.5) * 2 * amount);
+      const d = (n - 0.5) * 2;
+      this.shade(x, y, 1 + d * amount);
+      // Micro-relief at the same frequency. Without it the only thing the
+      // lighting has to read is bolts and seams, and the metre of plate between
+      // them shades like plastic sheet.
+      this.raise(x, y, d * amount * RELIEF.mottle);
     });
   }
 
@@ -270,6 +343,8 @@ export class Raster {
       if (n > threshold) {
         const k = Math.min(1, (n - threshold) / 0.16);
         this.set(x, y, under, k);
+        // Paint has thickness, so a chip is a step down to the metal.
+        this.raise(x, y, -RELIEF.chipDepth * k);
         if (n > threshold + 0.02 && n < threshold + 0.05) this.shade(x, y, 0.7);
       }
     });

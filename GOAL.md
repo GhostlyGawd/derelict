@@ -100,8 +100,11 @@ language in phase 3.
   write height as well as shade. Nothing changes about how the surfaces are
   composed or in what order.
 - The pipeline derives a **tangent-space normal map** per tiling surface from
-  that height field, at the same 256 px, and writes it into the same manifest
-  entry as a second map.
+  that height field, at the same size as that surface's own diffuse — 256 or
+  512 px, per v1 §7 — and writes it into the same manifest entry as a second
+  map. Derived at the final size from a downsampled height field, not derived
+  large and resized: averaging encoded normals denormalises them and flattens
+  exactly the detail the map exists to carry.
 - Tiling surfaces move from `MeshLambertMaterial` to `MeshPhongMaterial` with a
   low shininess and a dark specular — enough that a bolt catches a glint as you
   walk past it, and no more.

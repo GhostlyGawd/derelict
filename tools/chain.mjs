@@ -53,10 +53,29 @@ const act = (what, id) =>
         socket: () => g.carryables.sockets.find((s) => s.id === target),
       }[kind]();
       if (!find) throw new Error(`no ${kind} named ${target}`);
+      const snapshot = () => ({
+        cells: g.cells,
+        carrying: g.carry.held ? g.carry.held.id : null,
+        released: g.carryables.cradles.filter((c) => c.released).map((c) => c.id).join(','),
+        filled: g.carryables.sockets.filter((so) => so.filled).map((so) => so.id).join(','),
+      });
+      // Read on both sides of the press, inside one evaluate, so no frame can
+      // pass between them. Phase 4 put moving parts on these interactions, and
+      // the rule is that state changes on the press while the motion is a
+      // consequence you watch — this is where that gets decided.
+      const before = snapshot();
       g.pressInteractForTest(find);
+      return { before, after: snapshot() };
     },
     [what, id]
   );
+
+/** True when the press changed the game's state without waiting for a frame. */
+const changedImmediately = (r) =>
+  r.before.cells !== r.after.cells ||
+  r.before.carrying !== r.after.carrying ||
+  r.before.released !== r.after.released ||
+  r.before.filled !== r.after.filled;
 
 /** An interact press with the crosshair on nothing — the set-down gesture. */
 const setDown = () => page.evaluate(() => window.__derelict.pressInteractForTest(null));
@@ -83,7 +102,7 @@ let s = await read();
 expect('cell 1 starts clamped', s.cradles.cradle1 === false, JSON.stringify(s.cradles));
 expect('cell 2 starts clamped', s.cradles.cradle2 === false, JSON.stringify(s.cradles));
 
-await act('cell', 'cell1');
+const take1 = await act('cell', 'cell1');
 s = await read();
 expect('cannot take cell 1 before switch 1', s.carrying === null, `carrying ${s.carrying}`);
 
@@ -92,7 +111,12 @@ s = await read();
 expect('cannot seat with empty hands', s.seated === 0, `seated ${s.seated}`);
 
 // ---- Step 1-3 --------------------------------------------------------------
-await act('switch', 'switch1');
+const flip1 = await act('switch', 'switch1');
+expect(
+  'switch 1 takes effect on the frame it is pressed',
+  changedImmediately(flip1),
+  'the lever moved but nothing changed until a later frame — the animation is gating the interaction'
+);
 await page.waitForTimeout(200);
 s = await read();
 expect('switch 1 releases cradle 1', s.cradles.cradle1 === true, JSON.stringify(s.cradles));
@@ -107,7 +131,13 @@ await act('cell', 'cell2');
 s = await read();
 expect('cannot take a second cell while carrying', s.carrying === 'cell1', `carrying ${s.carrying}`);
 
-await act('socket', 'socket1');
+const seat1 = await act('socket', 'socket1');
+expect(
+  'seating a cell counts on the frame it is pressed',
+  changedImmediately(seat1),
+  'the cell travels but the panel did not read it until later — the animation is gating the interaction'
+);
+const _seated = seat1;
 await page.waitForTimeout(200);
 s = await read();
 expect('seating cell 1 reads 1/2', s.seated === 1, `seated ${s.seated}`);

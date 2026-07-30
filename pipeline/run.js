@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import path from 'node:path';
 
-import { MODELS, SOUNDS, TEXTURES } from './manifest.js';
+import { ACOUSTICS, MODELS, SOUNDS, TEXTURES } from './manifest.js';
 import { STYLE_BIBLE } from './style-bible.js';
 import { ASSETS, bytes, rel, writeJson } from './lib/io.js';
 import { log } from './lib/log.js';
@@ -60,8 +60,12 @@ async function main() {
 async function writeManifest(collected) {
   log.stage('manifest');
 
-  const total = ['textures', 'models', 'audio'].reduce(
-    (sum, kind) => sum + Object.values(collected[kind]).reduce((s, e) => s + (e.bytes || 0), 0),
+  // The audio stage produces two kinds now: cues and compartment acoustics.
+  const sounds = collected.audio.sounds;
+  const acoustics = collected.audio.acoustics;
+
+  const total = [collected.textures, collected.models, sounds, acoustics].reduce(
+    (sum, group) => sum + Object.values(group).reduce((s, e) => s + (e.bytes || 0), 0),
     0
   );
 
@@ -75,25 +79,29 @@ async function writeManifest(collected) {
     totals: {
       textures: Object.keys(collected.textures).length,
       models: Object.keys(collected.models).length,
-      audio: Object.keys(collected.audio).length,
+      audio: Object.keys(sounds).length,
+      acoustics: Object.keys(acoustics).length,
       bytes: total,
     },
     textures: collected.textures,
     models: collected.models,
-    audio: collected.audio,
+    audio: sounds,
+    acoustics,
   };
 
   const file = path.join(ASSETS, 'manifest.json');
   await writeJson(file, manifest);
   log.done(
     `${manifest.totals.textures} textures, ${manifest.totals.models} models, ` +
-      `${manifest.totals.audio} sounds — ${bytes(total)} total → ${rel(file)}`
+      `${manifest.totals.audio} sounds, ${manifest.totals.acoustics} acoustics — ` +
+      `${bytes(total)} total → ${rel(file)}`
   );
 
   const missing = [
     ...TEXTURES.filter((t) => !collected.textures[t.id]).map((t) => `texture ${t.id}`),
     ...MODELS.filter((m) => !collected.models[m.id]).map((m) => `model ${m.id}`),
-    ...SOUNDS.filter((s) => !collected.audio[s.id]).map((s) => `sound ${s.id}`),
+    ...SOUNDS.filter((s) => !sounds[s.id]).map((s) => `sound ${s.id}`),
+    ...ACOUSTICS.filter((a) => !acoustics[a.id]).map((a) => `acoustic ${a.id}`),
   ];
   if (missing.length) {
     log.fail(`missing assets: ${missing.join(', ')}`);

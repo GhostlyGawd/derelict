@@ -24,15 +24,28 @@
  *   4. Repeat at each gate state, and insist the reachable set only ever grows.
  *      A door that closed would be the one way this level could trap someone.
  *
+ * PHASE 4 — two stances. The player is no longer one box, so the search is no
+ * longer over squares. It is over (square, stance) pairs:
+ *
+ *   - Each state gets two free grids, one per stance. Crouching only ever
+ *     removes colliders from consideration, so the crouched grid is a superset
+ *     of the standing one — asserted, not assumed, because the entire squeeze
+ *     depends on it.
+ *   - Moves stay within a stance. A stance change is an edge in place: ducking
+ *     is always available, standing up only where the standing box fits. That
+ *     is exactly the rule `Player.#canStand` enforces, and it is what stops
+ *     crouch being able to strand anyone.
+ *   - Both edge kinds are symmetric, so the component is still mutually
+ *     reachable and the "set a cell down anywhere" guarantee survives the
+ *     second stance. The backwards fill still checks that rather than trusting
+ *     the argument.
+ *
  *   node tools/deadend.mjs [baseUrl]
  */
 import { chromium } from 'playwright';
 
 const BASE = process.argv[2] || 'http://127.0.0.1:4173/';
 
-/** Matches PLAYER_RADIUS / PLAYER_HEIGHT in src/game/layout.js. */
-const RADIUS = 0.34;
-const HEIGHT = 1.72;
 const STEP = 0.1;
 /** How close a square has to be to a fixture to count as "you can use it". */
 const REACH = 1.6;
@@ -72,6 +85,7 @@ const snapshot = () =>
       ],
       cellColliders: g.carryables.colliders.length,
       spaces: g.spaces.map((s) => ({ id: s.id, x: s.x, z: s.z })),
+      metrics: g.metrics,
     };
   });
 
@@ -102,15 +116,25 @@ function expect(label, condition, detail) {
 
 // ---------------------------------------------------------------- geometry --
 
-/** Builds the walkable grid and the reachable component for one gate state. */
-function analyse(name, { colliders, spawn, spaces }) {
+/** Stance indices. 0 is standing throughout, so the spawn stance is 0. */
+const STAND = 0;
+const CROUCH = 1;
+
+/** Builds the walkable grids and the reachable component for one gate state. */
+function analyse(name, { colliders, spawn, spaces, metrics }) {
+  const RADIUS = metrics.radius;
+  // Tallest first, so index 0 is standing.
+  const HEIGHTS = [metrics.standing, metrics.crouched];
+
   // The grid spans the collider bounding box, which includes the void outside
   // the hull. Only floor inside a room counts — otherwise "unreachable free
   // space" would mostly mean "space".
   const inside = (x, z) =>
     spaces.some((s) => x >= s.x[0] && x <= s.x[1] && z >= s.z[0] && z <= s.z[1]);
 
-  const active = colliders.filter((c) => c.minY < HEIGHT && c.maxY > 0.05);
+  // Anything the *taller* box could hit is worth bucketing; the per-stance
+  // height test then happens inside boxFree, so one bucket map serves both.
+  const active = colliders.filter((c) => c.minY < HEIGHTS[STAND] && c.maxY > 0.05);
 
   let minX = Infinity;
   let maxX = -Infinity;
@@ -143,11 +167,17 @@ function analyse(name, { colliders, spawn, spaces }) {
     }
   }
 
-  /** True when a player-shaped box spanning this rectangle hits nothing. */
-  const boxFree = (i, bMinX, bMaxX, bMinZ, bMaxZ) => {
+  /**
+   * True when a player-shaped box spanning this rectangle hits nothing, for a
+   * given stance height. `minY >= height` is the same skip the movement code
+   * applies, which is what makes a slab hung at 1.2 m invisible to a crouched
+   * player and solid to a standing one.
+   */
+  const boxFree = (i, bMinX, bMaxX, bMinZ, bMaxZ, height) => {
     const near = buckets.get(i);
     if (!near) return true;
     for (const c of near) {
+      if (c.minY >= height) continue;
       if (bMaxX <= c.minX || bMinX >= c.maxX) continue;
       if (bMaxZ <= c.minZ || bMinZ >= c.maxZ) continue;
       return false;
@@ -155,13 +185,18 @@ function analyse(name, { colliders, spawn, spaces }) {
     return true;
   };
 
-  const free = new Uint8Array(cols * rows);
+  const cells = cols * rows;
+  const free = [new Uint8Array(cells), new Uint8Array(cells)];
   for (let i = 0; i < cols; i++) {
     const x = xOf(i);
     for (let j = 0; j < rows; j++) {
       const z = zOf(j);
       if (!inside(x, z)) continue;
-      if (boxFree(i, x - RADIUS, x + RADIUS, z - RADIUS, z + RADIUS)) free[i * rows + j] = 1;
+      for (let s = 0; s < HEIGHTS.length; s++) {
+        if (boxFree(i, x - RADIUS, x + RADIUS, z - RADIUS, z + RADIUS, HEIGHTS[s])) {
+          free[s][i * rows + j] = 1;
+        }
+      }
     }
   }
 
@@ -170,7 +205,7 @@ function analyse(name, { colliders, spawn, spaces }) {
    * purpose: this can refuse a step the player could actually take, but it can
    * never invent one they could not.
    */
-  const canStep = (i, j, di, dj) => {
+  const canStep = (i, j, di, dj, s) => {
     const x = xOf(i);
     const z = zOf(j);
     const nx = xOf(i + di);
@@ -183,7 +218,8 @@ function analyse(name, { colliders, spawn, spaces }) {
       Math.min(x, nx) - RADIUS,
       Math.max(x, nx) + RADIUS,
       Math.min(z, nz) - RADIUS,
-      Math.max(z, nz) + RADIUS
+      Math.max(z, nz) + RADIUS,
+      HEIGHTS[s]
     );
   };
 
@@ -193,35 +229,61 @@ function analyse(name, { colliders, spawn, spaces }) {
     return i >= 0 && i < cols && j >= 0 && j < rows ? i * rows + j : -1;
   };
 
-  /** Breadth-first fill over the free squares, 4-connected. */
-  function fill(startX, startZ) {
-    const seen = new Uint8Array(cols * rows);
+  /**
+   * Breadth-first fill over (square, stance) pairs, 4-connected within a stance
+   * plus a stance-change edge in place.
+   *
+   * `stances` restricts which stances may be used at all — passing a single one
+   * models a player who never touches the crouch key, which is how the "the
+   * Annex is unreachable standing" claim gets decided.
+   */
+  function fill(startX, startZ, { from = STAND, stances = [STAND, CROUCH] } = {}) {
+    const seen = [new Uint8Array(cells), new Uint8Array(cells)];
+    const allowed = new Set(stances);
     const start = indexOf(startX, startZ);
-    if (start < 0 || !free[start]) return { seen, count: 0, seeded: false };
+    if (start < 0 || !allowed.has(from) || !free[from][start]) {
+      return { seen, count: 0, squares: 0, seeded: false };
+    }
 
-    const queue = [start];
-    seen[start] = 1;
+    const queue = [from * cells + start];
+    seen[from][start] = 1;
     let count = 1;
     for (let head = 0; head < queue.length; head++) {
-      const at = queue[head];
+      const node = queue[head];
+      const s = node >= cells ? CROUCH : STAND;
+      const at = node - s * cells;
       const i = Math.floor(at / rows);
       const j = at % rows;
+
       for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         const ni = i + di;
         const nj = j + dj;
         if (ni < 0 || ni >= cols || nj < 0 || nj >= rows) continue;
         const next = ni * rows + nj;
-        if (seen[next] || !free[next]) continue;
-        if (!canStep(i, j, di, dj)) continue;
-        seen[next] = 1;
+        if (seen[s][next] || !free[s][next]) continue;
+        if (!canStep(i, j, di, dj, s)) continue;
+        seen[s][next] = 1;
         count++;
-        queue.push(next);
+        queue.push(s * cells + next);
+      }
+
+      // Change stance without moving. Ducking needs no room it does not already
+      // have; standing up needs the taller box to fit, which is the same
+      // condition the game checks before letting go of crouch.
+      const other = s === STAND ? CROUCH : STAND;
+      if (allowed.has(other) && !seen[other][at] && free[other][at]) {
+        seen[other][at] = 1;
+        count++;
+        queue.push(other * cells + at);
       }
     }
-    return { seen, count, seeded: true };
+
+    let squares = 0;
+    for (let k = 0; k < cells; k++) if (seen[STAND][k] || seen[CROUCH][k]) squares++;
+    return { seen, count, squares, seeded: true };
   }
 
-  /** The nearest reachable square to a point, or null if there is none. */
+  /** The nearest square of `reached` to a point, or null if there is none. */
   const standNear = (reached, [x, z]) => {
     const span = Math.ceil(REACH / STEP);
     const ci = Math.round((x - originX) / STEP);
@@ -238,21 +300,42 @@ function analyse(name, { colliders, spawn, spaces }) {
   };
 
   const from = fill(spawn[0], spawn[1]);
+  /** The same walk by a player who never presses crouch. */
+  const uprightOnly = fill(spawn[0], spawn[1], { stances: [STAND] });
+
+  // Squares occupiable in *some* stance, and squares reached in some stance.
+  const reachedAny = new Uint8Array(cells);
+  let crouchOnly = 0;
+  for (let k = 0; k < cells; k++) {
+    if (from.seen[STAND][k] || from.seen[CROUCH][k]) {
+      reachedAny[k] = 1;
+      if (!uprightOnly.seen[STAND][k]) crouchOnly++;
+    }
+  }
+
+  // Crouching can only ever remove colliders from consideration, so every
+  // square the standing box fits in must also take the crouched one. If this
+  // ever fails the height filter is wrong and every conclusion below is void.
+  let containment = 0;
+  for (let k = 0; k < cells; k++) if (free[STAND][k] && !free[CROUCH][k]) containment++;
 
   /** Every reachable square as world coordinates, for cross-state comparison. */
   function* reachedPoints() {
     for (let i = 0; i < cols; i++) {
       for (let j = 0; j < rows; j++) {
-        if (from.seen[i * rows + j]) yield [xOf(i), zOf(j)];
+        if (reachedAny[i * rows + j]) yield [xOf(i), zOf(j)];
       }
     }
   }
 
-  /** Every walkable square, reachable or not. */
+  /**
+   * Every square the player could occupy in either stance, reachable or not.
+   * The crouched grid is the superset, so it is the honest definition of floor.
+   */
   function* freePoints() {
     for (let i = 0; i < cols; i++) {
       for (let j = 0; j < rows; j++) {
-        if (free[i * rows + j]) yield [xOf(i), zOf(j)];
+        if (free[CROUCH][i * rows + j]) yield [xOf(i), zOf(j)];
       }
     }
   }
@@ -260,24 +343,48 @@ function analyse(name, { colliders, spawn, spaces }) {
   /** Whether a world point falls on a reachable square in this state. */
   const isReached = (x, z) => {
     const k = indexOf(x, z);
-    return k >= 0 && Boolean(from.seen[k]);
+    return k >= 0 && Boolean(reachedAny[k]);
   };
 
+  /** Whether a world point is reachable *without ever crouching*. */
+  const isReachedUpright = (x, z) => {
+    const k = indexOf(x, z);
+    return k >= 0 && Boolean(uprightOnly.seen[STAND][k]);
+  };
+
+  /** Every square a player who never crouches can stand on. */
+  function* uprightPoints() {
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
+        if (uprightOnly.seen[STAND][i * rows + j]) yield [xOf(i), zOf(j)];
+      }
+    }
+  }
+
+  const squares = from.squares;
   console.log(
-    `  ${name.padEnd(22)} ${from.count.toLocaleString().padStart(7)} reachable squares ` +
-      `(${(from.count * STEP * STEP).toFixed(0)} m²)`
+    `  ${name.padEnd(22)} ${squares.toLocaleString().padStart(7)} reachable squares ` +
+      `(${(squares * STEP * STEP).toFixed(0)} m²), ` +
+      `${(crouchOnly * STEP * STEP).toFixed(1)} m² of it crouch-only`
   );
   return {
     name,
     free,
     reached: from.seen,
+    reachedAny,
+    reachedStanding: from.seen[STAND],
+    containment,
+    crouchOnly,
     count: from.count,
+    squares,
     seeded: from.seeded,
     fill,
     standNear,
     reachedPoints,
     freePoints,
     isReached,
+    isReachedUpright,
+    uprightPoints,
   };
 }
 
@@ -358,19 +465,68 @@ for (const s of states) {
 // identical component; if it does not, some square is a one-way trip.
 const socket = atOpen.fixtures.find((f) => f.id === 'socket1');
 for (const s of states) {
-  const anchor = s.standNear(s.reached, socket.at);
+  const anchor = s.standNear(s.reachedStanding, socket.at);
   if (!anchor) {
     failures++;
     console.log(`  FAIL  ${s.name}: nowhere to stand at socket 1`);
     continue;
   }
   const back = s.fill(anchor.x, anchor.z);
+  // Compared per stance: a (square, stance) pair reachable only one way is
+  // just as much a one-way trip as a square is, and would mean some corner of
+  // the ship can be crouched into and not stood back out of.
   let mismatch = 0;
-  for (let k = 0; k < s.reached.length; k++) if (s.reached[k] !== back.seen[k]) mismatch++;
+  for (const st of [STAND, CROUCH]) {
+    for (let k = 0; k < s.reached[st].length; k++) {
+      if (s.reached[st][k] !== back.seen[st][k]) mismatch++;
+    }
+  }
   expect(
-    `${s.name}: every reachable square can walk back to the sockets`,
+    `${s.name}: every reachable square and stance can walk back to the sockets`,
     mismatch === 0,
-    `${mismatch} squares reachable in only one direction`
+    `${mismatch} (square, stance) pairs reachable in only one direction`
+  );
+}
+
+// ---- The two stances are consistent with each other -------------------------
+console.log('\n  stances');
+for (const s of states) {
+  expect(
+    `${s.name}: crouching never costs floor`,
+    s.containment === 0,
+    `${s.containment} squares take the standing box but not the crouched one, ` +
+      'which means the height filter is inverted somewhere'
+  );
+}
+
+// The squeeze has to actually exist, or the feature silently did nothing and
+// every other assertion here would still pass.
+expect(
+  'there is floor that can only be reached crouched',
+  start.crouchOnly > 0,
+  'no square on the ship requires crouch — the collapsed structure is not blocking anything'
+);
+
+// ---- The Annex is unreachable standing --------------------------------------
+// The 4.5 done-bar, decided over the floor rather than by walking it. Only
+// before the shortcut hatch opens: once it does, the Service Passage is a
+// standing route back, which is the point of the shortcut.
+const annex = atStart.spaces.find((s) => s.id === 'annex');
+const inAnnex = ([x, z]) => x >= annex.x[0] && x <= annex.x[1] && z >= annex.z[0] && z <= annex.z[1];
+for (const s of [start, oneCell]) {
+  let upright = 0;
+  for (const p of s.uprightPoints()) if (inAnnex(p)) upright++;
+  expect(
+    `${s.name}: the Engine Annex cannot be entered standing`,
+    upright === 0,
+    `${(upright * STEP * STEP).toFixed(1)} m² of the Annex is reachable without ever crouching`
+  );
+  let ducked = 0;
+  for (const p of s.reachedPoints()) if (inAnnex(p)) ducked++;
+  expect(
+    `${s.name}: the Engine Annex can be entered crouched`,
+    ducked > 0,
+    'the Annex is unreachable in either stance — the squeeze is impassable'
   );
 }
 
@@ -408,13 +564,18 @@ const NEEDED = [
   ['switch2', oneCell],
   ['cradle2', hatch],
 ];
+// Measured against the *standing* component, not the union. Every fixture has
+// to be aimable, and the interact ray leaves the eye — which is 57 cm lower
+// crouched. A fixture only reachable in a crouch would pass a union test and
+// still be unusable.
 for (const [id, state] of NEEDED) {
   const fixture = atOpen.fixtures.find((f) => f.id === id);
-  const spot = state.standNear(state.reached, fixture.at);
+  const spot = state.standNear(state.reachedStanding, fixture.at);
   expect(
-    `${id} can be reached at "${state.name}"`,
+    `${id} can be stood at, upright, at "${state.name}"`,
     Boolean(spot),
-    `no reachable square within ${REACH} m of (${fixture.at[0].toFixed(1)}, ${fixture.at[1].toFixed(1)})`
+    `no square within ${REACH} m of (${fixture.at[0].toFixed(1)}, ${fixture.at[1].toFixed(1)}) ` +
+      'is reachable standing'
   );
 }
 
