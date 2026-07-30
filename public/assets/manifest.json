@@ -11,32 +11,44 @@
     "wall_panel_a": {
       "file": "textures/wall_panel_a.png",
       "size": 512,
-      "bytes": 101669
+      "bytes": 101669,
+      "normal": "textures/wall_panel_a_n.png",
+      "normalBytes": 45426
     },
     "wall_panel_b": {
       "file": "textures/wall_panel_b.png",
       "size": 512,
-      "bytes": 90378
+      "bytes": 90378,
+      "normal": "textures/wall_panel_b_n.png",
+      "normalBytes": 106909
     },
     "floor_plate": {
       "file": "textures/floor_plate.png",
       "size": 512,
-      "bytes": 123005
+      "bytes": 123005,
+      "normal": "textures/floor_plate_n.png",
+      "normalBytes": 54913
     },
     "ceiling_plate": {
       "file": "textures/ceiling_plate.png",
       "size": 256,
-      "bytes": 22425
+      "bytes": 22425,
+      "normal": "textures/ceiling_plate_n.png",
+      "normalBytes": 12499
     },
     "greeble_panel": {
       "file": "textures/greeble_panel.png",
       "size": 512,
-      "bytes": 56108
+      "bytes": 56108,
+      "normal": "textures/greeble_panel_n.png",
+      "normalBytes": 59896
     },
     "door_trim": {
       "file": "textures/door_trim.png",
       "size": 256,
-      "bytes": 29287
+      "bytes": 29287,
+      "normal": "textures/door_trim_n.png",
+      "normalBytes": 31603
     },
     "conduit_strip": {
       "file": "textures/conduit_strip.png",

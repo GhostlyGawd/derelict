@@ -14,6 +14,7 @@ export class Assets {
   constructor() {
     this.manifest = null;
     this.textures = new Map();
+    this.normals = new Map();
     this.models = new Map();
     this.audioBuffers = new Map(); // id -> ArrayBuffer, decoded later by AudioBus
     this.missing = new Set();
@@ -28,6 +29,12 @@ export class Assets {
     if (this.manifest) {
       for (const [id, entry] of Object.entries(this.manifest.textures || {})) {
         jobs.push({ kind: 'texture', id, entry });
+        // Relief rides in the same manifest entry as a second map. Loaded
+        // linear, because a normal map is a vector field and running it through
+        // the sRGB transfer would bend every surface on the ship.
+        if (entry.normal) {
+          jobs.push({ kind: 'normal', id, entry: { file: entry.normal, linear: true } });
+        }
       }
       for (const [id, entry] of Object.entries(this.manifest.models || {})) {
         jobs.push({ kind: 'model', id, entry });
@@ -52,6 +59,8 @@ export class Assets {
         try {
           if (job.kind === 'texture') {
             this.textures.set(job.id, await this.#loadTexture(job.entry));
+          } else if (job.kind === 'normal') {
+            this.normals.set(job.id, await this.#loadTexture(job.entry));
           } else if (job.kind === 'model') {
             this.models.set(job.id, await this.#loadModel(job.entry));
           } else {
@@ -71,6 +80,10 @@ export class Assets {
 
   texture(id) {
     return this.textures.get(id) || null;
+  }
+
+  normal(id) {
+    return this.normals.get(id) || null;
   }
 
   /** Returns a fresh clone; callers are free to transform or merge it. */

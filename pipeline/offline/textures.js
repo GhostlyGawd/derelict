@@ -132,15 +132,22 @@ function wallPanel(size, seed, variant) {
         const sx = x + inset + Math.round(random() * (plate - inset * 2 - sw));
         const sy = y + inset + Math.round(random() * (plate - inset * 2 - sh));
         r.shadeRect(sx, sy, sw, sh, 0.78);
+        // A *service* panel: set into the sheet rather than standing on it.
+        r.raiseRect(sx, sy, sw, sh, -size / 320);
         r.bevel(sx, sy, sw, sh, -0.8, 2);
       }
     }
   }
 
   // Recessed seams between plates, then a bevel to lift each plate face.
+  // "Recessed" was a word about the shading until phase 4; now the seam is
+  // actually below the plate face and the lighting can see it.
+  const seamDepth = size / 190;
   for (let i = 0; i < 2; i++) {
     r.shadeRect(0, i * plate, size, seam, 0.4);
+    r.raiseRect(0, i * plate, size, seam, -seamDepth);
     r.shadeRect(i * plate, 0, seam, size, 0.4);
+    r.raiseRect(i * plate, 0, seam, size, -seamDepth);
   }
   for (let py = 0; py < 2; py++) {
     for (let px = 0; px < 2; px++) {
@@ -230,11 +237,15 @@ function floorPlate(size, seed) {
     let d = (lx - dir * ly + cell * 2) % cell;
     const edge = Math.abs(d - cell / 2);
     if (edge < bar) {
-      // Raised bar: bright leading edge, dark trailing edge.
+      // Raised bar: bright leading edge, dark trailing edge — and, since phase
+      // 4, actually raised. Tread you can see the light climb is most of what
+      // sells a deck plate as metal rather than as a picture of one.
       const across = (d - cell / 2) / bar;
       r.shade(x, y, 1.32 - 0.42 * (across * 0.5 + 0.5));
+      r.raise(x, y, (size / 150) * Math.cos((across * Math.PI) / 2));
     } else if (edge < bar + 1.5) {
       r.shade(x, y, 0.72);
+      r.raise(x, y, -size / 420);
     }
   });
 
@@ -254,7 +265,9 @@ function floorPlate(size, seed) {
   for (let py = 0; py < 2; py++) {
     for (let px = 0; px < 2; px++) {
       r.shadeRect(px * half, py * half, half, 2, 0.5);
+      r.raiseRect(px * half, py * half, half, 2, -size / 150);
       r.shadeRect(px * half, py * half, 2, half, 0.5);
+      r.raiseRect(px * half, py * half, 2, half, -size / 150);
       const inset = Math.round(size / 24);
       for (const [ox, oy] of [
         [inset, inset],
@@ -280,11 +293,16 @@ function ceilingPlate(size, seed) {
   r.fill(tint(P.gunmetalDark, 1.02));
   r.mottle({ frequency: 6, octaves: 4, amount: 0.13 });
 
-  // Ribbed panelling.
+  // Ribbed panelling. The rib is a bar standing off the sheet, so the whole
+  // band rises and only its two edges carry the highlight and the shadow.
   const rib = Math.max(4, Math.round(size / 16));
+  const lip = Math.max(1, rib / 4);
+  const ribHeight = size / 110;
   for (let y = 0; y < size; y += rib) {
-    r.shadeRect(0, y, size, Math.max(1, rib / 4), 1.2);
-    r.shadeRect(0, y + rib - Math.max(1, rib / 4), size, Math.max(1, rib / 4), 0.76);
+    r.raiseRect(0, y, size, rib - lip, ribHeight);
+    r.shadeRect(0, y, size, lip, 1.2);
+    r.shadeRect(0, y + rib - lip, size, lip, 0.76);
+    r.raiseRect(0, y + rib - lip, size, lip, -ribHeight * 0.6);
   }
 
   // A vent grille occupying one quadrant.
@@ -294,10 +312,18 @@ function ceilingPlate(size, seed) {
   const vh = Math.round(size * 0.34);
   r.rect(vx, vy, vw, vh, tint(P.gunmetalDark, 0.8));
   r.bevel(vx, vy, vw, vh, 1, 2);
+  // The grille is set into the panel, and every hole is a hole.
+  r.raiseRect(vx, vy, vw, vh, -size / 200);
   const hole = Math.max(3, Math.round(size / 42));
   for (let y = vy + hole; y < vy + vh - hole; y += hole * 2) {
     for (let x = vx + hole; x < vx + vw - hole; x += hole * 2) {
       r.disc(x, y, hole * 0.6, tint(P.gunmetalDark, 0.32));
+      const rr = Math.round(hole * 0.6);
+      for (let j = -rr; j <= rr; j++) {
+        for (let i = -rr; i <= rr; i++) {
+          if (i * i + j * j <= rr * rr) r.raise(x + i, y + j, -size / 120);
+        }
+      }
     }
   }
 
@@ -326,14 +352,23 @@ function greeblePanel(size, seed) {
     const y = Math.round(random() * size);
     const shade = 0.7 + random() * 0.7;
     r.rect(x, y, w, h, tint(P.gunmetal, shade));
+    // Each box is a box: machinery bolted onto the backplate, at its own depth
+    // so a panel of them reads as packed hardware rather than as a busy print.
+    // Height comes off `shade` rather than a fresh random() — drawing again
+    // here would advance the seeded stream and silently repaint everything
+    // downstream in this generator, which is how the greeble diffuse changed
+    // the first time round.
+    r.raiseRect(x, y, w, h, (size / 150) * (0.25 + shade * 0.75));
     r.bevel(x, y, w, h, 0.9, 2);
 
     const roll = random();
     if (roll < 0.34) {
-      // Cooling fins.
+      // Cooling fins — slots cut down into the block.
       const step = Math.max(3, Math.round(size / 64));
       for (let fx = x + step; fx < x + w - step; fx += step) {
-        r.shadeRect(fx, y + 2, Math.max(1, step / 2), h - 4, 0.62);
+        const fw = Math.max(1, step / 2);
+        r.shadeRect(fx, y + 2, fw, h - 4, 0.62);
+        r.raiseRect(fx, y + 2, fw, h - 4, -size / 170);
       }
     } else if (roll < 0.6) {
       // Access hatch with corner bolts.
@@ -356,12 +391,16 @@ function greeblePanel(size, seed) {
     const at = Math.round(random() * size);
     const thickness = Math.max(2, Math.round(size * (0.008 + random() * 0.018)));
     const colour = random() > 0.7 ? tint(P.oliveDark, 1.1) : tint(P.gunmetalDark, 1.3);
+    // "Threaded over the top" — so they sit proudest of anything on the panel.
+    const lift = size / 130;
     if (horizontal) {
       r.rect(0, at, size, thickness, colour);
+      r.raiseRect(0, at, size, thickness, lift);
       r.rect(0, at, size, 1, tint(colour, 1.5), 0.7);
       r.rect(0, at + thickness - 1, size, 1, tint(colour, 0.5), 0.8);
     } else {
       r.rect(at, 0, thickness, size, colour);
+      r.raiseRect(at, 0, thickness, size, lift);
       r.rect(at, 0, 1, size, tint(colour, 1.5), 0.7);
       r.rect(at + thickness - 1, 0, 1, size, tint(colour, 0.5), 0.8);
     }
@@ -400,10 +439,12 @@ function doorTrim(size, seed) {
   });
   r.chip({ under: tint(P.gunmetal, 1.1), frequency: 22, octaves: 4, threshold: 0.68, seed: seed + 12 });
 
-  // Heavy bolted flanges top and bottom.
+  // Heavy bolted flanges top and bottom — "heavy" meaning they stand off the
+  // moulding, which is the one thing about trim you notice under a raking lamp.
   const flange = Math.round(size * 0.14);
   for (const y of [0, size - flange]) {
     r.rect(0, y, size, flange, tint(P.gunmetal, 1.12));
+    r.raiseRect(0, y, size, flange, size / 90);
     r.bevel(0, y, size, flange, 1, 2);
   }
   const boltR = Math.max(2, Math.round(size / 96));

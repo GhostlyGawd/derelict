@@ -4,7 +4,8 @@ import fs from 'node:fs/promises';
 import { TEXTURES } from '../manifest.js';
 import { synthesiseGlyphAtlas } from '../offline/glyphatlas.js';
 import { synthesiseTexture } from '../offline/textures.js';
-import { contactSheet, crunchTexture, encodeMask, encodeRaster } from '../lib/image.js';
+import { contactSheet, crunchTexture, encodeMask, encodeNormal, encodeRaster } from '../lib/image.js';
+import { normalMapFrom, reliefCoverage } from '../lib/normal.js';
 import { ASSETS, CACHE, bytes, ensureDir, exists, rel, size, write } from '../lib/io.js';
 import { log } from '../lib/log.js';
 
@@ -23,13 +24,19 @@ export async function runTextures({ force = false }) {
 
   for (const spec of TEXTURES) {
     const file = path.join(outDir, `${spec.id}.png`);
+    const normalFile = path.join(outDir, `${spec.id}_n.png`);
     // The atlas's metrics are derived, not stored, so they have to be recomputed
     // even on a cache hit — the glyph tables are the source of truth for them.
     const glyphs = spec.atlas ? synthesiseGlyphAtlas(spec) : null;
 
-    if (!force && (await exists(file))) {
+    if (!force && (await exists(file)) && (!spec.relief || (await exists(normalFile)))) {
       log.step(`${spec.id} — up to date`);
-      entries[spec.id] = manifestEntry(spec, await size(file), glyphs?.metrics);
+      entries[spec.id] = manifestEntry(
+        spec,
+        await size(file),
+        glyphs?.metrics,
+        spec.relief ? await size(normalFile) : undefined
+      );
       sheet.push({ buffer: await fs.readFile(file) });
       continue;
     }
@@ -51,13 +58,31 @@ export async function runTextures({ force = false }) {
 
     // Synthesised at double the target so the downscale has real detail to
     // resolve rather than just re-sampling flat pixels.
-    const raw = await encodeRaster(synthesiseTexture(spec, spec.size * 2));
+    const source = synthesiseTexture(spec, spec.size * 2);
+    const raw = await encodeRaster(source);
 
     const crunched = await crunchTexture(raw, spec.size);
     await write(file, crunched);
-    entries[spec.id] = manifestEntry(spec, crunched.length);
     sheet.push({ buffer: crunched });
-    log.done(`${spec.id} — ${spec.size}px, ${bytes(crunched.length)} → ${rel(file)}`);
+
+    // Relief comes off the same composed surface, at its final size. Derived
+    // here rather than resized from a source-resolution map, because averaging
+    // encoded normals denormalises them and flattens what the map is for.
+    let relief = null;
+    if (spec.relief) {
+      const normal = normalMapFrom(source, spec.size);
+      const png = await encodeNormal(normal);
+      await write(normalFile, png);
+      relief = { bytes: png.length, coverage: reliefCoverage(normal) };
+    }
+
+    entries[spec.id] = manifestEntry(spec, crunched.length, undefined, relief?.bytes);
+    log.done(
+      `${spec.id} — ${spec.size}px, ${bytes(crunched.length)} → ${rel(file)}` +
+        (relief
+          ? `  + normal ${bytes(relief.bytes)}, ${(relief.coverage * 100).toFixed(0)}% relieved`
+          : '')
+    );
   }
 
   await write(path.join(CACHE, 'textures-contact.png'), await contactSheet(sheet));
@@ -65,11 +90,18 @@ export async function runTextures({ force = false }) {
   return entries;
 }
 
-function manifestEntry(spec, byteLength, glyphs) {
+/**
+ * `coverage` is deliberately absent: it is a diagnostic for the run log, and a
+ * field that exists only on a fresh run would make the manifest differ between
+ * a cached build and a clean one — which is exactly what the determinism gate
+ * is there to catch. Byte counts come from the file either way, so they agree.
+ */
+function manifestEntry(spec, byteLength, glyphs, normalBytes) {
   return {
     file: `textures/${spec.id}.png`,
     size: spec.size,
     bytes: byteLength,
+    ...(spec.relief ? { normal: `textures/${spec.id}_n.png`, normalBytes } : {}),
     ...(spec.emissive ? { emissive: true } : {}),
     ...(glyphs ? { glyphs } : {}),
   };

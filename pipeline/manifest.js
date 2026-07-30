@@ -14,6 +14,7 @@ export const TEXTURES = [
     id: 'wall_panel_a',
     size: 512,
     synth: 'wall',
+    relief: true,
     variant: 0,
     prompt: texturePrompt(
       'Riveted steel wall panel section of a spaceship corridor, large bolted plates with recessed seams, weld scars, streaks of grime running down from the joints.'
@@ -23,6 +24,7 @@ export const TEXTURES = [
     id: 'wall_panel_b',
     size: 512,
     synth: 'wall',
+    relief: true,
     variant: 1,
     prompt: texturePrompt(
       'Olive drab painted bulkhead panel, chipped paint over bare steel, stencilled hazard blocks worn away, heavy rivet rows, oil staining.'
@@ -32,6 +34,7 @@ export const TEXTURES = [
     id: 'floor_plate',
     size: 512,
     synth: 'floor',
+    relief: true,
     prompt: texturePrompt(
       'Industrial diamond tread deck plating, worn tread pattern polished smooth in the walk lines, bolt heads at the plate corners, dirt in the grooves.'
     ),
@@ -40,6 +43,7 @@ export const TEXTURES = [
     id: 'ceiling_plate',
     size: 256,
     synth: 'ceiling',
+    relief: true,
     prompt: texturePrompt(
       'Overhead ceiling panel of a spaceship, perforated vent grille sections between flat ribbed metal panels, dust and condensation staining.'
     ),
@@ -48,6 +52,7 @@ export const TEXTURES = [
     id: 'greeble_panel',
     size: 512,
     synth: 'greeble',
+    relief: true,
     prompt: texturePrompt(
       'Dense machinery greeble panel, cable looms, cooling fins, valve blocks, small dead indicator lamps, exposed conduit, packed technical detail.'
     ),
@@ -56,6 +61,7 @@ export const TEXTURES = [
     id: 'door_trim',
     size: 256,
     synth: 'trim',
+    relief: true,
     prompt: texturePrompt(
       'Heavy door-frame trim moulding of a blast door, diagonal caution striping worn to bare metal, thick bolted flange, scuffed edges.'
     ),
