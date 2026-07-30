@@ -318,10 +318,16 @@ alone if the cycle runs long.
 ## 4.9 Decisions taken in the draft
 
 Phases 2 and 3 were each settled in an interview before anything was written.
-This one was not: the ask was for breadth and pace, and a five-question
-interview is the wrong instrument for "pick four things across four domains."
-The reasoning is therefore recorded here, and the pull request is where it gets
-argued rather than the interview.
+This one was written first: the ask was for breadth and pace, and a
+five-question interview is the wrong instrument for "pick four things across
+four domains." The reasoning is therefore recorded here rather than in an
+interview transcript.
+
+The four calls the draft was least sure of — the size of the phase, zero new
+models, generated impulse responses over a reverb written in code, and whether
+crouch was worth re-opening the reachability proof — were then put to the owner
+against their alternatives, and every one was confirmed as drafted. So the
+order was inverted rather than the step skipped: propose, then ratify.
 
 - **Four domains, not one thesis.** Rejected: a fifth and sixth feature —
   performance work and a richer ending — both of which are real and neither of
