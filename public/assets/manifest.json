@@ -1,22 +1,22 @@
 {
   "generator": "derelict pipeline",
-  "styleBible": "Late-1990s retro sci-fi FPS aesthetic. Derelict industrial spaceship interior. Dark gunmetal and olive metal, heavy rivets, scuffed grimy surfaces, utilitarian machinery. Sickly green energy glow from conduits and readouts. Low-resolution game-texture look, slightly desaturated, moody. No text, no watermarks, no people.",
+  "styleBible": "Late-1990s retro sci-fi FPS aesthetic. Derelict industrial spaceship interior. Dark gunmetal and olive metal, heavy rivets, scuffed grimy surfaces, utilitarian machinery. Sickly green energy glow from conduits and readouts. Low-resolution game-texture look, slightly desaturated, moody. No legible text, no watermarks, no people.",
   "totals": {
-    "textures": 7,
+    "textures": 8,
     "models": 10,
     "audio": 10,
-    "bytes": 1898353
+    "bytes": 1909693
   },
   "textures": {
     "wall_panel_a": {
       "file": "textures/wall_panel_a.png",
       "size": 512,
-      "bytes": 100957
+      "bytes": 101669
     },
     "wall_panel_b": {
       "file": "textures/wall_panel_b.png",
       "size": 512,
-      "bytes": 88275
+      "bytes": 90378
     },
     "floor_plate": {
       "file": "textures/floor_plate.png",
@@ -43,6 +43,239 @@
       "size": 256,
       "bytes": 18800,
       "emissive": true
+    },
+    "glyph_atlas": {
+      "file": "textures/glyph_atlas.png",
+      "size": 256,
+      "bytes": 8525,
+      "glyphs": {
+        "cell": [
+          32,
+          42
+        ],
+        "grid": [
+          8,
+          6
+        ],
+        "cap": 22,
+        "chars": {
+          "0": {
+            "cell": 0,
+            "advance": 15.84,
+            "pad": 3
+          },
+          "1": {
+            "cell": 1,
+            "advance": 9.68,
+            "pad": 3
+          },
+          "2": {
+            "cell": 2,
+            "advance": 15.4,
+            "pad": 3
+          },
+          "3": {
+            "cell": 3,
+            "advance": 15.4,
+            "pad": 3
+          },
+          "4": {
+            "cell": 4,
+            "advance": 16.28,
+            "pad": 3
+          },
+          "5": {
+            "cell": 5,
+            "advance": 15.4,
+            "pad": 3
+          },
+          "6": {
+            "cell": 6,
+            "advance": 15.84,
+            "pad": 3
+          },
+          "7": {
+            "cell": 7,
+            "advance": 14.96,
+            "pad": 3
+          },
+          "8": {
+            "cell": 8,
+            "advance": 15.84,
+            "pad": 3
+          },
+          "9": {
+            "cell": 9,
+            "advance": 15.84,
+            "pad": 3
+          },
+          "A": {
+            "cell": 10,
+            "advance": 16.72,
+            "pad": 3
+          },
+          "B": {
+            "cell": 11,
+            "advance": 15.84,
+            "pad": 3
+          },
+          "C": {
+            "cell": 12,
+            "advance": 15.84,
+            "pad": 3
+          },
+          "D": {
+            "cell": 13,
+            "advance": 16.28,
+            "pad": 3
+          },
+          "E": {
+            "cell": 14,
+            "advance": 14.52,
+            "pad": 3
+          },
+          "F": {
+            "cell": 15,
+            "advance": 14.08,
+            "pad": 3
+          },
+          "G": {
+            "cell": 16,
+            "advance": 16.72,
+            "pad": 3
+          },
+          "H": {
+            "cell": 17,
+            "advance": 16.28,
+            "pad": 3
+          },
+          "I": {
+            "cell": 18,
+            "advance": 7.04,
+            "pad": 3
+          },
+          "J": {
+            "cell": 19,
+            "advance": 13.64,
+            "pad": 3
+          },
+          "K": {
+            "cell": 20,
+            "advance": 15.84,
+            "pad": 3
+          },
+          "L": {
+            "cell": 21,
+            "advance": 13.64,
+            "pad": 3
+          },
+          "M": {
+            "cell": 22,
+            "advance": 19.8,
+            "pad": 3
+          },
+          "N": {
+            "cell": 23,
+            "advance": 16.72,
+            "pad": 3
+          },
+          "O": {
+            "cell": 24,
+            "advance": 17.16,
+            "pad": 3
+          },
+          "P": {
+            "cell": 25,
+            "advance": 15.4,
+            "pad": 3
+          },
+          "Q": {
+            "cell": 26,
+            "advance": 17.16,
+            "pad": 3
+          },
+          "R": {
+            "cell": 27,
+            "advance": 16.28,
+            "pad": 3
+          },
+          "S": {
+            "cell": 28,
+            "advance": 15.4,
+            "pad": 3
+          },
+          "T": {
+            "cell": 29,
+            "advance": 15.4,
+            "pad": 3
+          },
+          "U": {
+            "cell": 30,
+            "advance": 16.28,
+            "pad": 3
+          },
+          "V": {
+            "cell": 31,
+            "advance": 16.28,
+            "pad": 3
+          },
+          "W": {
+            "cell": 32,
+            "advance": 22,
+            "pad": 3
+          },
+          "X": {
+            "cell": 33,
+            "advance": 16.28,
+            "pad": 3
+          },
+          "Y": {
+            "cell": 34,
+            "advance": 15.84,
+            "pad": 3
+          },
+          "Z": {
+            "cell": 35,
+            "advance": 15.4,
+            "pad": 3
+          },
+          "-": {
+            "cell": 36,
+            "advance": 11,
+            "pad": 3
+          },
+          ".": {
+            "cell": 37,
+            "advance": 6.6,
+            "pad": 3
+          },
+          ":": {
+            "cell": 38,
+            "advance": 6.6,
+            "pad": 3
+          },
+          "/": {
+            "cell": 39,
+            "advance": 12.32,
+            "pad": 3
+          },
+          "(": {
+            "cell": 40,
+            "advance": 8.8,
+            "pad": 3
+          },
+          ")": {
+            "cell": 41,
+            "advance": 8.8,
+            "pad": 3
+          },
+          " ": {
+            "cell": 42,
+            "advance": 9.24,
+            "pad": 3
+          }
+        }
+      }
     }
   },
   "models": {

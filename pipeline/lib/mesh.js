@@ -255,22 +255,27 @@ export class MeshBuilder {
     const top = ring(radiusTop, hy);
     const bottom = ring(radiusBottom, -hy);
 
+    // Winding matters: ring() walks anticlockwise in XZ, so taking the segment
+    // in i→j order puts the face normal on the inside. Every cylinder in the
+    // pipeline was built inside-out — the canisters were the visible symptom,
+    // showing the far wall's interior through their own near face under
+    // backface culling.
     for (let i = 0; i < segments; i++) {
       const j = (i + 1) % segments;
-      this.quad(bottom[i], bottom[j], top[j], top[i], colour, uvScale);
+      this.quad(bottom[j], bottom[i], top[i], top[j], colour, uvScale);
     }
     if (capTop && radiusTop > 1e-5) {
       const centre = apply(m, [0, hy, 0]);
       for (let i = 0; i < segments; i++) {
         const j = (i + 1) % segments;
-        this.triangle(centre, top[i], top[j], colour, uvScale);
+        this.triangle(centre, top[j], top[i], colour, uvScale);
       }
     }
     if (capBottom && radiusBottom > 1e-5) {
       const centre = apply(m, [0, -hy, 0]);
       for (let i = 0; i < segments; i++) {
         const j = (i + 1) % segments;
-        this.triangle(centre, bottom[j], bottom[i], colour, uvScale);
+        this.triangle(centre, bottom[i], bottom[j], colour, uvScale);
       }
     }
     return this;
