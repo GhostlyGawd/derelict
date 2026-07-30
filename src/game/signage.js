@@ -144,7 +144,14 @@ export function buildSignage(assets) {
     mesh.position.set(...def.pos);
     mesh.rotation.y = Math.atan2(def.facing[0], def.facing[2]);
     group.add(mesh);
-    plates.push({ id: def.id, text: def.text.toUpperCase(), cap: def.cap ?? PLACARD_CAP });
+    plates.push({
+      id: def.id,
+      text: def.text.toUpperCase(),
+      cap: def.cap ?? PLACARD_CAP,
+      width: geometry.userData.width,
+      pos: [...def.pos],
+      facing: [...def.facing],
+    });
   }
 
   return { group, labels: placed, placards: plates, metrics };

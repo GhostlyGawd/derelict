@@ -12,7 +12,7 @@ import { buildCarryables } from './game/carryables.js';
 import { buildDoors, buildPowerPanel, buildSwitches } from './game/fixtures.js';
 import { Interactor } from './game/interact.js';
 import { buildSignage } from './game/signage.js';
-import { ESCAPE_TRIGGER, SPACES, SPAWN, ZONE_POWER, spaceAt } from './game/layout.js';
+import { ESCAPE_TRIGGER, SPACES, SPAWN, WALLS, ZONE_POWER, spaceAt } from './game/layout.js';
 import { buildLevel } from './game/level.js';
 import { buildLighting } from './game/lighting.js';
 import { Player } from './game/player.js';
@@ -56,6 +56,8 @@ class Derelict {
     this.carry = { held: null };
     /** The room table, so tools/deadend.mjs can tell inside from outside. */
     this.spaces = SPACES;
+    /** Wall runs and their openings, so tools/legible.mjs can catch overhang. */
+    this.walls = WALLS;
     this.poweredZones = new Set();
     this.elapsed = 0;
     this.runTime = 0;

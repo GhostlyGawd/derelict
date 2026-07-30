@@ -152,6 +152,60 @@ if (placards.length) {
   }
 }
 
+// ---- No marking runs off the wall it is painted on -------------------------
+// The Engine Annex label sat above the main opening, where only 2.3 m of solid
+// bulkhead separates it from the shortcut hatch — and it is 2.2 m wide, so its
+// tail hung over the hatch. That was caught by eye, which is exactly the kind
+// of thing that should be an assertion: every opening is declared in WALLS.
+console.log('\n  overhang');
+const overhung = await page.evaluate(() => {
+  const g = window.__derelict;
+  const marks = [...g.signage.labels, ...g.signage.placards].filter((m) => m.width);
+  const out = [];
+  for (const m of marks) {
+    // facing ±Z sits on a z-wall and runs along x; facing ±X runs along z.
+    const onZ = Math.abs(m.facing[2]) > 0.5;
+    const at = onZ ? m.pos[2] : m.pos[0];
+    const centre = onZ ? m.pos[0] : m.pos[2];
+    const half = m.width / 2;
+    // Matched on the run as well as the plane: two walls share z = -1.3 (one
+    // per corridor) and two share z = -9, so the plane alone picks the wrong
+    // one and reports a false overhang.
+    const wall = g.walls.find(
+      (w) =>
+        (onZ ? w.axis === 'z' : w.axis === 'x') &&
+        Math.abs(w.at - at) < 0.45 &&
+        centre >= w.from &&
+        centre <= w.to
+    );
+    if (!wall) {
+      out.push({ text: m.text, why: 'not mounted on any declared wall' });
+      continue;
+    }
+    // Off the end of the run entirely.
+    if (centre - half < wall.from || centre + half > wall.to) {
+      out.push({ text: m.text, why: `runs past the end of the wall at ${wall.axis}=${wall.at}` });
+      continue;
+    }
+    for (const o of wall.openings || []) {
+      const lo = o.center - o.width / 2;
+      const hi = o.center + o.width / 2;
+      // Only an overlap that is also below the opening's lintel is a hole.
+      const overlaps = centre - half < hi && centre + half > lo;
+      if (overlaps && m.pos[1] < o.height) {
+        out.push({ text: m.text, why: `overhangs the ${o.id || 'doorway'} opening` });
+        break;
+      }
+    }
+  }
+  return out;
+});
+expect(
+  'no marking overhangs an opening or runs off its wall',
+  overhung.length === 0,
+  overhung.map((o) => `${o.text}: ${o.why}`).join('; ')
+);
+
 // ---- Every label is actually in front of the wall it is painted on ---------
 // A marking sunk into its own bulkhead renders perfectly and is invisible from
 // every position a player can occupy, which is how two of these shipped once.
