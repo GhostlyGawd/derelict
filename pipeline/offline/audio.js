@@ -262,33 +262,52 @@ function motor(spec, sampleRate) {
 }
 
 /** Boot on deck plate. Variants differ in weight, brightness and rattle. */
+/**
+ * Two surfaces underfoot, from one generator.
+ *
+ * Deck plate is a dull thud with a short hollow ring. Grating is the same boot
+ * on a bar grid: much less mass under it, so the low end mostly goes away and
+ * what is left is a bright clatter over a longer, more clearly pitched ring.
+ * Same variant structure either way, so both sets get the same three-step
+ * rotation and neither reads as a loop.
+ */
 function footstep(spec, sampleRate) {
   const variant = spec.variant | 0;
-  const random = rng(0x1f00d + variant * 977);
+  const grate = spec.surface === 'grate';
+  const random = rng((grate ? 0x9a71e : 0x1f00d) + variant * 977);
   const lp = lowpass(sampleRate);
   const bp = bandpass(sampleRate);
 
   const weight = [1, 0.86, 1.12][variant] ?? 1;
-  const bright = [2600, 4200, 1900][variant] ?? 2600;
-  const rattle = [0, 0.35, 0.7][variant] ?? 0;
+  const bright = (grate ? [5200, 7400, 4300] : [2600, 4200, 1900])[variant] ?? 2600;
+  const rattle = (grate ? [0.5, 0.85, 1.0] : [0, 0.35, 0.7])[variant] ?? 0;
 
   return render(spec.seconds, sampleRate, (t) => {
     let v = 0;
 
-    // Heel contact.
-    v += lp(random() * 2 - 1, bright) * expDecay(t, 120) * 0.6;
-    v += Math.sin(TAU * 118 * weight * t) * expDecay(t, 44) * 0.5 * weight;
-    v += Math.sin(TAU * 61 * weight * t) * expDecay(t, 30) * 0.3 * weight;
+    // Heel contact. Grating has almost no body under the boot, so the two low
+    // sine components that give deck plate its thud are largely taken away.
+    const body = grate ? 0.24 : 1;
+    v += lp(random() * 2 - 1, bright) * expDecay(t, grate ? 150 : 120) * (grate ? 0.72 : 0.6);
+    v += Math.sin(TAU * 118 * weight * t) * expDecay(t, 44) * 0.5 * weight * body;
+    v += Math.sin(TAU * 61 * weight * t) * expDecay(t, 30) * 0.3 * weight * body;
 
-    // Hollow deck-plate ring.
-    v += modes(t, [
-      [340 * weight, 0.055, 22],
-      [770 * weight, 0.03, 30],
-    ]);
+    // The ring. Bar grid rings higher, longer and more clearly pitched than a
+    // hollow deck plate does.
+    v += grate
+      ? modes(t, [
+          [1180 * weight, 0.075, 9],
+          [1970 * weight, 0.055, 12],
+          [3040 * weight, 0.03, 17],
+        ])
+      : modes(t, [
+          [340 * weight, 0.055, 22],
+          [770 * weight, 0.03, 30],
+        ]);
 
-    // Loose panel rattling under the step.
+    // Loose panel rattling under the step — the bars themselves, on grating.
     if (rattle > 0 && t > 0.02 && t < 0.2) {
-      v += bp(random() * 2 - 1, 1800, 14) * expDecay(t - 0.02, 24) * 0.14 * rattle;
+      v += bp(random() * 2 - 1, grate ? 3400 : 1800, 14) * expDecay(t - 0.02, 24) * 0.14 * rattle;
     }
 
     return v * window(t, spec.seconds, 0.001, 0.12);

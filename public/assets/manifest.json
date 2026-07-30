@@ -4,8 +4,9 @@
   "totals": {
     "textures": 8,
     "models": 10,
-    "audio": 10,
-    "bytes": 1909693
+    "audio": 13,
+    "acoustics": 5,
+    "bytes": 2324694
   },
   "textures": {
     "wall_panel_a": {
@@ -409,6 +410,21 @@
       "seconds": 0.45,
       "bytes": 5956
     },
+    "footstep_grate_1": {
+      "file": "audio/footstep_grate_1.mp3",
+      "seconds": 0.5,
+      "bytes": 6583
+    },
+    "footstep_grate_2": {
+      "file": "audio/footstep_grate_2.mp3",
+      "seconds": 0.5,
+      "bytes": 6583
+    },
+    "footstep_grate_3": {
+      "file": "audio/footstep_grate_3.mp3",
+      "seconds": 0.5,
+      "bytes": 6583
+    },
     "end_sting": {
       "file": "audio/end_sting.mp3",
       "seconds": 3.6,
@@ -423,6 +439,80 @@
       "file": "audio/cell_seat.mp3",
       "seconds": 1.6,
       "bytes": 19749
+    }
+  },
+  "acoustics": {
+    "ir_bay": {
+      "file": "audio/ir_bay.wav",
+      "spaces": [
+        "bay"
+      ],
+      "box": [
+        14,
+        14,
+        3.6
+      ],
+      "absorption": 0.15,
+      "sabine": 1.276,
+      "bytes": 112576
+    },
+    "ir_corrA": {
+      "file": "audio/ir_corrA.wav",
+      "spaces": [
+        "corrA",
+        "corrB"
+      ],
+      "box": [
+        12,
+        2.6,
+        2.6
+      ],
+      "absorption": 0.15,
+      "sabine": 0.629,
+      "bytes": 55564
+    },
+    "ir_hold": {
+      "file": "audio/ir_hold.wav",
+      "spaces": [
+        "hold",
+        "annex"
+      ],
+      "box": [
+        14,
+        18,
+        3.8
+      ],
+      "absorption": 0.15,
+      "sabine": 1.376,
+      "bytes": 121372
+    },
+    "ir_shortcut": {
+      "file": "audio/ir_shortcut.wav",
+      "spaces": [
+        "shortcut"
+      ],
+      "box": [
+        12,
+        2,
+        2.4
+      ],
+      "absorption": 0.15,
+      "sabine": 0.537,
+      "bytes": 47380
+    },
+    "ir_chamber": {
+      "file": "audio/ir_chamber.wav",
+      "spaces": [
+        "chamber"
+      ],
+      "box": [
+        4.4,
+        4.4,
+        2.8
+      ],
+      "absorption": 0.15,
+      "sabine": 0.661,
+      "bytes": 58360
     }
   }
 }

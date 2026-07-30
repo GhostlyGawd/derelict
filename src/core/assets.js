@@ -15,6 +15,7 @@ export class Assets {
     this.manifest = null;
     this.textures = new Map();
     this.normals = new Map();
+    this.acoustics = new Map();
     this.models = new Map();
     this.audioBuffers = new Map(); // id -> ArrayBuffer, decoded later by AudioBus
     this.missing = new Set();
@@ -39,6 +40,11 @@ export class Assets {
       for (const [id, entry] of Object.entries(this.manifest.models || {})) {
         jobs.push({ kind: 'model', id, entry });
       }
+      // Impulse responses are WAV rather than MP3 — lossy coding of an impulse
+      // smears its transients, which on a reverb is the artefact you would hear.
+      for (const [id, entry] of Object.entries(this.manifest.acoustics || {})) {
+        jobs.push({ kind: 'acoustic', id, entry });
+      }
       for (const [id, entry] of Object.entries(this.manifest.audio || {})) {
         jobs.push({ kind: 'audio', id, entry });
       }
@@ -61,6 +67,8 @@ export class Assets {
             this.textures.set(job.id, await this.#loadTexture(job.entry));
           } else if (job.kind === 'normal') {
             this.normals.set(job.id, await this.#loadTexture(job.entry));
+          } else if (job.kind === 'acoustic') {
+            this.acoustics.set(job.id, await this.#loadArrayBuffer(job.entry));
           } else if (job.kind === 'model') {
             this.models.set(job.id, await this.#loadModel(job.entry));
           } else {
@@ -94,6 +102,10 @@ export class Assets {
 
   audio(id) {
     return this.audioBuffers.get(id) || null;
+  }
+
+  acoustic(id) {
+    return this.acoustics.get(id) || null;
   }
 
   async #fetchManifest() {

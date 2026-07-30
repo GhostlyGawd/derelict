@@ -1,10 +1,12 @@
 import path from 'node:path';
 
-import { SOUNDS } from '../manifest.js';
+import { ACOUSTICS, SOUNDS } from '../manifest.js';
 import { synthesiseSound } from '../offline/audio.js';
+import { synthesiseImpulseResponse } from '../offline/ir.js';
 import {
   edgeFade,
   encodeMp3,
+  encodeWav,
   makeLoop,
   normalise,
   removeDc,
@@ -24,6 +26,12 @@ import { log } from '../lib/log.js';
  */
 
 const RATE = 44100;
+/**
+ * Impulse responses are generated at half rate. A reverb tail in a small metal
+ * room carries almost nothing above 11 kHz, and this is the difference between
+ * a manifest that grew by 200 kB and one that grew by 800.
+ */
+const IR_RATE = 22050;
 const LOOP_RATE = 32000;
 const LOOP_KBPS = 56;
 const CUE_KBPS = 96;
@@ -84,5 +92,61 @@ export async function runAudio({ force = false }) {
     );
   }
 
+  const acoustics = await runAcoustics({ force, outDir });
+  return { sounds: entries, acoustics };
+}
+
+/**
+ * Impulse responses — the new asset class.
+ *
+ * Written as WAV, not MP3, and that is not an oversight. This is data the mixer
+ * convolves rather than a sound anyone hears, and lossy coding of an impulse
+ * smears its transients and adds pre-echo — which on a reverb is precisely the
+ * artefact you would notice. Same argument that keeps the normal maps out of
+ * the palette quantiser.
+ */
+async function runAcoustics({ force, outDir }) {
+  const entries = {};
+
+  for (const spec of ACOUSTICS) {
+    const file = path.join(outDir, `${spec.id}.wav`);
+    const rt60 = sabineOf(spec);
+
+    if (!force && (await exists(file))) {
+      log.step(`${spec.id} — up to date`);
+      entries[spec.id] = await acousticEntry(spec, file, rt60);
+      continue;
+    }
+
+    const ir = synthesiseImpulseResponse(spec, IR_RATE);
+    const buffer = encodeWav(ir.channels, IR_RATE);
+    await write(file, buffer);
+    entries[spec.id] = await acousticEntry(spec, file, rt60);
+    log.done(
+      `${spec.id} — ${spec.w}×${spec.d}×${spec.h} m, rt60 ${rt60.toFixed(2)}s, ` +
+        `${ir.seconds.toFixed(2)}s ir, ${bytes(buffer.length)} → ${rel(file)}`
+    );
+  }
+
   return entries;
+}
+
+async function acousticEntry(spec, file, rt60) {
+  return {
+    file: `audio/${spec.id}.wav`,
+    spaces: spec.spaces,
+    box: [spec.w, spec.d, spec.h],
+    absorption: spec.absorption,
+    // The Sabine estimate travels with the response so the CI check can compare
+    // what was generated against the box it claims to have come from, without
+    // recomputing it from a second copy of the room table.
+    sabine: Number(rt60.toFixed(3)),
+    bytes: await size(file),
+  };
+}
+
+function sabineOf({ w, d, h, absorption }) {
+  const volume = w * d * h;
+  const surface = 2 * (w * d + w * h + d * h);
+  return (0.161 * volume) / (surface * absorption);
 }

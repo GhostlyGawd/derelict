@@ -42,6 +42,11 @@ jobs:
           npm run pipeline
           git diff --exit-code --stat -- public/assets
 
+      # Needs no browser and no server: the claim is about the generated data,
+      # so it reads the responses off disk and measures them.
+      - name: Compartment acoustics match their rooms
+        run: node tools/acoustics.mjs
+
       - run: npm run build
 
       - name: Serve the built site

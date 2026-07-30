@@ -500,6 +500,38 @@ export const PLACARDS = [
 ];
 
 /** Point-in-space lookup, used for footsteps, ambience and objective text. */
+/**
+ * Phase 4 — what is underfoot, and what the room tone sounds like.
+ *
+ * The two corridors and the Service Passage are open grating; the rooms and the
+ * airlock are deck plate. `spaceAt` already knows which compartment the player
+ * is standing in, so the footstep set falls out of the same lookup.
+ */
+export const SURFACES = {
+  bay: 'deck',
+  corrA: 'grate',
+  hold: 'deck',
+  corrB: 'grate',
+  annex: 'deck',
+  shortcut: 'grate',
+  chamber: 'deck',
+};
+
+/**
+ * The bed, per compartment. The convolver gives each space its reverb; this is
+ * the other half — how loud and how dark the ship itself sounds from inside it.
+ * A 3.8 m hold carries more low end than a 2.4 m crawl between bulkheads.
+ */
+export const ROOM_TONE = {
+  bay: { level: 1.0, cutoff: 4200 },
+  corrA: { level: 0.8, cutoff: 2500 },
+  hold: { level: 1.18, cutoff: 5400 },
+  corrB: { level: 0.8, cutoff: 2500 },
+  annex: { level: 1.18, cutoff: 5400 },
+  shortcut: { level: 0.6, cutoff: 1700 },
+  chamber: { level: 0.72, cutoff: 3000 },
+};
+
 export function spaceAt(x, z) {
   for (const s of SPACES) {
     if (x >= s.x[0] && x <= s.x[1] && z >= s.z[0] && z <= s.z[1]) return s;

@@ -17,8 +17,10 @@ import {
   PLAYER_CROUCH_HEIGHT,
   PLAYER_HEIGHT,
   PLAYER_RADIUS,
+  ROOM_TONE,
   SPACES,
   SPAWN,
+  SURFACES,
   WALLS,
   ZONE_POWER,
   spaceAt,
@@ -85,6 +87,8 @@ class Derelict {
     this.runTime = 0;
     this.lastFrame = 0;
     this.escapeArmed = false;
+    /** What is underfoot, for the footstep set. */
+    this.surface = 'deck';
 
     this.#bindUi();
   }
@@ -215,6 +219,10 @@ class Derelict {
     this.carryables.reset();
     this.viewmodel.setCarrying(false);
     this.escapeArmed = false;
+    this.surface = 'deck';
+    // Forget which compartment we were in, so restarting re-selects a response
+    // rather than leaving the Annex's tail on the Bay.
+    this.audio.space = null;
     this.poweredZones.clear();
     for (const sw of this.switches) {
       sw.used = false;
@@ -256,7 +264,7 @@ class Derelict {
   #flip(sw) {
     if (!sw.activate()) return;
     this.viewmodel.play();
-    this.audio.playAt('switch_clunk', sw.point.toArray(), this.player.position, { volume: 1 });
+    this.audio.playAt('switch_clunk', sw.point.toArray(), { volume: 1 });
     this.audio.play('power_surge', { volume: 0.55, delay: 0.18 });
 
     for (const [zone, source] of Object.entries(ZONE_POWER)) {
@@ -270,7 +278,7 @@ class Derelict {
       for (const id of ['hatch-bay', 'hatch-annex']) {
         const door = this.doorsById.get(id);
         if (door?.cycle()) {
-          this.audio.playAt('door_motor', [13, 1, 4.6], this.player.position, { volume: 0.8 });
+          this.audio.playAt('door_motor', [13, 1, 4.6], { volume: 0.8 });
         }
       }
     }
@@ -284,7 +292,7 @@ class Derelict {
     this.carry.held = cell;
     this.viewmodel.setCarrying(true);
     this.viewmodel.play();
-    this.audio.playAt('cell_lift', cell.point.toArray(), this.player.position, { volume: 1 });
+    this.audio.playAt('cell_lift', cell.point.toArray(), { volume: 1 });
   }
 
   #seat(socket) {
@@ -299,7 +307,7 @@ class Derelict {
     this.panel.setCount(this.cells);
     // cell_seat already carries the circuit waking up behind the latch, so the
     // room surge comes in later and quieter than it does off a wall switch.
-    this.audio.playAt('cell_seat', socket.point.toArray(), this.player.position, { volume: 1 });
+    this.audio.playAt('cell_seat', socket.point.toArray(), { volume: 1 });
     this.audio.play('power_surge', { volume: 0.4, delay: 0.55 });
 
     // Seating the first cell brings the Bay up on its own power.
@@ -337,12 +345,7 @@ class Derelict {
       // Loud enough to carry across the room it is in, since it lands under the
       // power surge from the switch that just earned it — cradle 2 is 10 m from
       // switch 2, and distance falloff had it near-masked at half volume.
-      this.audio.playAt(
-        'door_motor',
-        cradle.mount.toArray(),
-        this.player.position,
-        { volume: 0.9, rate: 1.6 }
-      );
+      this.audio.playAt('door_motor', cradle.mount.toArray(), { volume: 0.9, rate: 1.6 });
     }
   }
 
@@ -355,15 +358,24 @@ class Derelict {
     this.lighting.floodChamber();
     this.escapeArmed = true;
 
-    this.audio.playAt('door_motor', [0, 1, -7], this.player.position, { volume: 1, rate: 0.85 });
+    this.audio.playAt('door_motor', [0, 1, -7], { volume: 1, rate: 0.85 });
   }
 
+  /**
+   * Footsteps take the surface from whichever compartment the player is
+   * standing in. Grating in the corridors and the Service Passage, deck plate
+   * in the rooms and the airlock — the same `spaceAt` lookup the lighting and
+   * the room tone already run.
+   */
   #footstep() {
     if (this.phase !== 'playing') return;
-    const variant = 1 + ((Math.random() * 3) | 0);
-    this.audio.play(`footstep_${Math.min(3, variant)}`, {
-      volume: 0.22 + Math.random() * 0.06,
-      rate: 0.94 + Math.random() * 0.12,
+    const variant = 1 + Math.min(2, (Math.random() * 3) | 0);
+    const set = this.surface === 'grate' ? 'footstep_grate' : 'footstep';
+    // Crouched, the step is a shuffle rather than a stride.
+    const effort = this.player.crouching ? 0.55 : 1;
+    this.audio.play(`${set}_${variant}`, {
+      volume: (0.22 + Math.random() * 0.06) * effort,
+      rate: (0.94 + Math.random() * 0.12) * (this.player.crouching ? 1.06 : 1),
     });
   }
 
@@ -420,6 +432,18 @@ class Derelict {
     this.lighting.update(dt, this.elapsed);
 
     const space = spaceAt(this.player.position.x, this.player.position.z);
+    // The ears go where the head is, and the compartment decides what the room
+    // does to everything that reaches them.
+    this.audio.setListener(
+      this.camera.position.x,
+      this.camera.position.y,
+      this.camera.position.z,
+      this.player.yaw
+    );
+    if (space) {
+      this.audio.setSpace(space.id, ROOM_TONE[space.id]);
+      this.surface = SURFACES[space.id] || 'deck';
+    }
     const powered = space ? this.poweredZones.has(space.id) : false;
     this.viewmodel.setTint(
       powered ? POWERED_TINT : EMERGENCY_TINT,
