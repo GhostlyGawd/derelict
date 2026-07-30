@@ -87,9 +87,22 @@ export function makeLoop(samples, sampleRate, seconds, crossfadeSeconds = 1.5) {
   return out;
 }
 
+/**
+ * 16-bit PCM WAV. Pass a Float32Array for mono, or an array of them for
+ * interleaved multichannel — impulse responses are stereo, because the width
+ * between the two channels is most of what a reverb tail is.
+ */
 export function encodeWav(samples, sampleRate) {
-  const pcm = floatToPcm16(samples);
+  const channels = Array.isArray(samples) ? samples : [samples];
+  const frames = channels[0].length;
+  const interleaved = new Float32Array(frames * channels.length);
+  for (let i = 0; i < frames; i++) {
+    for (let c = 0; c < channels.length; c++) interleaved[i * channels.length + c] = channels[c][i];
+  }
+
+  const pcm = floatToPcm16(interleaved);
   const dataBytes = pcm.length * 2;
+  const blockAlign = channels.length * 2;
   const buffer = Buffer.alloc(44 + dataBytes);
 
   buffer.write('RIFF', 0, 'ascii');
@@ -98,10 +111,10 @@ export function encodeWav(samples, sampleRate) {
   buffer.write('fmt ', 12, 'ascii');
   buffer.writeUInt32LE(16, 16);
   buffer.writeUInt16LE(1, 20); // PCM
-  buffer.writeUInt16LE(1, 22); // mono
+  buffer.writeUInt16LE(channels.length, 22);
   buffer.writeUInt32LE(sampleRate, 24);
-  buffer.writeUInt32LE(sampleRate * 2, 28);
-  buffer.writeUInt16LE(2, 32);
+  buffer.writeUInt32LE(sampleRate * blockAlign, 28);
+  buffer.writeUInt16LE(blockAlign, 32);
   buffer.writeUInt16LE(16, 34);
   buffer.write('data', 36, 'ascii');
   buffer.writeUInt32LE(dataBytes, 40);
