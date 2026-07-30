@@ -1,11 +1,11 @@
 
 # DERELICT — Spec
 
-**How to read this document.** Phase 3 (v1.2) is the active spec and is still a
-draft. Phase 2, Amendment 1 and the v1.0 sections below them are ratified and
-shipped. Where any two disagree, the later section wins. Nothing here is a
-suggestion — if we change something during a build, we change this document
-first.
+**How to read this document.** Phase 4 (v1.3) is the active spec and is still a
+draft. Phase 3, Phase 2, Amendment 1 and the v1.0 sections below them are
+ratified and shipped. Where any two disagree, the later section wins. Nothing
+here is a suggestion — if we change something during a build, we change this
+document first.
 
 ---
 
@@ -37,12 +37,331 @@ to tri budget, crunch textures to 256 px).
 
 ---
 
+# Phase 4 — v1.3
+
+**Status: DRAFT.** Merging this section is the ratification, as with phases 2
+and 3. On the same terms: nothing here is a suggestion, and if we change
+something during the build we change this document first.
+
+Unlike phases 2 and 3 this section was **not** settled in an interview first —
+see 4.9. The reasoning is recorded there and the pull request is where it gets
+contested. Merging still ratifies.
+
+Supersedes part of v1 §4, §5, §6 and §7 — see 4.6. Everything in v1, phase 2 and
+phase 3 not named here still stands, including Amendment 1.
+
+## 4.1 The one-liner
+
+The ship stops being a diorama. Its surfaces have depth that answers the lamp
+you are standing under, its compartments sound like the sizes they are, its
+machinery moves when you touch it, and the squeeze route is a squeeze.
+
+## 4.2 What phase 4 demonstrates
+
+Two things, one technical and one about pace.
+
+**That the pipeline generates more than pictures.** Every asset so far has been
+something the player looks at or listens to directly — a texture, a prop, a
+sound, a letterform. Phase 4 generates the data a renderer and a mixer
+*respond* to: relief that the lighting reads, and impulse responses that the
+mixer convolves. Neither is visible on its own. Both change every frame and
+every sound in the game.
+
+**That a cycle can carry four features across four domains.** Phases 2 and 3
+each proved one thesis and were sized accordingly. That is a good shape for
+establishing a foundation and a slow one for building on it. This phase
+deliberately runs wider — rendering, audio, animation and movement — without
+the level growing by a single room. The wager is that the foundation is now
+solid enough that breadth costs less than it did in v1, and there is more to
+review at the end of it.
+
+Every tradeoff during the build gets settled against those two sentences.
+
+## 4.3 What gets built
+
+Four features. Each has a domain to itself, each is judged on its own, and each
+can ship without the other three.
+
+### 4.3.1 Relief — surfaces that answer the light
+
+**What is wrong now.** `pipeline/lib/raster.js` carries RGB and nothing else.
+`rivet()` paints a highlight on one side of the bolt and a shadow on the other,
+straight into the diffuse; `bevel()` does the same along an edge. So every
+rivet, seam, rib and chip on the ship is lit from a direction that was decided
+when the texture was drawn, and it stays lit that way when the only lamp in the
+room is behind the player. The relief is a painting of relief, and it argues
+with the lighting the same way the airlock readout argued with the colour
+language in phase 3.
+
+**What gets built.**
+
+- `Raster` gains a **height channel** beside its RGB. The calls that already
+  imply depth — `rivet`, `bevel`, `shadeRect` on a seam, `chip`, the ribs —
+  write height as well as shade. Nothing changes about how the surfaces are
+  composed or in what order.
+- The pipeline derives a **tangent-space normal map** per tiling surface from
+  that height field, at the same 256 px, and writes it into the same manifest
+  entry as a second map.
+- Tiling surfaces move from `MeshLambertMaterial` to `MeshPhongMaterial` with a
+  low shininess and a dark specular — enough that a bolt catches a glint as you
+  walk past it, and no more.
+- **Nearest filtering stays on the normal map.** A nearest-sampled normal facets
+  the lighting, which is the period-correct outcome and is what every other
+  texture on the ship already does.
+
+Six surfaces get relief: both wall panels, the floor plate, the ceiling plate,
+the greeble panel and the door trim. The conduit strip is emissive and unlit, so
+there is nothing for a normal to do; the glyph atlas is a coverage mask; model
+textures are already 256 px across a whole prop and have no detail left to
+resolve.
+
+Rejected: deriving bump from the diffuse's own luminance — cheap, and wrong,
+because the painted shadows would be read as geometry and the fake lighting
+would double. `MeshStandardMaterial` with roughness and metalness — correct for
+a modern look, wrong for this one, and it costs real frames at this render
+scale. Separate normal-map generators written alongside the existing ones —
+duplicates every generator and guarantees the two drift.
+
+### 4.3.2 Acoustic space — an inside that sounds like an inside
+
+**What is wrong now.** `AudioBus.playAt` computes `1 - d/26`, squares it, and
+multiplies a gain. That is the whole of the ship's spatial audio. There is no
+direction, so a clunk behind you and a clunk in front of you are the same
+signal. There is no space, so the 2.4 m Service Passage and the 14 × 18 × 3.8 m
+Storage Hold return identical sound. Five compartments, one acoustic.
+
+**What gets built.**
+
+- **A generated impulse response per distinct compartment acoustic.** A new
+  asset class, the first since the glyph atlas. Synthesised from data already in
+  `layout.js`: each space carries its x and z extents and its ceiling height, so
+  the early reflections are the room's real wall distances and the tail's decay
+  follows its own volume and surface area under a chosen absorption.
+  Deterministic, and reproducible byte-for-byte like everything else.
+
+  Keyed by the parameters that produce it, so identical boxes share one
+  response — Corridor A and Corridor B are the same 12 × 2.6 × 2.6 m, and the
+  Hold and the Annex are the same 14 × 18 × 3.8 m. Seven compartments, five
+  responses. The Sabine estimates from the current tables run 0.54 s in the
+  Service Passage to 1.38 s in the Hold, a ratio of 2.6× — which is the margin
+  the whole feature is betting on being audible.
+- **A convolver in the mixer**, with the listener's current compartment
+  selecting the response. Two convolvers crossfading across a threshold rather
+  than one switching, because a switch clicks.
+- **Direction**, via `PannerNode` on `panningModel: 'equalpower'` — stereo
+  placement with no HRTF, which is the right trade for a phone speaker and costs
+  almost nothing. This replaces the amplitude hack rather than joining it.
+- **Per-surface footsteps.** One new generated set, grating: brighter, with a
+  ring. It plays in the two corridors and the Service Passage; the existing
+  deck-plate set stays in the rooms and the chamber. `spaceAt` already knows
+  which is underfoot.
+- **Room tone that follows you** — the bed's level and filtering per zone, so
+  the Hold booms and the Passage is close and dry.
+
+**The cost, stated plainly.** A convolver with a short tail is affordable, but
+two of them crossfading during a transition is the peak, and this is the one
+feature in the phase that can cost frames on a phone. Tail length is the dial,
+and short tails are correct for small metal rooms anyway.
+
+Rejected: full occlusion by raycasting the colliders and filtering through walls
+— real, but the level is seven convex boxes and doorway falloff already reads.
+HRTF panning — costs more and is thrown away on a phone speaker. A reverb
+hand-tuned per room in code out of delay taps and a filter — cheaper, and it
+would make the acoustics the one thing on the ship the pipeline did not produce,
+which is the argument that beat canvas text in phase 3.
+
+### 4.3.3 Mechanism — machinery that moves when you touch it
+
+**What is wrong now.** Flipping a switch plays a clunk and changes the lighting.
+The switch itself does not move. A cradle releases its clamp by setting a flag.
+A seated cell teleports into its socket. The only moving geometry on the ship is
+the airlock and the hatch.
+
+**What gets built**, all of it in engine on existing generated surfaces — the
+phase 2 precedent that the socket "is the third interactive type but not a third
+model", since `MeshBuilder` emits one flat mesh with no parts to animate:
+
+- **The switch lever throws** through its arc, and the clunk lands at the end of
+  the arc rather than on the button press.
+- **The cradle clamp retracts** — two jaws that part when the room comes up,
+  which is what makes "clamped" legible as the *reason* the cell could not be
+  taken.
+- **A seated cell travels** into its socket over a short beat and the shutter
+  closes behind it. One-way is already the rule; now it looks one-way.
+- **Idle life in four places:** a slow extractor fan in the Annex, a vent that
+  breathes in the Hold, a failing lamp in Corridor B, and a spark at the
+  collapsed debris. Fan and vent are parametric geometry; steam and sparks are
+  additive sprites off surfaces the pipeline already produces.
+
+**The rule this follows: animation never gates an interaction.** State changes on
+the press; the motion is a consequence you watch, not a wait you serve. That is
+the whole difference between feedback and latency, and it is the thing most
+likely to be got wrong here.
+
+Rejected: animated channels baked into the GLBs — the model generators would
+have to emit rigs and keyframes, which is a large pipeline change to move four
+things. Physics — a cell that tumbles is a cell that can come to rest somewhere
+the dead-end proof never considered.
+
+### 4.3.4 The body — a squeeze you have to duck through
+
+**What is wrong now.** v1 §5 says Corridor B is "partially blocked by collapsed
+debris, forcing a squeeze route." It forces nothing. The gap is 1.05 m wide, the
+player is 1.72 m tall, and the route is walked upright at full speed. The word
+has been in this document since v1 and has never once been true.
+
+**What gets built.**
+
+- **Crouch**, held rather than toggled: `C` or left `Ctrl` on desktop, a second
+  button on the touch layout. Eye 1.62 → 1.05 m, collision height 1.72 →
+  1.15 m, speed 3.05 → 1.5 m/s. **Standing back up is refused while something is
+  overhead** — that is the only way crouch can strand a player, so it is the
+  part to get right.
+- **The squeeze becomes real.** `BLOCKERS` gains a floor to its box, and one new
+  row hangs collapsed structure from 1.2 m over the existing gap. No new
+  collision code: `resolve()` already skips any collider whose `minY` clears the
+  player's current height, so a slab at 1.2 m stops a standing player and passes
+  a crouched one for free.
+- **Stride from distance, not from a phase.** Footsteps fire off `bobPhase`
+  today, so cadence is a function of the bob rather than of ground covered.
+  Crouched, that is audibly wrong. Step on accumulated distance, with a shorter
+  crouched stride.
+
+**What this costs, and it is the largest single cost in the phase.** The
+no-unwinnable-states proof in P6 assumed one collision box. With two stances the
+walkable set is a union and a stance change is an edge in the graph, so
+`tools/deadend.mjs` grows a second grid and the mutual-reachability argument has
+to hold across both. This is the most likely thing in phase 4 to be subtly
+wrong, which is why it is built first and not last.
+
+Rejected: toggled crouch — a player who forgets they are crouched walks the rest
+of the ship at half speed and reads it as the game being broken. Prone, or
+leaning — nothing in the level asks for either. Narrowing the gap instead of
+lowering it — a horizontal squeeze is invisible until you are stuck in it, and
+box-slide collision would make it feel like a bug rather than a route.
+
+**Unchanged:** the five spaces, the six-step chain, the route, the lighting
+states, the HUD, the viewmodel, the signage, the retro rendering treatment, the
+asset budgets.
+
+## 4.4 Scope guardrails
+
+Lifted from v1 §4, narrowly: **crouch** — one held modifier, and no other
+movement verb. No jump, no sprint, no lean, no prone.
+
+Still permanently out, unchanged: **combat, enemies, saving, settings menus,
+procedural generation, additional levels or rooms**, and **narrative** (phase 3).
+
+New for this phase, and permanent: **no physically-based rendering.** The
+lighting model stays Lambert or Phong. Late-1990s is the art direction and PBR
+is the wrong century; if a future phase wants it, it changes this document first.
+
+## 4.5 Definition of done
+
+| | Verified by |
+|---|---|
+| **Every tiling surface has relief, and it is bound.** A normal map in the manifest for each of the six, and the shading of a bolt demonstrably changes when the light moves. | Claude — a harness that moves a lamp and compares the same pixels. A generated map that is never sampled is exactly the failure that has already shipped twice |
+| **Every compartment has the acoustic of its own dimensions.** Each response's decay is within tolerance of the Sabine estimate from the box it was generated from, and compartments of different size differ measurably. Compartments of identical size share one response, which is correct and is asserted rather than assumed. | Claude — a check over the generated responses, run in CI |
+| **It sounds like an inside.** The Hold sounds bigger than the Passage; nothing sounds like a plate reverb. | **The owner**, on headphones. Claude can compute a decay time and cannot judge whether reverb sounds right |
+| **Every state change has a visible moving part, and none of them gate the press.** | Claude — the chain harness, extended: every interaction still succeeds on the frame it is pressed |
+| **The squeeze must be crouched.** The Annex is unreachable standing and reachable crouched. | Claude — the walkthrough harness, on foot |
+| **No unwinnable states, across both stances.** | Claude — the dead-end search over the union of both collision boxes, with stance changes as edges, and the reachable set still only growing |
+| **Still a short vignette.** A player who knows the route finishes inside five minutes, crouch included. | Claude — the walkthrough reports game-clock duration |
+| **Still generated end to end.** Normal maps and impulse responses come from the pipeline, and a clean checkout reproduces them byte-for-byte. | The existing determinism gate |
+| **Nothing regresses.** All six harnesses green, the six-step chain still solvable, the deployment still live. | CI |
+| **It still feels good on a phone.** | **The owner** |
+
+The Sabine estimate is a reference for the generator, not a claim about the
+real field — the compartments are coupled by open doorways and Sabine assumes a
+closed box. It is in the table because it catches the failure where a response
+is generated from the wrong room's numbers, which is silent and which no
+listening test would localise.
+
+## 4.6 Amendments to earlier sections
+
+- **v1 §4, controls.** Adds crouch: hold `C` or left `Ctrl`; a second button on
+  the touch layout. The controls card gains one line.
+- **v1 §5, level.** "Partially blocked by collapsed debris, forcing a squeeze
+  route" becomes true rather than aspirational. The level itself does not change.
+- **v1 §6, retro rendering treatment.** Gains generated relief:
+  nearest-filtered normal maps with a low Phong specular. Additive — the reduced
+  internal resolution, the absent antialiasing and the distance fog all stand.
+- **v1 §7, asset manifest.** Textures gain a normal map for each of the six
+  tiling surfaces. Audio grows from ten sounds to thirteen — one new footstep
+  set — and gains impulse responses, one per distinct compartment shape: five
+  for the current seven compartments.
+
+## 4.7 The box
+
+Two new asset classes, one new sound set, **zero new models, zero new rooms,
+zero new interactive types**, and one new movement verb.
+
+If the phase wants a second movement verb or a third asset class, that is a
+signal to change this document first — not to add it.
+
+## 4.8 Build order
+
+Ordered so the riskiest thing is proved first, and so each feature can ship
+alone if the cycle runs long.
+
+1. **The body**, and the dead-end proof across both stances — red before green.
+   If two-stance reachability cannot be made to hold, that is discovered before
+   any asset work, the same way phase 3 proved the letterforms before placing a
+   label.
+2. **Relief** — the height channel, the normal maps, Phong, and the harness that
+   proves the maps are actually bound.
+3. **Acoustic space** — the response generator, the convolver, panning, room
+   tone, footsteps.
+4. **Mechanism** — the four responsive parts and the four idle ones.
+5. **Integration and ship.**
+
+## 4.9 Decisions taken in the draft
+
+Phases 2 and 3 were each settled in an interview before anything was written.
+This one was written first: the ask was for breadth and pace, and a
+five-question interview is the wrong instrument for "pick four things across
+four domains." The reasoning is therefore recorded here rather than in an
+interview transcript.
+
+The four calls the draft was least sure of — the size of the phase, zero new
+models, generated impulse responses over a reverb written in code, and whether
+crouch was worth re-opening the reachability proof — were then put to the owner
+against their alternatives, and every one was confirmed as drafted. So the
+order was inverted rather than the step skipped: propose, then ratify.
+
+- **Four domains, not one thesis.** Rejected: a fifth and sixth feature —
+  performance work and a richer ending — both of which are real and neither of
+  which the owner can review by playing. Every feature in this phase changes
+  something a player can see, hear or feel, because "more to review" was the
+  ask.
+- **Zero new models.** Rejected: a vent unit and a fan unit through the model
+  pipeline, on the phase 2 precedent. They would have been the easy thing to
+  add and the least interesting: the phase's asset growth belongs in new *kinds*
+  of data, not in more props. Everything that moves is built in engine, which is
+  what the socket already proved is enough.
+- **Phong, not Standard.** Rejected: PBR, which is the default answer in 2026
+  and the wrong one here — it costs frames at 0.5× internal scale and it would
+  make the ship look like a modern game wearing a low-resolution costume. Made
+  permanent in 4.4 so it does not get reopened.
+- **Crouch, despite the cost.** Rejected: leaving the squeeze as flavour. It
+  re-opens the one proof in this document that was expensive to establish, which
+  is a real argument against it. It is in anyway, because a spec that has
+  claimed something for three phases without it being true is a spec that is
+  drifting from the build, and this document's first rule is that those two do
+  not drift.
+- **Generated impulse responses over hand-tuned reverb.** Rejected: delay taps
+  and a filter per room, which is cheaper, entirely adequate, and would put the
+  acoustics outside the pipeline. Same argument that beat canvas text in phase 3
+  and hosted services in Amendment 1.
+
+---
+
 # Phase 3 — v1.2
 
-**Status: DRAFT.** Merging this section is the ratification, as with phase 2.
-From the interview of 29 July 2026. On the same terms as v1 and phase 2: nothing
-here is a suggestion, and if we change something during the build we change this
-document first.
+**Status: SHIPPED.** Spec ratified 30 July 2026 by merging PR #14, following the
+interview of 29 July 2026; built and shipped the same day in PR #15. On the same
+terms as v1 and phase 2: nothing here is a suggestion, and if we change
+something during the build we change this document first.
 
 Supersedes the "no text" clause of the v1 §8 style bible, narrowly — see 3.6.
 Everything in v1 and phase 2 not named here still stands, including Amendment 1.
