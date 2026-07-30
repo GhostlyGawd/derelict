@@ -64,18 +64,33 @@ function rivetRow(r, x0, y0, x1, y1, count, radius, colour) {
 function stencilPrint(r, seed, { runs = 3, cap = 13, alpha = 0.17, colour } = {}) {
   const place = rng(seed);
   const shape = rng(seed + 3);
-  const pool = 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789-/';
+
+  // Codes rather than characters. Random letters read as noise — as a smear
+  // with no reason to be there — where a plate number or a pressure rating
+  // reads as something a shipyard stencilled on for a reason, even when it is
+  // far too small to make out. None of these can spell a word.
+  const LETTERS = 'ABCDEFHJKLMNPRSTVX';
+  const L = () => LETTERS[(place() * LETTERS.length) | 0];
+  const N = (n) => String((place() * Math.pow(10, n)) | 0).padStart(n, '0');
+  const FORMS = [
+    () => `${L()}-${N(2)}`,
+    () => `${L()}${L()} ${N(3)}`,
+    () => `${N(2)}${L()}`,
+    () => `${L()}${N(3)}`,
+    () => `MK ${['I', 'II', 'III', 'IV', 'V'][(place() * 5) | 0]}`,
+    () => `${N(3)} KPA`,
+    () => `SEC ${N(1)}`,
+  ];
 
   for (let i = 0; i < runs; i++) {
     const y = Math.round(place() * r.size);
     let x = Math.round(place() * r.size);
-    const count = 3 + ((place() * 7) | 0);
+    const text = FORMS[(place() * FORMS.length) | 0]();
     // Each run fades along its length, so it reads as paint worn off rather
     // than as type someone chose to set faintly.
-    for (let n = 0; n < count; n++) {
-      const ch = pool[(place() * pool.length) | 0];
-      const mask = rasteriseGlyph(ch, cap, { jitter: 0.06, random: shape });
-      const fade = alpha * (0.45 + 0.55 * (1 - n / count));
+    for (let n = 0; n < text.length; n++) {
+      const mask = rasteriseGlyph(text[n], cap, { jitter: 0.06, random: shape });
+      const fade = alpha * (0.5 + 0.5 * (1 - n / text.length));
       for (let my = 0; my < mask.h; my++) {
         for (let mx = 0; mx < mask.w; mx++) {
           const a = mask.data[my * mask.w + mx];

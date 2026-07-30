@@ -5,18 +5,18 @@
     "textures": 8,
     "models": 10,
     "audio": 10,
-    "bytes": 1910789
+    "bytes": 1909693
   },
   "textures": {
     "wall_panel_a": {
       "file": "textures/wall_panel_a.png",
       "size": 512,
-      "bytes": 101789
+      "bytes": 101669
     },
     "wall_panel_b": {
       "file": "textures/wall_panel_b.png",
       "size": 512,
-      "bytes": 91354
+      "bytes": 90378
     },
     "floor_plate": {
       "file": "textures/floor_plate.png",

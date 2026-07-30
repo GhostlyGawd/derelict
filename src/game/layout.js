@@ -445,7 +445,10 @@ export const LABELS = [
   // inner faces are at ∓19.2 — 19.18 puts the label inside the slab.
   { space: 'hold', pos: [-19.22, 1.95, 3.0], facing: [-1, 0, 0] },
   { space: 'corrB', pos: [9.4, 1.95, -1.08], facing: [0, 0, 1] },
-  { space: 'annex', pos: [19.22, 1.95, 3.0], facing: [1, 0, 0] },
+  // Below the main opening, not above it: above leaves only 2.3 m of solid wall
+  // between that opening and the shortcut hatch, and the label is 2.2 m wide —
+  // it overhung the hatch.
+  { space: 'annex', pos: [19.22, 1.95, -3.4], facing: [1, 0, 0] },
   { space: 'shortcut', pos: [12.2, 1.72, 3.82], facing: [0, 0, 1] },
   { space: 'chamber', pos: [0, 1.9, -11.18], facing: [0, 0, 1] },
 ];
