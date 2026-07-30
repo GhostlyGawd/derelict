@@ -205,11 +205,25 @@ await advanceUntil((v) => v.pos[0] >= 10.8);
 console.log('  corridor B squeeze →', JSON.stringify((await state()).pos));
 await shot('corridor-b-blockage');
 
-// Thread the gap along the south wall.
+// Thread the gap along the south wall. Since phase 4 the gap is hung with
+// collapsed structure at 1.2 m, so upright it is a wall and only a crouched
+// player gets through. Both halves are asserted: a squeeze that stopped being
+// a squeeze would pass the second check on its own.
 await place(11.0, 0.75, -Math.PI / 2);
 s = await advanceUntil((v) => v.pos[0] >= 14.5);
-if (s.pos[0] < 13.8) throw new Error(`squeeze route is impassable, stuck at x=${s.pos[0]}`);
-console.log('  squeeze cleared →', JSON.stringify(s.pos));
+if (s.pos[0] >= 13.8) throw new Error(`walked the squeeze upright to x=${s.pos[0]} — it is not a squeeze`);
+console.log('  squeeze refuses a standing player →', JSON.stringify(s.pos));
+
+await place(11.0, 0.75, -Math.PI / 2);
+await page.keyboard.down('KeyC');
+try {
+  s = await advanceUntil((v) => v.pos[0] >= 14.5);
+} finally {
+  await page.keyboard.up('KeyC');
+}
+if (s.pos[0] < 13.8) throw new Error(`squeeze route is impassable even crouched, stuck at x=${s.pos[0]}`);
+console.log('  squeeze cleared, crouched →', JSON.stringify(s.pos));
+await page.waitForTimeout(300);
 
 await place(31.6, 1.6, -Math.PI / 2);
 await page.waitForTimeout(300);

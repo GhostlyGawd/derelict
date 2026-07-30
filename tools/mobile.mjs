@@ -82,8 +82,35 @@ const read = () =>
       yaw: +g.player.yaw.toFixed(3),
       prompt: document.getElementById('prompt').textContent,
       button: document.getElementById('touch-interact').classList.contains('on'),
+      crouching: g.player.crouching,
+      eye: +g.camera.position.y.toFixed(2),
+      crouchBtnHeld: document.getElementById('touch-crouch').classList.contains('held'),
     };
   });
+
+/**
+ * Fires one touch phase at a button. The stick and look regions are driven by
+ * events on `window`, but the buttons listen on themselves and stop
+ * propagation — so a held control has to be poked directly, and in two halves,
+ * because the whole point of crouch is what happens while it is down.
+ */
+const touchButton = (selector, type) =>
+  page.evaluate(
+    ([sel, t]) => {
+      const el = document.querySelector(sel);
+      const touch = new Touch({ identifier: 7, target: el, clientX: 0, clientY: 0 });
+      el.dispatchEvent(
+        new TouchEvent(t, {
+          changedTouches: [touch],
+          touches: t === 'touchend' ? [] : [touch],
+          targetTouches: t === 'touchend' ? [] : [touch],
+          bubbles: true,
+          cancelable: true,
+        })
+      );
+    },
+    [selector, type]
+  );
 
 console.log(`mobile: ${BASE}`);
 await page.goto(BASE, { waitUntil: 'networkidle' });
@@ -116,6 +143,29 @@ if (Math.abs(yawAfter - yawBefore) < 0.3) {
   throw new Error(`drag look barely turned the camera (${yawBefore} → ${yawAfter})`);
 }
 console.log(`  drag look → yaw ${yawBefore} → ${yawAfter}`);
+
+// ---- Held crouch button ----------------------------------------------------
+// Held, not toggled, on touch as well as on desktop — so this asserts the state
+// while the finger is down and again after it lifts. A toggle would pass the
+// first half of this and fail the second.
+const standingEye = (await read()).eye;
+await touchButton('#touch-crouch', 'touchstart');
+await page.waitForFunction(() => window.__derelict.player.crouchBlend > 0.98, null, { timeout: 8000 });
+s = await read();
+if (!s.crouching) throw new Error('holding the crouch button did not crouch');
+if (!s.crouchBtnHeld) throw new Error('the crouch button is down but does not show a held state');
+if (s.eye >= standingEye - 0.4) {
+  throw new Error(`crouched but the eye only moved ${standingEye} → ${s.eye}`);
+}
+console.log(`  crouch button held → eye ${standingEye} → ${s.eye}`);
+if (SHOTS) await page.screenshot({ path: path.join(OUT, 'm1b-crouched.png') });
+
+await touchButton('#touch-crouch', 'touchend');
+await page.waitForFunction(() => window.__derelict.player.crouchBlend < 0.02, null, { timeout: 8000 });
+s = await read();
+if (s.crouching) throw new Error('released the crouch button and stayed crouched — it is behaving as a toggle');
+if (s.crouchBtnHeld) throw new Error('the crouch button is up but still shows a held state');
+console.log(`  crouch button released → eye back to ${s.eye}`);
 
 // ---- Contextual interact button -------------------------------------------
 await page.evaluate(() => {

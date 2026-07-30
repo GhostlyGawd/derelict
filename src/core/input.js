@@ -1,10 +1,11 @@
 /**
  * Unified input for both control schemes described in the spec:
- *   desktop — pointer-lock mouse look, WASD, E to interact
- *   mobile  — left virtual joystick, right-side drag to look, context button
+ *   desktop — pointer-lock mouse look, WASD, E to interact, C/Ctrl to crouch
+ *   mobile  — left virtual joystick, right-side drag to look, context button,
+ *             a held crouch button
  *
- * The rest of the game only reads `move`, `look` and `takeInteract()`, so it
- * never has to care which scheme is live.
+ * The rest of the game only reads `move`, `look`, `crouchHeld` and
+ * `takeInteract()`, so it never has to care which scheme is live.
  */
 
 const LOOK_SENSITIVITY = 0.0022;
@@ -12,11 +13,12 @@ const TOUCH_LOOK_SENSITIVITY = 0.0042;
 const STICK_RADIUS = 52;
 
 export class Input {
-  constructor({ canvas, stickEl, knobEl, interactBtn }) {
+  constructor({ canvas, stickEl, knobEl, interactBtn, crouchBtn }) {
     this.canvas = canvas;
     this.stickEl = stickEl;
     this.knobEl = knobEl;
     this.interactBtn = interactBtn;
+    this.crouchBtn = crouchBtn;
 
     this.touch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
     this.move = { x: 0, y: 0 };
@@ -27,6 +29,7 @@ export class Input {
 
     this.keys = new Set();
     this.interactQueued = false;
+    this.touchCrouch = false;
 
     this.stick = { id: null, ox: 0, oy: 0 };
     this.lookTouch = { id: null, x: 0, y: 0 };
@@ -47,6 +50,15 @@ export class Input {
     return v;
   }
 
+  /**
+   * Held, never toggled. A player who forgets they are crouched walks the rest
+   * of the ship at half speed and reads it as the game being broken, which is
+   * the whole reason 4.3.4 rejected a toggle.
+   */
+  get crouchHeld() {
+    return this.enabled && (this.touchCrouch || this.keys.has('KeyC') || this.keys.has('ControlLeft'));
+  }
+
   /** Consumes the accumulated look delta for this frame. */
   takeLook() {
     const out = { dx: this.look.dx, dy: this.look.dy };
@@ -60,6 +72,7 @@ export class Input {
     if (!on) {
       this.keys.clear();
       this.interactQueued = false;
+      this.touchCrouch = false;
       this.move.x = 0;
       this.move.y = 0;
       this.look.dx = 0;
@@ -229,6 +242,21 @@ export class Input {
       e.preventDefault();
       if (this.enabled) this.interactQueued = true;
     });
+
+    // Crouch is held on touch too. It stops propagation so the surrounding
+    // right-half drag region does not also claim the finger as a look touch —
+    // the same guard the interact button already needs.
+    if (this.crouchBtn) {
+      const set = (down) => (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        this.touchCrouch = down && this.enabled;
+        this.crouchBtn.classList.toggle('held', this.touchCrouch);
+      };
+      this.crouchBtn.addEventListener('touchstart', set(true), opts);
+      this.crouchBtn.addEventListener('touchend', set(false), opts);
+      this.crouchBtn.addEventListener('touchcancel', set(false), opts);
+    }
   }
 
   #placeStick(x, y) {

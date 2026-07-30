@@ -12,7 +12,17 @@ import { buildCarryables } from './game/carryables.js';
 import { buildDoors, buildPowerPanel, buildSwitches } from './game/fixtures.js';
 import { Interactor } from './game/interact.js';
 import { buildSignage } from './game/signage.js';
-import { ESCAPE_TRIGGER, SPACES, SPAWN, WALLS, ZONE_POWER, spaceAt } from './game/layout.js';
+import {
+  ESCAPE_TRIGGER,
+  PLAYER_CROUCH_HEIGHT,
+  PLAYER_HEIGHT,
+  PLAYER_RADIUS,
+  SPACES,
+  SPAWN,
+  WALLS,
+  ZONE_POWER,
+  spaceAt,
+} from './game/layout.js';
 import { buildLevel } from './game/level.js';
 import { buildLighting } from './game/lighting.js';
 import { Player } from './game/player.js';
@@ -36,6 +46,7 @@ class Derelict {
       stickEl: document.getElementById('stick'),
       knobEl: document.getElementById('stick-knob'),
       interactBtn: document.getElementById('touch-interact'),
+      crouchBtn: document.getElementById('touch-crouch'),
     });
 
     this.view = createRenderer(this.canvas, { mobile: this.input.usingTouch });
@@ -58,6 +69,17 @@ class Derelict {
     this.spaces = SPACES;
     /** Wall runs and their openings, so tools/legible.mjs can catch overhang. */
     this.walls = WALLS;
+    /**
+     * The collision box, published rather than restated. tools/deadend.mjs has
+     * to model the player exactly; hard-coding the numbers there meant a change
+     * to either stance could silently make the proof about a different body
+     * than the one being played.
+     */
+    this.metrics = {
+      radius: PLAYER_RADIUS,
+      standing: PLAYER_HEIGHT,
+      crouched: PLAYER_CROUCH_HEIGHT,
+    };
     this.poweredZones = new Set();
     this.elapsed = 0;
     this.runTime = 0;

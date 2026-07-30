@@ -42,6 +42,9 @@ const read = () =>
       carrying: g.carry.held ? g.carry.held.id : null,
       released: g.carryables.cradles.filter((c) => c.released).map((c) => c.id),
       prompt: document.getElementById('prompt').textContent,
+      crouching: g.player.crouching,
+      trapped: g.player.trapped,
+      eye: g.camera.position.y,
     };
   });
 
@@ -185,9 +188,25 @@ const TO_SWITCH_2 = [
   // z = 0.45 is the middle of the passable window: the pile ends at z = 0.05
   // and the south wall starts at 1.1, so a 0.68 m-wide player fits anywhere in
   // z ∈ [0.39, 0.76]. Aiming at either edge of that is how this leg was flaky.
+  // Back off and line up on the gap, which is what a player does after walking
+  // into the pile — rather than grinding along its face at a shallow angle.
   ['back off the pile', 9.9, 0.45],
-  // Then the squeeze itself.
-  ['squeeze, along the south wall', 16.5, 0.45, { timeoutMs: 30000 }],
+];
+
+/**
+ * Phase 4 splits the squeeze in two, because the whole point of the feature is
+ * that the first of these fails and the second succeeds. Walking the gap
+ * upright has to stop at the collapsed structure; the same line crouched has to
+ * pass. Between them the harness lets go of crouch under the slab, where
+ * standing back up must be refused — the one state crouch could stranded a
+ * player in, and so the one worth asserting on foot rather than reasoning about.
+ */
+const THROUGH_THE_SQUEEZE_STANDING = [
+  ['squeeze, standing (expect blocked)', 16.5, 0.45, { expectBlocked: true, timeoutMs: 12000 }],
+  ['back off again', 9.9, 0.45],
+];
+
+const AFTER_THE_SQUEEZE = [
   ['annex entrance', 20.5, 0],
   ['switch 2', 31.9, 1.6, { arrive: 0.5 }],
 ];
@@ -285,6 +304,63 @@ if (SHOTS) await page.screenshot({ path: path.join(OUT, 'w3-seated1.png') });
 // ---- 4. Switch 2 -----------------------------------------------------------
 console.log('\n  Airlock Bay → Engine Annex, through the squeeze');
 for (const l of TO_SWITCH_2) await leg(l);
+
+// ---- The squeeze must be crouched -----------------------------------------
+for (const l of THROUGH_THE_SQUEEZE_STANDING) await leg(l);
+const uprightStop = await read();
+if (uprightStop.x > 11.3) {
+  throw new Error(
+    `walked upright to x=${uprightStop.x.toFixed(2)}, past the collapsed structure at x=11.3 — ` +
+      'the squeeze is not a squeeze'
+  );
+}
+
+// Waited on as a condition, not a delay. The stance blend advances per frame,
+// so "sleep 250 ms and read the eye height" is really a measurement of the
+// renderer — the same mistake the stall detector above exists to avoid.
+const settled = (want) =>
+  page.waitForFunction(
+    (target) => Math.abs(window.__derelict.player.crouchBlend - target) < 0.02,
+    want,
+    { timeout: 10000 }
+  );
+
+await page.keyboard.down('KeyC');
+await settled(1);
+const ducked = await read();
+if (!ducked.crouching) throw new Error('held C and the player did not crouch');
+if (ducked.eye > 1.12) throw new Error(`crouched but the eye is still at ${ducked.eye.toFixed(2)} m`);
+console.log(`  ↓ crouched, eye ${ducked.eye.toFixed(2)} m`);
+
+await leg(['squeeze, crouched — under the slab', 12.4, 0.45, { arrive: 0.4, timeoutMs: 30000 }]);
+
+// Let go of crouch with the structure directly overhead. Standing has to be
+// refused, and the player has to stay mobile rather than stuck.
+await page.keyboard.up('KeyC');
+// Give the game real frames to stand up in and confirm it declined to. Waiting
+// on the game clock rather than the wall clock means a slow renderer cannot
+// pass this vacuously by simply not running.
+const releasedAt = (await read()).clock;
+await page.waitForFunction((t) => window.__derelict.runTime > t + 0.6, releasedAt, { timeout: 15000 });
+const underneath = await read();
+if (!underneath.crouching) {
+  throw new Error(
+    `stood up at (${underneath.x.toFixed(2)}, ${underneath.z.toFixed(2)}) with structure overhead — ` +
+      'crouch can strand a player here'
+  );
+}
+if (!underneath.trapped) throw new Error('the player is crouched under the slab but not reporting it');
+console.log('  ✓ standing back up refused while something is overhead');
+
+await page.keyboard.down('KeyC');
+await leg(['squeeze, crouched — through', 16.8, 0.45, { arrive: 0.6, timeoutMs: 30000 }]);
+await page.keyboard.up('KeyC');
+await settled(0);
+const cleared = await read();
+if (cleared.crouching) throw new Error('past the slab and still unable to stand');
+console.log(`  ↑ stood back up past the slab, eye ${cleared.eye.toFixed(2)} m`);
+
+for (const l of AFTER_THE_SQUEEZE) await leg(l);
 
 await interactWith('switch 2', 32.72, 1.6, 'Restore Power');
 await page.waitForTimeout(2600);
