@@ -1,11 +1,11 @@
 
 # DERELICT — Spec
 
-**How to read this document.** Phase 4 (v1.3) is the active spec and is still a
-draft. Phase 3, Phase 2, Amendment 1 and the v1.0 sections below them are
-ratified and shipped. Where any two disagree, the later section wins. Nothing
-here is a suggestion — if we change something during a build, we change this
-document first.
+**How to read this document.** Phase 4 (v1.3) is the most recent section and is
+shipped, as are Phase 3, Phase 2, Amendment 1 and the v1.0 sections below them.
+There is no draft in flight. Where any two disagree, the later section wins.
+Nothing here is a suggestion — if we change something during a build, we change
+this document first.
 
 ---
 
@@ -39,13 +39,34 @@ to tri budget, crunch textures to 256 px).
 
 # Phase 4 — v1.3
 
-**Status: DRAFT.** Merging this section is the ratification, as with phases 2
-and 3. On the same terms: nothing here is a suggestion, and if we change
-something during the build we change this document first.
+**Status: SHIPPED.** Spec ratified 30 July 2026 by merging PR #16; built and
+shipped the same day in PR #17; corrected after the owner's first play in PR
+#18. On the same terms as v1, phase 2 and phase 3: nothing here is a
+suggestion, and if we change something during the build we change this document
+first.
 
 Unlike phases 2 and 3 this section was **not** settled in an interview first —
-see 4.9. The reasoning is recorded there and the pull request is where it gets
-contested. Merging still ratifies.
+see 4.9. The reasoning is recorded there and the pull request was where it got
+contested. Merging ratified it.
+
+**What the build changed in this section, and why.** 4.3.2 originally described
+the grating footstep as "brighter, with a ring". It was built to that
+description and the ring was wrong — high-pitched enough to break immersion in
+the two corridors the player crosses most. The line was rewritten before the
+sound was. 4.3.1 said normal maps were derived "at the same 256 px"; the tiling
+surfaces are 256 *and* 512, so it now says "the same size as that surface's own
+diffuse" and records why the derivation order matters. Both changes went into
+the document ahead of the code, which is the only rule this section has about
+itself.
+
+**Of the four done-bars in 4.5 that belong to the owner**, two are signed: the
+squeeze and the controls feel right on a phone, and the corridors sound like a
+floor again. "It sounds like an inside" is *not* signed — the first play
+reported no audible difference between compartments, which turned out to be a
+real bug rather than a judgement (footsteps bypassed the reverb send entirely,
+so the convolvers had almost nothing to work on). It has not been listened to
+again since that was fixed. A phase 5 should not treat the acoustics as
+reviewed.
 
 Supersedes part of v1 §4, §5, §6 and §7 — see 4.6. Everything in v1, phase 2 and
 phase 3 not named here still stands, including Amendment 1.
