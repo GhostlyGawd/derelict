@@ -65,10 +65,15 @@ export function synthesiseImpulseResponse(spec, sampleRate) {
   const { w, d, h, absorption = 0.15, seed = 1 } = spec;
   const rt60 = sabineRt60(w, d, h, absorption);
 
-  // The tail is truncated where it is already 60 dB down, and capped: two of
-  // these are alive at once during a compartment change, and tail length is the
-  // one dial that decides whether that costs frames on a phone.
-  const seconds = Math.min(rt60, 1.6);
+  // The tail is truncated where it is already 60 dB down, and capped hard.
+  //
+  // Tail length is the one dial that decides whether convolution costs frames
+  // on a phone — §4.3.2 said so before this was built, and the owner's first
+  // play came back "a touch less responsive". A 0.95 s cap takes about 30% off
+  // the two largest compartments and costs nothing audible: what the ear reads
+  // as size is the first few hundred milliseconds and the colour of the decay,
+  // not how long the last 20 dB takes to disappear under the room tone.
+  const seconds = Math.min(rt60, 0.95);
   const length = Math.max(64, Math.ceil(seconds * sampleRate));
   const left = new Float32Array(length);
   const right = new Float32Array(length);

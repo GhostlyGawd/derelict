@@ -273,7 +273,7 @@ class Derelict {
     // the clunk belongs there rather than under the player's thumb. The state
     // has already changed — this is only the sound catching up with the metal.
     this.audio.playAt('switch_clunk', sw.point.toArray(), { volume: 1, delay: 0.17 });
-    this.audio.play('power_surge', { volume: 0.55, delay: 0.18 });
+    this.audio.play('power_surge', { volume: 0.55, delay: 0.18, room: true });
 
     for (const [zone, source] of Object.entries(ZONE_POWER)) {
       if (source === sw.id) {
@@ -316,7 +316,7 @@ class Derelict {
     // cell_seat already carries the circuit waking up behind the latch, so the
     // room surge comes in later and quieter than it does off a wall switch.
     this.audio.playAt('cell_seat', socket.point.toArray(), { volume: 1 });
-    this.audio.play('power_surge', { volume: 0.4, delay: 0.55 });
+    this.audio.play('power_surge', { volume: 0.4, delay: 0.55, room: true });
 
     // Seating the first cell brings the Bay up on its own power.
     if (this.cells >= 1 && !this.poweredZones.has('bay')) {
@@ -334,7 +334,7 @@ class Derelict {
     this.carryables.setDown(cell, this.player.position, this.player.yaw);
     this.carry.held = null;
     this.viewmodel.setCarrying(false);
-    this.audio.play('footstep_1', { volume: 0.5, rate: 0.7 });
+    this.audio.play('footstep_1', { volume: 0.5, rate: 0.7, room: true });
   }
 
   /**
@@ -384,6 +384,8 @@ class Derelict {
     this.audio.play(`${set}_${variant}`, {
       volume: (0.22 + Math.random() * 0.06) * effort,
       rate: (0.94 + Math.random() * 0.12) * (this.player.crouching ? 1.06 : 1),
+      // Your own boots are what tell you how big the room is.
+      room: true,
     });
   }
 
