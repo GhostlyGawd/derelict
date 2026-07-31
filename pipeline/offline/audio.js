@@ -266,10 +266,16 @@ function motor(spec, sampleRate) {
  * Two surfaces underfoot, from one generator.
  *
  * Deck plate is a dull thud with a short hollow ring. Grating is the same boot
- * on a bar grid: much less mass under it, so the low end mostly goes away and
- * what is left is a bright clatter over a longer, more clearly pitched ring.
- * Same variant structure either way, so both sets get the same three-step
- * rotation and neither reads as a loop.
+ * on a bar grid: a little less mass under it, so slightly less body and a
+ * slightly looser, brighter tick.
+ *
+ * The first version took the spec's "brighter, with a ring" literally — bright
+ * noise up at 7 kHz over modes at 1.2, 2.0 and 3.0 kHz with long decays. It was
+ * a different instrument rather than a different floor, and it was the one
+ * thing the owner flagged on their first play: high-pitched, immersion-broken,
+ * worse than the deck plate it replaced. A footstep is not meant to be noticed,
+ * so a per-surface difference big enough to notice is already too big. The
+ * spec's line was changed to match before this was.
  */
 function footstep(spec, sampleRate) {
   const variant = spec.variant | 0;
@@ -279,16 +285,17 @@ function footstep(spec, sampleRate) {
   const bp = bandpass(sampleRate);
 
   const weight = [1, 0.86, 1.12][variant] ?? 1;
-  const bright = (grate ? [5200, 7400, 4300] : [2600, 4200, 1900])[variant] ?? 2600;
-  const rattle = (grate ? [0.5, 0.85, 1.0] : [0, 0.35, 0.7])[variant] ?? 0;
+  const bright = (grate ? [3100, 4700, 2400] : [2600, 4200, 1900])[variant] ?? 2600;
+  const rattle = (grate ? [0.22, 0.45, 0.6] : [0, 0.35, 0.7])[variant] ?? 0;
 
   return render(spec.seconds, sampleRate, (t) => {
     let v = 0;
 
-    // Heel contact. Grating has almost no body under the boot, so the two low
-    // sine components that give deck plate its thud are largely taken away.
-    const body = grate ? 0.24 : 1;
-    v += lp(random() * 2 - 1, bright) * expDecay(t, grate ? 150 : 120) * (grate ? 0.72 : 0.6);
+    // Heel contact. Grating has less mass under the boot, so it loses some of
+    // the thud — but not most of it, which is what made it stop sounding like
+    // a floor at all.
+    const body = grate ? 0.72 : 1;
+    v += lp(random() * 2 - 1, bright) * expDecay(t, grate ? 132 : 120) * (grate ? 0.63 : 0.6);
     v += Math.sin(TAU * 118 * weight * t) * expDecay(t, 44) * 0.5 * weight * body;
     v += Math.sin(TAU * 61 * weight * t) * expDecay(t, 30) * 0.3 * weight * body;
 
@@ -296,9 +303,8 @@ function footstep(spec, sampleRate) {
     // hollow deck plate does.
     v += grate
       ? modes(t, [
-          [1180 * weight, 0.075, 9],
-          [1970 * weight, 0.055, 12],
-          [3040 * weight, 0.03, 17],
+          [410 * weight, 0.045, 30],
+          [960 * weight, 0.018, 44],
         ])
       : modes(t, [
           [340 * weight, 0.055, 22],
@@ -307,7 +313,7 @@ function footstep(spec, sampleRate) {
 
     // Loose panel rattling under the step — the bars themselves, on grating.
     if (rattle > 0 && t > 0.02 && t < 0.2) {
-      v += bp(random() * 2 - 1, grate ? 3400 : 1800, 14) * expDecay(t - 0.02, 24) * 0.14 * rattle;
+      v += bp(random() * 2 - 1, grate ? 2100 : 1800, 14) * expDecay(t - 0.02, 24) * 0.14 * rattle;
     }
 
     return v * window(t, spec.seconds, 0.001, 0.12);

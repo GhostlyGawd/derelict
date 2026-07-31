@@ -47,10 +47,23 @@ export function createRenderer(canvas, { mobile = false } = {}) {
   // internal resolution down (never outside the range the spec allows).
   let samples = 0;
   let accumulated = 0;
-  let settled = false;
+  let pinned = false;
 
+  /**
+   * The watchdog used to latch the first time a sample came in under budget,
+   * and never look again. That was fine when the frame cost was flat, and phase
+   * 4 made it anything but: the Bay on emergency power is the cheapest the game
+   * ever gets, and the Hold under full lighting with relief and a convolver
+   * running is the most expensive. Latching in the first room meant never
+   * adapting to the worst one.
+   *
+   * It keeps sampling now. It can still only ever step *down*, and never below
+   * the floor the spec allows, so this cannot creep the picture softer than v1
+   * §6 permits — it just stops the decision being made on the first two
+   * seconds of play.
+   */
   function sample(dt) {
-    if (settled) return false;
+    if (pinned) return false;
     accumulated += dt;
     samples++;
     if (samples < 90) return false;
@@ -61,7 +74,6 @@ export function createRenderer(canvas, { mobile = false } = {}) {
       scale = Math.max(MIN_SCALE, scale - 0.06);
       return true;
     }
-    settled = true;
     return false;
   }
 
@@ -74,9 +86,10 @@ export function createRenderer(canvas, { mobile = false } = {}) {
     get scale() {
       return scale;
     },
+    /** Fixes the scale and stops the watchdog — used by the harnesses. */
     setScale(next) {
       scale = THREE.MathUtils.clamp(next, MIN_SCALE, MAX_SCALE);
-      settled = true;
+      pinned = true;
       return resize();
     },
     sample,

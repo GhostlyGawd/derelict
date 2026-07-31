@@ -118,7 +118,18 @@ export class AudioBus {
     );
   }
 
-  play(id, { volume = 1, rate = 1, delay = 0 } = {}) {
+  /**
+   * A sound with no place in the room — at the listener, or not diegetic at all.
+   *
+   * `room` decides whether it still excites the compartment's reverb. It
+   * defaults off for interface sounds, and it has to be *on* for anything the
+   * player's own body makes. Phase 4 shipped with it effectively absent, so
+   * footsteps — the sound you hear more than any other, and the one constantly
+   * exciting a real room — went straight to the master bus bone dry. The
+   * convolvers were working the whole time and the one signal that would have
+   * demonstrated them never reached them.
+   */
+  play(id, { volume = 1, rate = 1, delay = 0, room = false } = {}) {
     if (!this.ready || volume <= 0.001) return null;
     const buffer = this.buffers.get(id);
     if (!buffer) return null;
@@ -128,7 +139,9 @@ export class AudioBus {
     source.playbackRate.value = rate;
     const gain = this.ctx.createGain();
     gain.gain.value = volume;
-    source.connect(gain).connect(this.master);
+    source.connect(gain);
+    gain.connect(this.master);
+    if (room) gain.connect(this.send);
     source.start(this.ctx.currentTime + delay);
     return source;
   }

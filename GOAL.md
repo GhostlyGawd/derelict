@@ -154,10 +154,17 @@ Storage Hold return identical sound. Five compartments, one acoustic.
 - **Direction**, via `PannerNode` on `panningModel: 'equalpower'` — stereo
   placement with no HRTF, which is the right trade for a phone speaker and costs
   almost nothing. This replaces the amplitude hack rather than joining it.
-- **Per-surface footsteps.** One new generated set, grating: brighter, with a
-  ring. It plays in the two corridors and the Service Passage; the existing
-  deck-plate set stays in the rooms and the chamber. `spaceAt` already knows
-  which is underfoot.
+- **Per-surface footsteps.** One new generated set, grating. It plays in the two
+  corridors and the Service Passage; the existing deck-plate set stays in the
+  rooms and the chamber. `spaceAt` already knows which is underfoot.
+
+  This first read "brighter, with a ring", and the ring was wrong. Built to that
+  description it came out high-pitched and broke immersion on the owner's first
+  play — a worse sound than the deck plate it replaced, in the corridors the
+  player crosses most. The set is a *variation* on the deck plate rather than a
+  second instrument: slightly brighter, a little less body under the boot, a
+  short loose tick instead of a pitched ring. A footstep is not supposed to be
+  noticed, and any per-surface difference big enough to notice is too big.
 - **Room tone that follows you** — the bed's level and filtering per zone, so
   the Hold booms and the Passage is close and dry.
 

@@ -6,7 +6,7 @@
     "models": 10,
     "audio": 13,
     "acoustics": 5,
-    "bytes": 2324694
+    "bytes": 2258418
   },
   "textures": {
     "wall_panel_a": {
@@ -454,7 +454,7 @@
       ],
       "absorption": 0.15,
       "sabine": 1.276,
-      "bytes": 112576
+      "bytes": 83836
     },
     "ir_corrA": {
       "file": "audio/ir_corrA.wav",
@@ -484,7 +484,7 @@
       ],
       "absorption": 0.15,
       "sabine": 1.376,
-      "bytes": 121372
+      "bytes": 83836
     },
     "ir_shortcut": {
       "file": "audio/ir_shortcut.wav",
