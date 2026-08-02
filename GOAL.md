@@ -1,9 +1,9 @@
 
 # DERELICT — Spec
 
-**How to read this document.** Phase 4 (v1.3) is the most recent section and is
-shipped, as are Phase 3, Phase 2, Amendment 1 and the v1.0 sections below them.
-There is no draft in flight. Where any two disagree, the later section wins.
+**How to read this document.** Phase 5 (v1.4) is the active spec and is still a
+draft. Phase 4, Phase 3, Phase 2, Amendment 1 and the v1.0 sections below them
+are ratified and shipped. Where any two disagree, the later section wins.
 Nothing here is a suggestion — if we change something during a build, we change
 this document first.
 
@@ -34,6 +34,181 @@ instead of depending on generated files staying in sync in git.
 scale with chamfered edges and baked edge wear, generate its metal surface,
 then the same post-process as before (origin to floor-centre, scale, decimate
 to tri budget, crunch textures to 256 px).
+
+---
+
+# Phase 5 — v1.4
+
+**Status: DRAFT.** Merging this section is the ratification, as with phases 2,
+3 and 4. On the same terms: nothing here is a suggestion, and if we change
+something during the build we change this document first.
+
+Proposed rather than interviewed, as phase 4 was — see 5.8. Merging ratifies;
+the pull request is where it gets argued.
+
+Supersedes part of v1 §3 and §11 — see 5.5. Everything in v1 and phases 2, 3
+and 4 not named here still stands, including Amendment 1.
+
+## 5.1 The one-liner
+
+The last thirty seconds stop being a fade to black, and the two things phase 4
+could not measure about itself become measurable.
+
+## 5.2 What phase 5 demonstrates
+
+**That a wide cycle can be followed by a narrow one.** Phase 4 carried four
+features across four domains and proved breadth is affordable on this
+foundation. It also left two specific debts and never touched the last thing a
+player sees. This phase is deliberately the other shape: one feature the owner
+reviews by playing, and two pieces of instrumentation that make the *next* wide
+cycle cheaper to judge.
+
+The rhythm is the point. Alternating breadth and consolidation is a proposal
+about how this project runs, not just about what is in this phase — and it is
+the first thing to reject if the answer is "keep going wide".
+
+## 5.3 What gets built
+
+### 5.3.1 The ending — the last thirty seconds
+
+**What is wrong now.** v1 §3 ends the game like this: walk into the airlock,
+fade to black, the words "You escaped.", a restart button. Four phases have
+gone into the ninety seconds before that moment and none into the moment
+itself. It is the weakest passage in the game and it is the one every player
+finishes on.
+
+Phase 4's §4.9 rejected a richer ending on the grounds that the owner could not
+review it by playing. That was simply wrong: an ending is the one thing that
+can *only* be reviewed by playing, and the reasoning is corrected here rather
+than quietly dropped.
+
+**What gets built.** The escape becomes a short sequence rather than a cut:
+
+- **The outer door cycles for real.** The airlock already has moving geometry
+  and a motor sound; the outer door does not. It opens onto the chamber's flood
+  of light with the same machinery the inner one uses.
+- **The ship falls away.** Not a cutscene and not a camera the player does not
+  own — the fade takes long enough, and the light behind them changes enough,
+  that walking out reads as leaving something rather than as a screen wipe.
+- **The end card earns its line.** It reports the run in the ship's own
+  language rather than the interface's: the compartments powered, the cells
+  seated, the clock. The words "You escaped." stay.
+
+**The rule this follows:** no cutscene, and the player keeps the camera
+throughout. The moment they stop being the one moving is the moment it stops
+being this game.
+
+Rejected: a scripted camera pull-back, which is the obvious way to do this and
+takes the one thing the whole game has been about away at the last second. A
+score sting under it — the end sting already exists and a second piece of music
+would be the first music in the game arriving in its final ten seconds.
+
+### 5.3.2 The frame budget — an instrument, not an opinion
+
+**What is wrong now.** Phase 4 added relief and convolution, the owner reported
+the game felt "a touch less responsive", and the build could not say by how
+much. The software rasteriser in CI cannot separate Phong-plus-a-normal-map
+from Lambert — a targeted probe returned four variants within noise and out of
+order — and the frame-time watchdog bottoms out at its floor there regardless.
+Neither instrument says anything.
+
+That is tolerable once. It is not tolerable as a standing condition, because
+every phase from here adds cost and there is no scale to weigh it on.
+
+**What gets built.** A frame-cost harness that measures *relative* cost between
+configurations of the same scene, rather than absolute frames per second:
+render N fixed frames at a pinned resolution with a pinned camera path, and
+report the ratio between the shipped configuration and a stripped one. Ratios
+survive a slow host; absolute numbers do not. The output is a table in CI and a
+budget the next phase has to fit inside.
+
+Rejected: asserting a frame rate, which is a measurement of the CI box.
+Profiling on real hardware, which is not something CI has.
+
+### 5.3.3 The consumption gate — generated is not the same as reaching
+
+**What is wrong now.** Twice this project has shipped an asset that was
+generated correctly, listed correctly, wired correctly, and never reached the
+thing meant to consume it. The normal maps were the first — caught only because
+phase 4 built `relief.mjs` specifically to look. The dry footsteps were the
+second: the convolvers ran correctly for a whole phase with almost nothing fed
+to them, `acoustics.mjs` proved the responses were right, and nothing proved
+they were being used. The owner found it by ear.
+
+`relief.mjs` guards one instance of that failure. Nothing guards the class.
+
+**What gets built.** A harness that plays the game and asserts that every entry
+in the manifest is *observed in use* — every texture bound to a material in the
+scene, every model instantiated, every sound and every impulse response
+actually reaching an audio destination during a full run. An asset the pipeline
+produces and the game never touches is a failure, whether it is silent or
+invisible.
+
+Rejected: static analysis of the source, which would have passed both of the
+bugs it exists to catch — in each case the code referencing the asset was
+present and correct.
+
+**Unchanged:** the five spaces, the six-step chain, the route, crouch, the
+lighting states, the HUD, the viewmodel, the signage, the retro rendering
+treatment, the asset budgets.
+
+## 5.4 Scope guardrails
+
+Still permanently out, unchanged: **combat, enemies, saving, settings menus,
+procedural generation, additional levels or rooms**, **narrative** (phase 3),
+and **physically-based rendering** (phase 4).
+
+New for this phase, and permanent: **no cutscenes.** The player holds the
+camera from the first frame to the last. If a future phase wants to take it
+away, it changes this document first.
+
+**Zero new asset classes.** This phase adds no new kind of generated data. If
+it wants one, that is a signal that it has become a different phase.
+
+## 5.5 Definition of done
+
+| | Verified by |
+|---|---|
+| **The ending is a sequence, and the player holds the camera throughout.** | Claude — the walkthrough harness, which already finishes on foot |
+| **The ending reads.** It feels like leaving rather than like a screen wipe. | **The owner.** Claude can assert the camera was never taken away and cannot judge whether the moment lands |
+| **Frame cost is a number.** CI reports the shipped configuration's cost against a stripped one, as a ratio, stably enough to compare across runs. | Claude — the new harness, run twice and required to agree |
+| **Every generated asset is observed in use.** Every manifest entry is bound, instantiated or heard during a full run. | Claude — the new harness, in CI |
+| **Nothing regresses.** All harnesses green, the six-step chain still solvable, the deployment still live. | CI |
+| **It still feels good on a phone.** | **The owner** |
+| **It sounds like an inside.** Carried over from 4.5 unsigned — the first play's report was a bug, and nobody has listened since it was fixed. | **The owner**, on headphones |
+
+## 5.6 Amendments to earlier sections
+
+- **v1 §3, the player experience.** The ending is a sequence rather than a cut.
+  The words "You escaped." and the restart button stay.
+- **Phase 4 §4.9.** "A richer ending — real, and the owner cannot review it by
+  playing" was wrong on its second clause, and 5.3.1 says so.
+
+## 5.7 Build order
+
+1. **The consumption gate** — first, because it is the one thing that would
+   have caught two shipped bugs, and because it should be watching while the
+   rest of this phase adds assets.
+2. **The frame budget**, measured before the ending is built so the ending's
+   own cost lands inside a known budget rather than beside one.
+3. **The ending.**
+4. **Integration and ship.**
+
+## 5.8 Decisions taken in the draft
+
+- **Narrow after wide.** Rejected: a second four-feature cycle. Phase 4 proved
+  breadth is affordable and also produced two bugs that only a person could
+  find. A cycle that makes those findable by machine is worth more right now
+  than four more features would be.
+- **The ending over the scanner.** Rejected: making the viewmodel scanner
+  actually scan something, which is the other obviously thin thing a player
+  touches. It is a mechanic in disguise, and the box has held at zero new
+  interactive types for two phases.
+- **Ratios over frame rates.** Rejected: a frames-per-second floor in CI, which
+  is a fact about the runner and not about the game.
+- **One reviewable feature, honestly counted.** This phase gives the owner less
+  to review than phase 4 did. That is the trade, and it is stated here rather
+  than discovered at the end of it.
 
 ---
 
