@@ -1,11 +1,11 @@
 
 # DERELICT — Spec
 
-**How to read this document.** Phase 5 (v1.4) is the active spec and is still a
-draft. Phase 4, Phase 3, Phase 2, Amendment 1 and the v1.0 sections below them
-are ratified and shipped. Where any two disagree, the later section wins.
-Nothing here is a suggestion — if we change something during a build, we change
-this document first.
+**How to read this document.** Phase 5 (v1.4) is the most recent section and is
+shipped, as are Phase 4, Phase 3, Phase 2, Amendment 1 and the v1.0 sections
+below them. There is no draft in flight. Where any two disagree, the later
+section wins. Nothing here is a suggestion — if we change something during a
+build, we change this document first.
 
 ---
 
@@ -39,12 +39,46 @@ to tri budget, crunch textures to 256 px).
 
 # Phase 5 — v1.4
 
-**Status: DRAFT.** Merging this section is the ratification, as with phases 2,
-3 and 4. On the same terms: nothing here is a suggestion, and if we change
-something during the build we change this document first.
+**Status: SHIPPED.** Spec ratified 2 August 2026 by merging PR #20; built and
+shipped the same day. On the same terms as v1 and phases 2, 3 and 4: nothing
+here is a suggestion, and if we change something during the build we change this
+document first.
 
-Proposed rather than interviewed, as phase 4 was — see 5.8. Merging ratifies;
-the pull request is where it gets argued.
+Proposed rather than interviewed, as phase 4 was — see 5.8. Merging ratified it;
+the pull request was where it got argued.
+
+**What the build changed in this section, and why.**
+
+*The threshold.* 5.3.1 asked that walking out read as leaving rather than as a
+screen wipe, and building it turned up something the draft had not settled:
+there was nowhere to walk *to*. Beyond the outer door was the hull and then
+nothing, so the ending was a player walking up to a bright doorway and stopping.
+The level therefore gains a short run of deck outside the door, with a kerb
+round its open edges — see 5.6. It is not a room and the guardrail against new
+rooms stands: no ceiling, no lighting zone, no label, no props, no interactives,
+not in `SPACES`, and nothing to do there. The dead-end proof does not count it
+as floor and `spaceAt` returns nothing on it, which is why the reverb correctly
+falls away as you step out of the hull.
+
+*Two silent audio defects, both found by this phase's own instruments.* The
+compartment crossfade could be left stranded part-way: the wet level stopped at
+whatever value the fade was passing through and stayed there, so a compartment
+convolved permanently quieter than the room it was modelling. It happens when a
+second crossfade starts while the first is still in flight, which is what a
+doorway is. `tools/consume.mjs` caught it holding the Hold at 0.602. Separately,
+the ambient bed's scheduler died outright after a long main-thread stall — a
+voice scheduled in the past throws, and the throw escaped before the timer that
+keeps the bed alive was re-armed, so the ship's hum never came back for the rest
+of the run. `tools/framecost.mjs` surfaced that one by being the first thing in
+this project to stall the main thread hard on purpose. Both are exactly the
+class 5.3.3 was built for: generated, decoded, playing, and then silently gone.
+
+*What the consumption gate does not assert.* It reports each compartment's
+crossfade level and does not gate on it. That number is read from
+`AudioParam.value`, and the getter goes stale under automation on a loaded main
+thread — one compartment reported 0.797 in one run and 1.000 in the next while
+its measured wet output differed by under 2%. The gate asserts on the signal
+instead, which is what the done-bar actually claims.
 
 Supersedes part of v1 §3 and §11 — see 5.5. Everything in v1 and phases 2, 3
 and 4 not named here still stands, including Amendment 1.
@@ -177,10 +211,31 @@ it wants one, that is a signal that it has become a different phase.
 | **It still feels good on a phone.** | **The owner** |
 | **It sounds like an inside.** Carried over from 4.5 unsigned — the first play's report was a bug, and nobody has listened since it was fixed. | **The owner**, on headphones |
 
+**What is signed, at ship.** Every bar marked "Claude" is green in CI. The
+frame budget's two passes repeat to within 1% of each other inside a run; the
+ratio itself reads 1.24–1.27× on a quiet host and 1.50× on a loaded one, which
+is a real effect rather than instrument noise and is why the budget is set at
+1.9× rather than against the quiet number. The three bars that belong
+to the owner — the ending reading as leaving, the phone, and the acoustics —
+are **all unsigned**, and the acoustics one is now unsigned across two phases
+rather than one. It should be the first thing listened to, and a phase 6 must
+not treat any of the three as reviewed. That the crossfade was stranding
+compartments part-way for the whole of phase 4 is a reason to re-listen, not a
+reason to assume it is fixed by inspection.
+
 ## 5.6 Amendments to earlier sections
 
 - **v1 §3, the player experience.** The ending is a sequence rather than a cut.
   The words "You escaped." and the restart button stay.
+- **v1 §5, level.** The chamber's far bulkhead gains the outer door, and beyond
+  it a **threshold**: 3.4 m of deck with a kerb round its three open edges. Not
+  a compartment and not in `SPACES` — no ceiling, no lighting zone, no label,
+  nothing to do — and reachable only in the last ten seconds of a run. It exists
+  so that walking out is walking out. The five spaces are unchanged and the bar
+  on additional rooms stands.
+- **Phase 3 §3.3, signage.** The Airlock's compartment label moves from the far
+  bulkhead to the side wall, because the far bulkhead is now a door. Still one
+  label, still naming its own space, still the first thing read on the way in.
 - **Phase 4 §4.9.** "A richer ending — real, and the owner cannot review it by
   playing" was wrong on its second clause, and 5.3.1 says so.
 

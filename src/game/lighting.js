@@ -19,6 +19,13 @@ const CONDUIT_OFF = new THREE.Color(0xd8351c);
 const CONDUIT_ON = new THREE.Color(0x8effae);
 const DEAD_LENS = new THREE.Color(0x140705);
 
+/**
+ * How long the departure takes to resolve: the chamber to full flood, and the
+ * ship behind it to dark. Long enough to be a passage rather than a cut, short
+ * enough that a player walking briskly does not outrun it.
+ */
+const ESCAPE_SECONDS = 4.2;
+
 /** Two stutters and a settle — the lamps fighting the surge back on. */
 function surge(t) {
   if (t < 0.10) return 0.25;
@@ -141,7 +148,16 @@ export function buildLighting(materials) {
     }
   }
 
-  /** Called when the airlock finishes cycling: the chamber floods white. */
+  /**
+   * Called when the outer door starts to cycle.
+   *
+   * Two things at once, and they are the same thing seen from either end: the
+   * chamber floods white through the opening door, and every compartment
+   * behind the player loses its light. Phase 5 wanted "the ship falls away"
+   * without a camera the player does not own, and this is what that is — turn
+   * round on the way out and the ship you spent five minutes lighting is dark
+   * again.
+   */
   function floodChamber() {
     escaping.active = true;
     escaping.t = 0;
@@ -171,19 +187,40 @@ export function buildLighting(materials) {
         for (const shaft of zone.shafts) {
           shaft.material.opacity = 0.06 * Math.min(1, zone.t * 1.6) * (0.6 + 0.4 * k);
         }
-      } else if (!zone.powered && id !== 'chamber') {
-        // A dying ship: the emergency lamps never sit quite still.
+      } else if (!zone.powered && id !== 'chamber' && !escaping.active) {
+        // A dying ship: the emergency lamps never sit quite still. Silent
+        // during the departure, which owns every lamp behind the airlock.
         const wobble = 0.86 + 0.14 * Math.sin(elapsed * 2.3 + zone.lights.length);
         for (const light of zone.lights) light.intensity = EMERGENCY.intensity * wobble;
       }
     }
 
     if (escaping.active && escaping.t < 1) {
-      escaping.t = Math.min(1, escaping.t + dt / 2.6);
+      escaping.t = Math.min(1, escaping.t + dt / ESCAPE_SECONDS);
       const eased = escaping.t * escaping.t;
       for (const light of zoneOf('chamber').lights) {
         light.color.copy(POWERED_COLOR).lerp(new THREE.Color(ESCAPE_LIGHT.color), eased);
         light.intensity = ESCAPE_LIGHT.intensity * eased;
+      }
+
+      // Everything behind the airlock, going out. Assigned rather than
+      // accumulated — a per-frame multiply would make the rate of the fade a
+      // function of the frame rate, which is the bug this project has already
+      // written three comments about.
+      const behind = 1 - eased;
+      for (const [id, zone] of zones) {
+        if (id === 'chamber') continue;
+        const base = zone.powered ? POWERED.intensity : EMERGENCY.intensity;
+        for (const light of zone.lights) light.intensity = base * behind;
+        for (const material of zone.conduits) {
+          material.color.copy(zone.powered ? CONDUIT_ON : CONDUIT_OFF).multiplyScalar(behind);
+        }
+        for (const material of zone.lenses) {
+          material.color
+            .copy(zone.powered ? POWERED_COLOR : EMERGENCY_COLOR)
+            .multiplyScalar(behind);
+        }
+        for (const shaft of zone.shafts) shaft.material.opacity = 0.06 * behind;
       }
     }
   }

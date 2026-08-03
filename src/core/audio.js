@@ -64,8 +64,11 @@ export class AudioBus {
       this.send.connect(conv);
       conv.connect(gain);
       gain.connect(this.master);
-      // Stored as the param, not the node: every use of it is a ramp.
-      this.wet.push({ conv, level: gain.gain });
+      // `level` is the param because every use of it is a ramp. The node comes
+      // along so the wet bus can be tapped from outside: tools/consume.mjs
+      // proves each response is *heard* by measuring signal here, and the one
+      // bug that shipped a whole phase was a send that was never fed.
+      this.wet.push({ conv, gain, level: gain.gain });
     }
 
     // Room tone: the bed runs through a filter whose corner follows the
@@ -278,13 +281,34 @@ export class AudioBus {
       source.stop(at + body + 0.05);
     };
 
+    /**
+     * Keeps roughly two and a half seconds of bed scheduled ahead of the clock.
+     *
+     * The clamp and the `finally` are both load-bearing, and both are there
+     * because of one failure. `pump` runs on a timer, so a main thread that
+     * stalls — a long frame, a collection, a tab coming back — leaves `next`
+     * behind `currentTime`. Scheduling a voice in the past makes the browser
+     * clamp its fade-in curve forward to now, and the value events that follow
+     * the curve then land *inside* the clamped window, which throws. The throw
+     * used to escape before the timer was re-armed, so the pump stopped and the
+     * ship's hum never came back for the rest of the run: an asset that was
+     * generated, decoded, playing, and then silently gone.
+     *
+     * tools/framecost.mjs is what surfaced it, by being the first thing in this
+     * project to stall the main thread hard enough on purpose.
+     */
     const pump = () => {
       if (state.stopped) return;
-      while (state.next < this.ctx.currentTime + 2.5) {
-        voice(state.next);
-        state.next += body - overlap;
+      try {
+        const now = this.ctx.currentTime;
+        if (state.next < now + 0.05) state.next = now + 0.05;
+        while (state.next < now + 2.5) {
+          voice(state.next);
+          state.next += body - overlap;
+        }
+      } finally {
+        if (!state.stopped) state.timer = setTimeout(pump, 1000);
       }
-      state.timer = setTimeout(pump, 1000);
     };
 
     pump();
@@ -366,11 +390,32 @@ function setPosition(panner, x, y, z) {
   }
 }
 
-/** Equal-power-ish ramp that never lands on exactly zero, which mutes a node. */
+/**
+ * Crossfade ramp that never lands on exactly zero, which mutes a node.
+ *
+ * This was a `linearRampToValueAtTime`, and it could be left unapplied: the
+ * param stayed pinned at whatever value the crossfade happened to be passing
+ * through, and stayed there until the compartment was left and re-entered.
+ * tools/consume.mjs caught the Hold convolving at 0.602 of its level and
+ * holding — the response correct, selected and audible, and the room simply
+ * two-fifths too quiet. That is the kind of wrong no listening test localises
+ * and no assertion about the generated data would ever see, and it happens when
+ * a second crossfade starts while the first is still in flight, which is what a
+ * doorway is. Pinning the destination at the ramp's end time did not fix it,
+ * because the event that goes missing is the one scheduled in the future,
+ * whichever kind it is.
+ *
+ * `setTargetAtTime` has no future event to lose. It is one event, at `now`,
+ * and the param approaches the target from wherever it currently sits — which
+ * is exactly the behaviour a crossfade interrupted by another crossfade wants.
+ * The room tone in this file has always been driven this way; now the wet
+ * levels are too. The time constant is a quarter of the crossfade, so it is
+ * 98% of the way there in the time the linear ramp used to take.
+ */
 function ramp(param, to, now, seconds) {
   param.cancelScheduledValues(now);
   param.setValueAtTime(Math.max(0.0001, param.value), now);
-  param.linearRampToValueAtTime(Math.max(0.0001, to), now + seconds);
+  param.setTargetAtTime(Math.max(0.0001, to), now, seconds / 4);
 }
 
 function decode(ctx, arrayBuffer) {
