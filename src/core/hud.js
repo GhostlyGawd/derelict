@@ -17,7 +17,7 @@ export class Hud {
       title: document.getElementById('title'),
       paused: document.getElementById('paused'),
       endcard: document.getElementById('endcard'),
-      endTime: document.getElementById('end-time'),
+      endReadout: document.getElementById('end-readout'),
       keysDesktop: document.getElementById('keys-desktop'),
       keysMobile: document.getElementById('keys-mobile'),
     };
@@ -67,10 +67,32 @@ export class Hud {
     this.el[name]?.classList.add('hidden');
   }
 
-  showEnd(seconds) {
+  /**
+   * The end card's readout — phase 5, spec 5.3.1.
+   *
+   * It reports the run the way the ship would: what got its power back, what is
+   * in the sockets, how long you were aboard. Not a score and not a rating —
+   * the same register as the airlock panel, which is the only readout the
+   * player has actually been reading.
+   */
+  showEnd({ compartments, spaces, cells, sockets, seconds }) {
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
-    this.el.endTime.textContent = `ESCAPED IN ${m}:${String(s).padStart(2, '0')}`;
+    const rows = [
+      ['COMPARTMENTS RESTORED', `${compartments} / ${spaces}`],
+      ['POWER CELLS SEATED', `${cells} / ${sockets}`],
+      ['TIME ABOARD', `${m}:${String(s).padStart(2, '0')}`],
+    ];
+
+    this.el.endReadout.replaceChildren(
+      ...rows.flatMap(([label, value]) => {
+        const dt = document.createElement('dt');
+        dt.textContent = label;
+        const dd = document.createElement('dd');
+        dd.textContent = value;
+        return [dt, dd];
+      })
+    );
     this.show('endcard');
   }
 }

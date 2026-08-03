@@ -15,9 +15,11 @@ jobs:
     name: build and playtest
     runs-on: ubuntu-latest
     # Phase 2 made the walkthrough a round trip — each cell is carried back to
-    # the airlock — so the on-foot leg roughly doubled, and there is a fourth
-    # harness now. The runners render in software at a third of real time.
-    timeout-minutes: 35
+    # the airlock — so the on-foot leg roughly doubled. Phase 5 added two more
+    # harnesses, and the consumption gate is the dearest thing here: it plays a
+    # complete run and then walks on each surface until it has heard every
+    # footstep variant. The runners render in software at a third of real time.
+    timeout-minutes: 85
 
     steps:
       - uses: actions/checkout@v4
@@ -61,14 +63,16 @@ jobs:
           done
           echo "preview server never came up"; cat /tmp/preview.log; exit 1
 
-      # Seven altitudes. chain drives the interactions directly and proves the
+      # Nine altitudes. chain drives the interactions directly and proves the
       # six steps refuse to work out of order; deadend reasons over the whole
       # walkable floor rather than playing at all, now across both stances;
-      # relief moves a lamp and measures whether the surfaces answer it; smoke
-      # teleports between rooms to reach each system quickly; walkthrough
-      # refuses to teleport and so is the only one that can catch the level
-      # becoming un-navigable; mobile drives the touch scheme. They have caught
-      # different bugs and none subsumes another.
+      # relief moves a lamp and measures whether the surfaces answer it;
+      # consume plays the game and requires every manifest entry to be observed
+      # reaching its consumer; framecost weighs the shipped frame against a
+      # stripped one; smoke teleports between rooms to reach each system
+      # quickly; walkthrough refuses to teleport and so is the only one that can
+      # catch the level becoming un-navigable; mobile drives the touch scheme.
+      # They have caught different bugs and none subsumes another.
       - name: Playtest — the dependency chain
         run: node tools/chain.mjs http://127.0.0.1:4173/
 
@@ -80,6 +84,17 @@ jobs:
 
       - name: Playtest — signage legibility
         run: node tools/legible.mjs http://127.0.0.1:4173/
+
+      # relief.mjs guards one instance of "generated, listed, and never
+      # reaching its consumer". This guards the class — every texture, normal
+      # map, model, sound and impulse response, observed in use.
+      - name: Playtest — every generated asset is consumed
+        run: node tools/consume.mjs http://127.0.0.1:4173/
+
+      # A ratio, never a frame rate: an absolute number here would be a fact
+      # about this runner. The budget is in the harness.
+      - name: Playtest — the frame budget
+        run: node tools/framecost.mjs http://127.0.0.1:4173/
 
       - name: Playtest — systems
         run: node tools/smoke.mjs http://127.0.0.1:4173/ --shots

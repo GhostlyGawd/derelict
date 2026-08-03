@@ -126,8 +126,38 @@ export const WALLS = [
   // ---- Airlock chamber (beyond the airlock door) ----
   { axis: 'x', at: -2.2, from: -11.4, to: -7, h: 2.8, openings: [] },
   { axis: 'x', at: 2.2, from: -11.4, to: -7, h: 2.8, openings: [] },
-  { axis: 'z', at: -11.4, from: -2.2, to: 2.2, h: 2.8, openings: [] },
+  // Phase 5: the outer door. This run was solid for four phases, which is why
+  // the airlock only ever half-cycled.
+  {
+    axis: 'z',
+    at: -11.4,
+    from: -2.2,
+    to: 2.2,
+    h: 2.8,
+    openings: [{ center: 0, width: 2.4, height: 2.5, id: 'airlock-outer' }],
+  },
 ];
+
+/**
+ * The threshold — a short run of deck outside the outer door, with a kerb round
+ * its open edges.
+ *
+ * Not a compartment, and deliberately not in `SPACES`: it has no ceiling, no
+ * lighting zone, no label, no props and nothing to do, and everything that
+ * reads `SPACES` correctly treats it as outside the ship. The dead-end proof
+ * does not count it as floor; `spaceAt` returns nothing there, so the reverb
+ * falls away as you step out of the hull, which is exactly right.
+ *
+ * It exists for one reason: 5.3.1 asks that walking out reads as leaving, and
+ * without somewhere to walk *to* the ending is walking up to a bright doorway
+ * and stopping. Two and a half metres is enough to be outside and turn round.
+ */
+export const THRESHOLD = {
+  x: [-2.2, 2.2],
+  z: [-14.8, -11.4],
+  /** Kerb height. Reads as a lip; stops a player who keeps going. */
+  rail: 0.5,
+};
 
 /**
  * Lighting zones. Every zone starts on dim red emergency power; flipping the
@@ -210,8 +240,18 @@ export const CONDUITS = [
 /** Where the player wakes up, and which way they are facing (radians, 0 = -Z). */
 export const SPAWN = { pos: [0, 0, 4.6], yaw: 0 };
 
-/** Walking into this box ends the run. */
-export const ESCAPE_TRIGGER = { x: [-2.0, 2.0], z: [-11.2, -8.6] };
+/**
+ * The ending, in two beats rather than one.
+ *
+ * Until phase 5 there was a single box: walk into the chamber, cut to black,
+ * four words. Now stepping into the chamber with the airlock live *starts* the
+ * departure — the outer door cycles, the chamber floods as it opens, the ship
+ * behind goes dark — and the run ends only when the player has walked out
+ * through it onto the threshold. The player holds the camera for all of it.
+ */
+export const DEPARTURE_TRIGGER = { x: [-2.0, 2.0], z: [-11.2, -7.9] };
+/** Armed only once the outer door has finished cycling. */
+export const OUTER_TRIGGER = { x: [-2.0, 2.0], z: [-14.4, -13.4] };
 
 /**
  * Doors. Every leaf retracts straight down into the deck: the floor planes on
@@ -225,6 +265,15 @@ export const DOORS = [
     model: 'airlock_door',
     leaves: [{ size: [2.36, 2.72, 0.22], pos: [0, 1.36, -7], slide: [0, -2.95, 0] }],
     duration: 3.2,
+  },
+  {
+    id: 'airlock-outer',
+    kind: 'airlock',
+    model: 'airlock_door',
+    // Slower than the inner door and heavier-sounding: this is the one holding
+    // the vacuum back, and it is the last piece of machinery in the game.
+    leaves: [{ size: [2.36, 2.52, 0.22], pos: [0, 1.26, -11.4], slide: [0, -2.75, 0] }],
+    duration: 3.6,
   },
   {
     id: 'hatch-bay',
@@ -477,7 +526,11 @@ export const LABELS = [
   // it overhung the hatch.
   { space: 'annex', pos: [19.22, 1.95, -3.4], facing: [1, 0, 0] },
   { space: 'shortcut', pos: [12.2, 1.72, 3.82], facing: [0, 0, 1] },
-  { space: 'chamber', pos: [0, 1.9, -11.18], facing: [0, 0, 1] },
+  // Moved off the far bulkhead for phase 5: that run is the outer door now, and
+  // the label was hanging across the opening. The two solid strips left either
+  // side of it are a metre each and the word is wider than that, so it goes on
+  // the side wall instead — still the first thing you read on the way in.
+  { space: 'chamber', pos: [1.98, 1.9, -8.6], facing: [-1, 0, 0] },
 ];
 
 /**
