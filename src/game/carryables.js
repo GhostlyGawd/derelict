@@ -30,7 +30,11 @@ const OPEN_CLAMP = new THREE.Color(0x3fbf63);
 const CELL_GLOW = 0x3aa957;
 
 function instantiate(parts) {
-  return parts.map(({ geometry, material }) => new THREE.Mesh(geometry, material.clone()));
+  return parts.map(({ geometry, material, model }) => {
+    const mesh = new THREE.Mesh(geometry, material.clone());
+    if (model) mesh.userData.model = model;
+    return mesh;
+  });
 }
 
 function highlighter(meshes, isLive) {

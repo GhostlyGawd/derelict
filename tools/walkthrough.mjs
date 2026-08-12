@@ -229,6 +229,9 @@ const INTO_THE_AIRLOCK = [
   ['airlock chamber', 0, -9.5, { arrive: 1.2 }],
 ];
 
+/** Phase 5: out through the outer door, onto the deck outside the hull. */
+const OUT_THROUGH_THE_OUTER_DOOR = [['threshold, outside the hull', 0, -14.0, { arrive: 0.5 }]];
+
 let totalDistance = 0;
 let totalSeconds = 0;
 
@@ -393,8 +396,109 @@ if (SHOTS) await page.screenshot({ path: path.join(OUT, 'w5-seated2.png') });
 console.log('\n  Airlock Bay → out');
 for (const l of INTO_THE_AIRLOCK) await leg(l);
 
-await page.waitForFunction(() => window.__derelict?.phase === 'ended', null, { timeout: 20000 });
+// ---- 7. The departure -------------------------------------------------------
+//
+// Phase 5's done-bar: the ending is a sequence, and the player holds the camera
+// throughout. Claude cannot judge whether the moment lands — that is the
+// owner's bar — but it can prove nothing was taken away, which is the half that
+// is checkable and the half a cutscene would fail.
+s = await read();
+if (s.phase !== 'leaving') {
+  throw new Error(`stepping into the chamber did not start the departure (phase=${s.phase})`);
+}
+console.log('\n  departure begun — outer door cycling');
+
+const outerState = () =>
+  page.evaluate(() => {
+    const g = window.__derelict;
+    const outer = g.doorsById.get('airlock-outer');
+    return {
+      t: outer.t,
+      open: outer.open,
+      chamber: g.lighting.lampsIn('chamber')[0]?.intensity ?? -1,
+      behind: g.lighting.lampsIn('hold')[0]?.intensity ?? -1,
+    };
+  });
+
+// The camera is still the player's. `input.look` is the accumulator the
+// pointer-lock mousemove handler writes into, so nudging it drives exactly the
+// path a mouse drives — the same move chain.mjs makes when it presses interact
+// with the aim taken out. If the camera turns, the player's own update is still
+// running, which is the thing a cutscene would have stopped.
+const held = await page.evaluate(async () => {
+  const g = window.__derelict;
+  const yaw = g.player.yaw;
+  const at = { x: g.player.position.x, z: g.player.position.z };
+  g.input.look.dx += 0.3;
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  return {
+    turned: Math.abs(g.player.yaw - yaw),
+    drifted: Math.hypot(g.player.position.x - at.x, g.player.position.z - at.z),
+    enabled: g.input.enabled,
+    phase: g.phase,
+  };
+});
+if (!held.enabled) throw new Error('input was disabled during the departure — that is a cutscene');
+if (held.turned < 0.2) {
+  throw new Error(`look input moved the camera ${held.turned.toFixed(3)} rad during the departure`);
+}
+// And nothing moves the player but the player. A scripted pull-back would show
+// up here as travel with no key held.
+if (held.drifted > 0.05) {
+  throw new Error(`the player drifted ${held.drifted.toFixed(2)} m with no input during the departure`);
+}
+console.log(`  camera still the player's (turned ${held.turned.toFixed(2)} rad, drifted ${held.drifted.toFixed(3)} m)`);
+
+await page.waitForFunction(() => window.__derelict.doorsById.get('airlock-outer').open, null, {
+  timeout: 60000,
+});
+const opened = await outerState();
+if (opened.chamber <= 0.5) {
+  throw new Error(`the outer door opened and the chamber never flooded (${opened.chamber})`);
+}
+console.log(
+  `  outer door open — chamber at ${opened.chamber.toFixed(1)}, the ship behind at ${opened.behind.toFixed(1)}`
+);
+if (SHOTS) await page.screenshot({ path: path.join(OUT, 'w6-outer-open.png') });
+
+for (const l of OUT_THROUGH_THE_OUTER_DOOR) await leg(l);
+
+const left = await outerState();
+if (left.behind >= opened.behind) {
+  throw new Error(
+    `the ship behind the airlock never went dark (${opened.behind.toFixed(1)} → ${left.behind.toFixed(1)})`
+  );
+}
+console.log(`  the ship behind fell to ${left.behind.toFixed(1)}`);
+
+// Input goes with the end card and not a moment before it.
+const stillHeld = await page.evaluate(() => ({
+  phase: window.__derelict.phase,
+  enabled: window.__derelict.input.enabled,
+}));
+if (stillHeld.phase === 'ending' && !stillHeld.enabled) {
+  throw new Error('the camera was taken away before the end card');
+}
+
+await page.waitForFunction(() => window.__derelict?.phase === 'ended', null, { timeout: 30000 });
 if (SHOTS) await page.screenshot({ path: path.join(OUT, 'w6-end.png') });
+
+// The end card reports the run in the ship's language: what got its power back,
+// what is in the sockets, how long you were aboard.
+const readout = await page.evaluate(() =>
+  [...document.querySelectorAll('#end-readout dt')].map((dt) => [
+    dt.textContent,
+    dt.nextElementSibling?.textContent,
+  ])
+);
+if (readout.length !== 3) {
+  throw new Error(`the end card reported ${readout.length} lines, expected 3`);
+}
+const compartments = readout.find(([label]) => label.includes('COMPARTMENT'));
+if (!compartments || compartments[1] !== '7 / 7') {
+  throw new Error(`the end card reads "${compartments?.[1]}" compartments restored, expected 7 / 7`);
+}
+console.log('  end card: ' + readout.map(([k, v]) => `${k} ${v}`).join(', '));
 
 const runTime = await page.evaluate(() => window.__derelict.runTime);
 console.log(

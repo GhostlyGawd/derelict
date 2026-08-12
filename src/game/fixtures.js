@@ -15,7 +15,11 @@ const HIGHLIGHT_GLOW = new THREE.Color(0x0a0e0b);
 const OFF = new THREE.Color(0x000000);
 
 function instantiate(parts) {
-  return parts.map(({ geometry, material }) => new THREE.Mesh(geometry, material.clone()));
+  return parts.map(({ geometry, material, model }) => {
+    const mesh = new THREE.Mesh(geometry, material.clone());
+    if (model) mesh.userData.model = model;
+    return mesh;
+  });
 }
 
 function fitToBox(parts, size) {
@@ -38,10 +42,12 @@ function fitToBox(parts, size) {
     )
     .multiply(new THREE.Matrix4().makeTranslation(-centre.x, -centre.y, -centre.z));
 
-  return parts.map(({ geometry, material }) => {
+  return parts.map(({ geometry, material, model }) => {
     const geo = geometry.clone();
     geo.applyMatrix4(matrix);
-    return new THREE.Mesh(geo, material.clone());
+    const mesh = new THREE.Mesh(geo, material.clone());
+    if (model) mesh.userData.model = model;
+    return mesh;
   });
 }
 

@@ -293,9 +293,24 @@ await page
 s = await state();
 await shot('airlock-open');
 
+// Phase 5: the ending is two beats. Walking into the chamber starts the
+// departure and cycles the outer door; the run ends out on the threshold,
+// past it. Waiting for 'ended' straight off the first beat would time out
+// while the door was still opening.
 await place(0, -5.5, 0);
-await advanceUntil((v) => v.phase !== 'playing', { ms: 900 });
-await page.waitForFunction(() => window.__derelict?.phase === 'ended', null, { timeout: 12000 });
+await advanceUntil((v) => v.phase === 'leaving');
+s = await state();
+if (s.phase !== 'leaving') throw new Error(`the airlock chamber did not start the departure (${s.phase})`);
+await page
+  .waitForFunction(() => window.__derelict.doorsById.get('airlock-outer').open, null, { timeout: 60000 })
+  .catch(() => {
+    throw new Error('the outer door never finished cycling');
+  });
+console.log('  outer door open');
+await shot('outer-open');
+
+await advanceUntil((v) => v.phase === 'ending' || v.phase === 'ended');
+await page.waitForFunction(() => window.__derelict?.phase === 'ended', null, { timeout: 30000 });
 console.log('  escaped');
 await shot('endcard');
 

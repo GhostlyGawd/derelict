@@ -242,6 +242,30 @@ body {
   color: rgba(150, 190, 162, 0.5);
 }
 
+/* The end card's readout. Monospaced and dim green, matching the airlock panel
+   the player has been reading all game rather than the HUD they have not. */
+.panel .readout {
+  margin: 18px auto 0;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 7px 22px;
+  width: fit-content;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+}
+
+.panel .readout dt {
+  text-align: left;
+  color: rgba(150, 190, 162, 0.5);
+}
+
+.panel .readout dd {
+  margin: 0;
+  text-align: right;
+  color: rgba(123, 255, 154, 0.82);
+}
+
 .panel .keys {
   margin-top: 26px;
   font-size: 11px;

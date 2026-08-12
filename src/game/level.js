@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { applyPlaneUVs, applyWorldUVs } from '../core/materials.js';
-import { BLOCKERS, SPACES, WALLS, WALL_THICKNESS } from './layout.js';
+import { BLOCKERS, SPACES, THRESHOLD, WALLS, WALL_THICKNESS } from './layout.js';
 
 const T = WALL_THICKNESS;
 const TRIM = 0.14;
@@ -93,6 +93,27 @@ export function buildLevel(materials) {
       }
       addTrim(box, wall, o);
     }
+  }
+
+  // ---------------------------------------------------------- threshold
+  // Deck outside the outer door, and a kerb round its three open edges. No
+  // ceiling and no walls — what is above and beyond it is the fog, which is
+  // the whole point of stepping out onto it.
+  {
+    const w = THRESHOLD.x[1] - THRESHOLD.x[0];
+    const d = THRESHOLD.z[1] - THRESHOLD.z[0];
+    const cx = (THRESHOLD.x[0] + THRESHOLD.x[1]) / 2;
+    const cz = (THRESHOLD.z[0] + THRESHOLD.z[1]) / 2;
+
+    const deck = applyPlaneUVs(new THREE.PlaneGeometry(w, d, 1, 1), w, d, 2);
+    deck.rotateX(-Math.PI / 2);
+    deck.translate(cx, 0, cz);
+    push('floor_plate', deck);
+
+    const r = THRESHOLD.rail;
+    box('door_trim', 0.16, r, d, THRESHOLD.x[0] + 0.08, r / 2, cz, 1);
+    box('door_trim', 0.16, r, d, THRESHOLD.x[1] - 0.08, r / 2, cz, 1);
+    box('door_trim', w, r, 0.16, cx, r / 2, THRESHOLD.z[0] + 0.08, 1);
   }
 
   // ------------------------------------------------------- extra blockers

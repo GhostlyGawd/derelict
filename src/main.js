@@ -13,7 +13,8 @@ import { buildDoors, buildPowerPanel, buildSwitches } from './game/fixtures.js';
 import { Interactor } from './game/interact.js';
 import { buildSignage } from './game/signage.js';
 import {
-  ESCAPE_TRIGGER,
+  DEPARTURE_TRIGGER,
+  OUTER_TRIGGER,
   PLAYER_CROUCH_HEIGHT,
   PLAYER_HEIGHT,
   PLAYER_RADIUS,
@@ -37,6 +38,19 @@ const FOG_FAR = 30;
 const BASE_FOV = 72;
 const EMERGENCY_TINT = new THREE.Color(0xff7a5a);
 const POWERED_TINT = new THREE.Color(0xd6f4e2);
+
+/**
+ * The final fade, in seconds.
+ *
+ * Long on purpose. v1 §3 ended the game on a cut, and four phases went into the
+ * ninety seconds before it — a fade this length is the difference between
+ * leaving somewhere and a screen wipe. The player keeps the camera for all of
+ * it; input is not taken away until the card is up. 5.3.1, 5.4.
+ */
+const END_FADE = 2.8;
+
+/** The phases in which the player is still walking and still holding the camera. */
+const AFOOT = new Set(['playing', 'leaving', 'ending']);
 
 class Derelict {
   constructor() {
@@ -363,10 +377,69 @@ class Derelict {
 
     this.lighting.setPowered('bay', true);
     this.poweredZones.add('bay');
-    this.lighting.floodChamber();
     this.escapeArmed = true;
 
     this.audio.playAt('door_motor', [0, 1, -7], { volume: 1, rate: 0.85 });
+  }
+
+  /**
+   * Stepping into the chamber with the airlock live. The outer door starts
+   * cycling — the same machinery the inner one uses, on the run of wall that
+   * has been solid for four phases — the chamber floods through it as it opens,
+   * and every compartment behind the player goes dark.
+   *
+   * Nothing here takes the camera or stops the player walking. That is the one
+   * rule the ending has (5.4): no cutscene, ever. The phase changes so the
+   * interact prompt and the escape check know where they are, and that is all.
+   */
+  #beginDeparture() {
+    if (this.phase !== 'playing') return;
+    this.phase = 'leaving';
+    this.hud.setPrompt(null);
+
+    const outer = this.doorsById.get('airlock-outer');
+    if (outer?.cycle()) {
+      this.audio.playAt('door_motor', [0, 1.2, -11.4], { volume: 1, rate: 0.72 });
+    }
+    this.lighting.floodChamber();
+    // The chamber is the seventh compartment, and it comes up last. The end
+    // card counts what got its power back, and this is the one that does it
+    // without a switch or a cell.
+    this.poweredZones.add('chamber');
+  }
+
+  /**
+   * The run ends at the far end of the threshold, and only once the outer door
+   * has actually finished opening — the door's own collider is what stops the
+   * player reaching this before there is a way through.
+   */
+  #escape() {
+    if (this.phase !== 'leaving') return;
+    this.phase = 'ending';
+    this.hud.setPrompt(null);
+    this.hud.setHudVisible(false);
+    this.hud.fade(1, END_FADE);
+    this.audio.fadeOut(END_FADE);
+
+    setTimeout(() => {
+      // Input goes last, with the card. Until this moment the player could
+      // still turn round and look back at the ship, and the fade is long
+      // enough that some of them will.
+      this.input.setEnabled(false);
+      this.input.releasePointerLock();
+      this.hud.setTouchVisible(false);
+      this.audio.stopAmbient();
+      this.audio.fadeIn(0.2, 0.9);
+      this.audio.play('end_sting', { volume: 0.85 });
+      this.phase = 'ended';
+      this.hud.showEnd({
+        compartments: this.poweredZones.size,
+        spaces: SPACES.length,
+        cells: this.cells,
+        sockets: this.carryables.sockets.length,
+        seconds: this.runTime,
+      });
+    }, END_FADE * 1000 + 250);
   }
 
   /**
@@ -376,7 +449,9 @@ class Derelict {
    * the room tone already run.
    */
   #footstep() {
-    if (this.phase !== 'playing') return;
+    // Walking out is still walking. Silencing the last twenty steps of the game
+    // would be the loudest thing in the ending.
+    if (!AFOOT.has(this.phase)) return;
     const variant = 1 + Math.min(2, (Math.random() * 3) | 0);
     const set = this.surface === 'grate' ? 'footstep_grate' : 'footstep';
     // Crouched, the step is a shuffle rather than a stride.
@@ -387,26 +462,6 @@ class Derelict {
       // Your own boots are what tell you how big the room is.
       room: true,
     });
-  }
-
-  #escape() {
-    if (this.phase !== 'playing') return;
-    this.phase = 'ending';
-    this.input.setEnabled(false);
-    this.input.releasePointerLock();
-    this.hud.setPrompt(null);
-    this.hud.setHudVisible(false);
-    this.hud.setTouchVisible(false);
-    this.hud.fade(1, 1.5);
-    this.audio.fadeOut(1.5);
-
-    setTimeout(() => {
-      this.audio.stopAmbient();
-      this.audio.fadeIn(0.2, 0.9);
-      this.audio.play('end_sting', { volume: 0.85 });
-      this.phase = 'ended';
-      this.hud.showEnd(this.runTime);
-    }, 1700);
   }
 
   // -------------------------------------------------------------- frame --
@@ -427,14 +482,20 @@ class Derelict {
 
     if (this.view.sample(dt)) this.#resize();
 
-    if (this.phase === 'playing') this.runTime += dt;
+    // The clock runs until the player steps off the ship, so the departure is
+    // part of the time aboard rather than free.
+    if (this.phase === 'playing' || this.phase === 'leaving') this.runTime += dt;
 
     const look = { dx: this.input.look.dx, dy: this.input.look.dy };
 
-    if (this.phase === 'playing') {
+    if (AFOOT.has(this.phase)) {
       this.player.update(dt, this.input, this.#colliders());
-      this.#updateInteraction();
-      this.#checkEscape();
+      if (this.phase === 'playing') {
+        this.#updateInteraction();
+        this.#checkDeparture();
+      } else if (this.phase === 'leaving') {
+        this.#checkOuter();
+      }
     }
 
     for (const sw of this.switches) sw.update(dt);
@@ -454,10 +515,13 @@ class Derelict {
       this.camera.position.z,
       this.player.yaw
     );
-    if (space) {
-      this.audio.setSpace(space.id, ROOM_TONE[space.id]);
-      this.surface = SURFACES[space.id] || 'deck';
-    }
+    // Off the end of the threshold there is no compartment, and that is not a
+    // gap to paper over — it is the point. `setSpace(null)` finds no response
+    // and fades the tail out, so the room comes off the player's own footsteps
+    // as they step out of the hull. The surface underfoot stays whatever the
+    // chamber was: the threshold is the same deck plate.
+    this.audio.setSpace(space ? space.id : null, space ? ROOM_TONE[space.id] : null);
+    if (space) this.surface = SURFACES[space.id] || 'deck';
     const powered = space ? this.poweredZones.has(space.id) : false;
     this.viewmodel.setTint(
       powered ? POWERED_TINT : EMERGENCY_TINT,
@@ -495,17 +559,22 @@ class Derelict {
     if (this.phase === 'playing') this.#press(target);
   }
 
-  #checkEscape() {
-    if (!this.escapeArmed) return;
+  #inside(box) {
     const { x, z } = this.player.position;
-    if (
-      x > ESCAPE_TRIGGER.x[0] &&
-      x < ESCAPE_TRIGGER.x[1] &&
-      z > ESCAPE_TRIGGER.z[0] &&
-      z < ESCAPE_TRIGGER.z[1]
-    ) {
-      this.#escape();
-    }
+    return x > box.x[0] && x < box.x[1] && z > box.z[0] && z < box.z[1];
+  }
+
+  #checkDeparture() {
+    if (this.escapeArmed && this.#inside(DEPARTURE_TRIGGER)) this.#beginDeparture();
+  }
+
+  #checkOuter() {
+    // The ship goes quiet as the way out finishes opening. Its own hum is the
+    // last thing the player leaves behind.
+    const outer = this.doorsById.get('airlock-outer');
+    if (!outer?.open) return;
+    this.audio.stopAmbient();
+    if (this.#inside(OUTER_TRIGGER)) this.#escape();
   }
 }
 

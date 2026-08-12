@@ -37,6 +37,12 @@ export function buildViewmodel(assets) {
   scene.add(holder);
 
   const model = assets.model('scanner') || placeholderModel('scanner');
+  // The one model that never enters the main scene, and so the one most easily
+  // dropped without anything noticing. Stamped like every placed model so
+  // tools/consume.mjs can find it in the viewmodel's own scene.
+  model.traverse((node) => {
+    if (node.isMesh) node.userData.model = 'scanner';
+  });
   const { size, center } = measure(model);
   // Centre the model on the grip point and normalise it to a handheld tool.
   const longest = Math.max(size.x, size.y, size.z) || 1;

@@ -96,7 +96,7 @@ export function measure(object) {
  */
 export function batch(parts, transforms) {
   const meshes = [];
-  for (const { geometry, material } of parts) {
+  for (const { geometry, material, model } of parts) {
     const copies = transforms.map((m) => {
       const g = geometry.clone();
       g.applyMatrix4(m);
@@ -106,6 +106,8 @@ export function batch(parts, transforms) {
     if (copies.length > 1) for (const c of copies) c.dispose();
     if (!merged) continue;
     const mesh = new THREE.Mesh(merged, material);
+    // Survives the merge, so the drawn mesh still names its manifest entry.
+    if (model) mesh.userData.model = model;
     mesh.matrixAutoUpdate = false;
     meshes.push(mesh);
   }

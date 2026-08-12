@@ -47,11 +47,23 @@ export function buildStaticProps(assets, sourceCache = new Map()) {
   return { group, colliders };
 }
 
-/** Flattens a model once and caches it; falls back to the greybox stand-in. */
+/**
+ * Flattens a model once and caches it; falls back to the greybox stand-in.
+ *
+ * Each part carries the id it came from. Flattening and batching are lossy —
+ * ten props merge into one mesh and the source hierarchy is gone — so without
+ * the stamp there is no way to walk the scene and ask which manifest entries
+ * are actually being drawn. tools/consume.mjs asks exactly that, because
+ * "generated, listed and loaded" is not the same as "in use", and this project
+ * has shipped that difference twice.
+ */
 export function resolveParts(modelId, assets, cache = new Map()) {
   if (!cache.has(modelId)) {
     const source = assets.model(modelId) || placeholderModel(modelId);
-    cache.set(modelId, flattenModel(source));
+    cache.set(
+      modelId,
+      flattenModel(source).map((part) => ({ ...part, model: modelId }))
+    );
   }
   return cache.get(modelId);
 }
