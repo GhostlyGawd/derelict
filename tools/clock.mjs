@@ -195,8 +195,14 @@ for (const kind of ['fan', 'vent', 'spark', 'lamp']) {
   const heard = record.heard.filter((e) => e.kind === kind);
   // The first lamp level is the voice coming up, not a brownout; the first
   // lamp reading is the state it starts in. Neither is an event.
+  //
+  // Frame 0 is the same for the others. What is seen there is the state the
+  // recording happened to start in, so it is never logged as an event — and a
+  // sound in that frame has nothing it could be paired with. A blade crossing
+  // the housing on the very frame the recording began failed CI once as an
+  // "orphan" fan pass, which was this harness's boundary and not the game's.
   const s = kind === 'lamp' ? seen.slice(1) : seen;
-  const h = kind === 'lamp' ? heard.slice(1) : heard;
+  const h = kind === 'lamp' ? heard.slice(1) : heard.filter((e) => e.frame > 0);
 
   expect(
     `${kind.padEnd(5)} moves (${s.length} visible events)`,
