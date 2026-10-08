@@ -1,9 +1,9 @@
 
 # DERELICT — Spec
 
-**How to read this document.** Phase 6 (v1.5) is the most recent section and
-is a **draft** in flight. Merging it ratifies it. Phase 5, Phase 4, Phase 3,
-Phase 2, Amendment 1 and the v1.0 sections below it are shipped. Where any two
+**How to read this document.** Phase 6 (v1.5) is the most recent section. It
+is approved and built, and ships when its pull requests merge. Phase 5, Phase 4,
+Phase 3, Phase 2, Amendment 1 and the v1.0 sections below it are shipped. Where any two
 disagree, the later section wins. Nothing here is a suggestion — if we change
 something during a build, we change this document first.
 
@@ -39,25 +39,56 @@ to tri budget, crunch textures to 256 px).
 
 # Phase 6 — v1.5
 
-**Status: DRAFT.** Proposed 8 October 2026; ratified by merging the pull
-request that carries it, as phases 4 and 5 were. Once merged, it holds on the
-same terms as everything below: nothing here is a suggestion, and if we change
-something during the build we change this document first.
+**Status: BUILT.** Proposed 8 October 2026 in PR #22 and approved by the owner
+the same day; built the same day on the branch that follows it. Merging the two
+ratifies and ships it. It holds on the same terms as everything below: nothing
+here is a suggestion, and if we change something during the build we change
+this document first.
+
+**What the build changed in this section, and why.**
+
+*The scanner readout is cut.* 6.3.4 put two lines of glyph-atlas text on the
+scanner's existing readout plane, and said that if two lines could not clear the
+cap-height floor the name would keep the line alone. Measured before a glyph was
+placed, the plane covers about 28 × 10 backbuffer pixels on desktop and 20 × 9 on
+a phone in portrait. A name like STORAGE HOLD would get about two pixels per
+letter, a third of the 6 px floor the placards are held to, so even the
+fallback could not be legible. Enlarging the screen would at best be marginal on
+a phone. Raising the tool to the eye would add motion to a viewmodel the owner
+has already signed for feel. The owner chose the cut. 6.3.4 stays below, struck,
+so the reasoning is not lost. The readout keeps the colour it has always shown.
+
+*A crack in the outer door.* The interior check in 6.5 failed on its first run,
+with stars showing through 0.03% of one view from the airlock chamber. The outer
+leaf was 2.36 m wide in a 2.40 m opening, which left a 2 cm gap down each jamb.
+That gap had been there since phase 5. Nobody saw it because what showed through
+was the near-black clear colour. The leaf now runs 2 cm into each jamb.
+
+*Where the instruments landed.* The consumption gate checks the sky three ways:
+it is bound, it is visible on the way out, and it is invisible from 280
+interior views. It also proves each idle sound is placed at its source, panned
+toward it and carried by its own compartment's reverb. The frame budget is now
+a table, with one row per drawing feature and the gate applied to the whole
+frame. On this build relief costs about 1.22×, the sky about 1.10× at the two
+stations that can see it, and the whole frame about 1.46× a fully stripped
+one. That is inside the 1.9× budget. `tools/clock.mjs` was written before any
+sound was wired and failed all eight of its checks. Wired, it pairs every one
+of more than 300 visible events with a sound within one frame, in both
+directions.
 
 This was drafted after the owner signed all three of phase 5's open bars (see
 5.5). It is the first phase to start with nothing owed, which is why it can
 afford to be wide.
 
-Supersedes part of v1 §3, §5 and §7 and phase 2's viewmodel rule. See 6.6.
+Supersedes part of v1 §3, §5 and §7. See 6.6.
 Everything in v1 and phases 2–5 not named here still stands, including
 Amendment 1.
 
 ## 6.1 The one-liner
 
 The ship keeps going when you stop looking at it. Power arrives in a room
-instead of being switched on, the machinery you can see you can also hear, the
-tool in your hands knows where it is, and outside the door there is finally
-something outside.
+instead of being switched on, the machinery you can see you can also hear, and
+outside the door there is finally something outside.
 
 ## 6.2 What phase 6 demonstrates
 
@@ -76,8 +107,9 @@ Every tradeoff during the build is settled against those two sentences.
 
 ## 6.3 What gets built
 
-Four features in four domains. Each is judged on its own, and each can ship
-without the other three.
+Four features in four domains were drafted. Each is judged on its own, and each
+can ship without the others. Three shipped. The fourth, 6.3.4, was cut during
+the build (see the status note above).
 
 ### 6.3.1 The outside — rendering
 
@@ -180,7 +212,11 @@ reason `LIGHTS` gives. Changing the lamp *count* during a strike was also
 rejected. The strike changes intensity and colour only, and never the number
 of lights, because changing the count recompiles every material.
 
-### 6.3.4 The scanner reads the room — interface
+### 6.3.4 The scanner reads the room — interface (CUT)
+
+**Cut during the build.** The readout plane is too small to carry legible type
+at the shipped render scale. The status note above gives the measurement. The
+draft follows unchanged, as the record of what was proposed.
 
 **What is wrong now.** The scanner is in the player's hands for every second
 of the run, and the only thing its readout has ever said is a colour. Phase 5
@@ -240,15 +276,12 @@ budget is not raised to make room for it.
 | **Every idle source is heard, from where it is.** Each of the four new sounds reaches the master bus during a full run, panned toward its source and present on the wet bus of that source's compartment. | Claude — the consumption gate, extended to assert the pan and the compartment |
 | **Sound and motion share a clock.** Each idle sound's onsets line up with its source's visible events within one frame. | Claude — a harness that records both and compares the timestamps |
 | **Power arrives without gating.** Every zone reads powered, and every downstream step of the chain succeeds, on the frame the switch is pressed and before the first lamp has struck. | Claude — the chain harness, unchanged in what it asserts, now under the strike sequence |
-| **The scanner names only where you are.** At every interior station the readout names that station's own space and power state, and on the threshold it is blank. Its text never contains a count, a direction or another space's name. | Claude — a check over the readout's text at each station |
-| **The scanner is big enough to read.** The readout's cap height clears a pixel floor at the shipped render scale. | Claude — the cap-height harness, gaining a row |
 | **Every feature fits the budget.** Each drawing feature reports its own ratio, and the shipped frame is still inside 1.9×. | Claude — the frame-cost harness, gaining rows |
 | **Still generated end to end.** The sky and the four sounds come from the pipeline, and a clean checkout reproduces them byte-for-byte. | The existing determinism gate |
 | **Nothing regresses.** All harnesses green, the six-step chain still solvable, and the deployment still live. | CI |
 | **Outside looks like outside.** The threshold reads as standing on a ship in space, not in front of a backdrop. | **The owner** |
 | **The machinery sounds like it is there.** Standing still in the Annex, you hear the fan before you look for it. Nothing sounds like a loop. | **The owner**, on headphones |
 | **Power arriving reads as power arriving.** The strike feels like a room coming up, not like a delay. | **The owner** |
-| **The scanner helps without hinting.** It reads, it is worth glancing at, and it never tells you what to do next. | **The owner** |
 | **It still feels good on a phone.** | **The owner** |
 
 The clock bar exists because the failure it catches is silent. A sound running
@@ -264,9 +297,6 @@ finds it, and once the owner hears it, it is already in the build.
   is still not a room, and `SPACES` does not change.
 - **v1 §7, asset manifest.** Gains one sky: six faces at 256 px. Audio grows
   from thirteen sounds to seventeen.
-- **v1 §4 and phase 2, the viewmodel.** The scanner's readout shows text. The
-  HUD rule is unchanged, because the readout is part of a prop the player
-  holds and is not drawn over the screen.
 
 ## 6.7 The box
 
@@ -291,7 +321,7 @@ alone if the cycle runs long.
    them.
 3. **Machinery you can hear**, with the clock harness built before the sounds
    are wired, red before green.
-4. **The scanner readout.**
+4. ~~**The scanner readout.**~~ Cut after measuring the plane (see status).
 5. **Integration and ship.**
 
 ## 6.9 Decisions taken in the draft
@@ -312,7 +342,8 @@ ratification as phase 4's were: propose, then argue in the pull request.
 - **The scanner readout is the call most worth rejecting.** It is the closest
   thing in this phase to a hint, and it changes something the owner has
   already signed as solvable cold. If it reads as a HUD on a prop, cut it.
-  The other three still form a phase.
+  The other three still form a phase. *It was cut during the build, for size
+  rather than for hinting: see the status note.*
 - **No viewport.** A permanent guardrail rather than a decision for this
   phase only. It keeps the outside as the ending's single reveal.
 

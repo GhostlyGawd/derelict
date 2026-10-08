@@ -43,9 +43,10 @@ empty cell sockets. Six steps, and none of them can be taken out of order:
 5. Take cell 2.
 6. Seat it. At 2/2 the inner airlock cycles. Step into the chamber and the
    outer door starts cycling with it: the chamber floods white through the
-   opening, every compartment behind you loses its power, and you walk out onto
-   the deck outside the hull. You hold the camera the whole way — there is no
-   cutscene in this game and there is not going to be one.
+   opening, every compartment behind you loses its power, the machinery winds
+   down, and you walk out onto the deck outside the hull, under a sky you have
+   not been able to see until now. You hold the camera the whole way — there
+   is no cutscene in this game and there is not going to be one.
 
 Corridor B is hung with collapsed structure at 1.2 m, so the squeeze is a
 squeeze: standing it is a wall, crouched it is a route. No collision code went
@@ -89,9 +90,15 @@ npm run pipeline          # textures → models → audio → manifest
 ```
 
 Seven tileable textures plus a glyph atlas, six of them carrying a generated
-normal map; ten props (normalised to real-world scale and decimated to budget);
-thirteen sounds; and five impulse responses, one per distinct compartment shape.
-2.6 MB in total.
+normal map; one sky, as six cube faces; ten props (normalised to real-world
+scale and decimated to budget); seventeen sounds; and five impulse responses,
+one per distinct compartment shape. About 2.3 MB in total.
+
+The sky is drawn by asking, for every texel of every face, what lies in that
+direction: stars, a band of unresolved starlight, the banded limb of a gas giant
+and one hard sun. That is why the faces meet at their seams without being drawn
+to match. Nothing inside the hull can see it. The outer door is the only way
+out, so the first look at the outside is the end of the game.
 
 Every asset is produced by generators in `pipeline/offline/` — tileable raster
 synthesis for the surfaces, parametric chamfered geometry for the props, DSP
@@ -118,12 +125,18 @@ point-light count is fixed for the life of the scene — Three.js recompiles eve
 material when it changes, which would otherwise stall the frame at exactly the
 moment a player flips a switch.
 
+Power travels. When a switch is thrown or a cell is seated, each lamp in the
+zone strikes after a delay set by its distance from that switch or socket, with
+its own stutter. The conduit strips, coloured per vertex, fill green along their
+runs from the same end. The zone counts as powered from the press itself. The
+strike is something to watch, never something to wait for.
+
 ## Checks
 
 ```bash
 npm run build
 npm run preview     # in another shell
-npm test            # all nine harnesses
+npm test            # all ten harnesses
 ```
 
 Individually, optionally with `--shots` to write screenshots to `tools/shots`:
@@ -135,13 +148,14 @@ npm run test:acoustics    # the generated impulse responses, off disk
 npm run test:relief       # normal maps are bound, and the lighting reads them
 npm run test:legible      # every space named once, and readable
 npm run test:consume      # every generated asset is observed in use
-npm run test:framecost    # what the shipped frame costs over a stripped one
+npm run test:clock        # every idle sound on its motion's clock
+npm run test:framecost    # what each feature costs, and the whole frame
 npm run test:smoke        # systems
 npm run test:walkthrough  # the route, on foot
 npm run test:mobile       # touch controls
 ```
 
-All nine run in CI on every pull request, alongside a check that regenerating
+All ten run in CI on every pull request, alongside a check that regenerating
 `public/assets` reproduces exactly what is committed — so a generator cannot
 change without its output changing with it, and vice versa.
 
@@ -158,7 +172,7 @@ the guarantee is a property of the floor rather than of the action order.
 
 **smoke** drives the full sequence in headless Chromium, teleporting between
 rooms to get at each system quickly. It fails on any console error, on a switch
-or door not firing, on any of the thirteen sounds or five impulse responses
+or door not firing, on any of the seventeen sounds or five impulse responses
 failing to decode, or on a restart leaving state behind.
 
 **acoustics** needs no browser and no server. The claim is about the generated
@@ -188,13 +202,32 @@ reads the source — static analysis would have passed both of the bugs it
 exists to catch, because in each case the code referencing the asset was
 present and correct. It found a third on its first run.
 
+Since phase 6 it also covers the outside and the machinery. The sky has to be
+bound on the drawn sky mesh, exempt from fog, and visible on the way out. It
+also has to be invisible from 280 views inside the hull, taken with the sky
+swapped for a flat marker colour. That check found a 2 cm crack down the outer
+door's jamb on its first run. Each idle sound has to be placed where its moving
+part is, louder in the nearer ear, and carried by its own compartment's
+reverb.
+
+**clock** exists because a sound on its own timer beside a motion passes every
+other check: it is generated, consumed, panned and in the right room. So this
+one records both sides frame by frame. What is seen is read off the scene: the
+fan's angle, the vent's breath, the spark's burst and the failing lamp's
+brownouts. What is heard is read off the mixer's entry points. It then requires
+every visible event to have a sound within one frame, and every sound to have a
+visible event. It was written before the sounds were wired, and failed all eight
+of its checks until they were.
+
 **framecost** reports a ratio and never a frame rate, because an absolute
 number here is a fact about the CI runner. Same scene, same geometry, same
-pinned internal resolution, same pinned camera stations; the only thing that
-changes is whether the tiling surfaces are the shipped Phong-with-relief or a
-stripped Lambert twin. Relief costs about 1.27× a stripped frame, and the two
-independent passes have to agree with each other before the number is allowed
-to mean anything. The sync is a one-pixel `readPixels` — `gl.finish()` is the
+pinned internal resolution, same pinned camera stations. Each drawing feature
+gets a row of its own, the same scene with only that feature stripped: relief
+(Phong-with-relief against a Lambert twin) costs about 1.2–1.3×, and the sky
+about 1.1× at the two stations that can see it. The budget is on the whole
+frame, everything shipped against everything stripped. It reads about 1.45×
+against a ceiling of 1.9×, and two independent passes have to agree before
+the number is allowed to mean anything. The sync is a one-pixel `readPixels` — `gl.finish()` is the
 obvious call and it does not work under a software rasteriser, where it returns
 in a few tenths of a millisecond while the frame it is supposedly waiting for
 takes eighty.
