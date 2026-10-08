@@ -44,6 +44,10 @@ export async function runAudio({ force = false }) {
   const entries = {};
 
   for (const spec of SOUNDS) {
+    if (spec.wav) {
+      entries[spec.id] = await runToneLoop(spec, { force, outDir });
+      continue;
+    }
     const file = path.join(outDir, `${spec.id}.mp3`);
     if (!force && (await exists(file))) {
       log.step(`${spec.id} — up to date`);
@@ -94,6 +98,36 @@ export async function runAudio({ force = false }) {
 
   const acoustics = await runAcoustics({ force, outDir });
   return { sounds: entries, acoustics };
+}
+
+/**
+ * Phase 6 — a steady tone the game loops with `loop = true`. WAV, because MP3
+ * decodes with silent padding at both ends and a plain loop of it ticks once a
+ * cycle; the ambient bed gets round that by overlapping voices, and a buzz
+ * gated on and off many times a minute cannot. The generator renders a whole
+ * number of cycles, so the loop is seamless sample-for-sample.
+ */
+async function runToneLoop(spec, { force, outDir }) {
+  const file = path.join(outDir, `${spec.id}.wav`);
+  const entry = async () => ({
+    file: `audio/${spec.id}.wav`,
+    seconds: spec.seconds,
+    bytes: await size(file),
+    loop: true,
+  });
+  if (!force && (await exists(file))) {
+    log.step(`${spec.id} — up to date`);
+    return entry();
+  }
+  const raw = removeDc(synthesiseSound(spec, IR_RATE));
+  const { samples, gain, rms } = normalise(raw, { targetRms: 0.11 * (spec.gain ?? 1), peak: 0.94 });
+  const buffer = encodeWav(samples, IR_RATE);
+  await write(file, buffer);
+  log.done(
+    `${spec.id} — ${spec.seconds.toFixed(2)}s wav loop, ${bytes(buffer.length)}, ` +
+      `gain ×${gain.toFixed(2)} → rms ${rms.toFixed(3)} → ${rel(file)}`
+  );
+  return entry();
 }
 
 /**

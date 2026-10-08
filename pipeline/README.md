@@ -19,9 +19,9 @@ node pipeline/run.js all --force   # regenerate everything
 | Stage | Input | Output |
 |---|---|---|
 | **style bible** | `style-bible.js` | one prompt block prepended to every generation |
-| **textures** | `manifest.js` | synthesise at 2× → downscale to 256–512 px → `assets/textures/*.png` |
+| **textures** | `manifest.js` | synthesise at 2× → downscale to 256–512 px → `assets/textures/*.png`; the sky's six cube faces drawn at their final 256 px → `assets/sky/*.png` |
 | **models** | `manifest.js` | parametric geometry + surface → post-process → `assets/models/*.glb` |
-| **audio** | `manifest.js` | synthesise → loudness-normalise → `assets/audio/*.mp3` |
+| **audio** | `manifest.js` | synthesise → loudness-normalise → `assets/audio/*.mp3`; impulse responses and the one looped tone (`lamp_buzz`) as lossless `.wav` |
 | **manifest** | all of the above | `assets/manifest.json`, which is what the game loads |
 
 The model post-process (`lib/glb.js`): move the origin to floor-centre, scale to the real-world size in the manifest, decimate

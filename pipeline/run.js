@@ -64,10 +64,16 @@ async function writeManifest(collected) {
   const sounds = collected.audio.sounds;
   const acoustics = collected.audio.acoustics;
 
-  const total = [collected.textures, collected.models, sounds, acoustics].reduce(
-    (sum, group) => sum + Object.values(group).reduce((s, e) => s + (e.bytes || 0), 0),
-    0
-  );
+  // Since phase 6 the texture stage produces two kinds too: tiling surfaces
+  // and the one sky.
+  const textures = collected.textures.textures;
+  const sky = collected.textures.sky;
+
+  const total =
+    [textures, collected.models, sounds, acoustics].reduce(
+      (sum, group) => sum + Object.values(group).reduce((s, e) => s + (e.bytes || 0), 0),
+      0
+    ) + sky.bytes;
 
   // Deliberately no timestamp: it was the only non-deterministic byte the
   // pipeline emitted, so every run dirtied the tree and the deployed manifest
@@ -77,13 +83,15 @@ async function writeManifest(collected) {
     generator: 'derelict pipeline',
     styleBible: STYLE_BIBLE,
     totals: {
-      textures: Object.keys(collected.textures).length,
+      textures: Object.keys(textures).length,
+      sky: Object.keys(sky.faces).length,
       models: Object.keys(collected.models).length,
       audio: Object.keys(sounds).length,
       acoustics: Object.keys(acoustics).length,
       bytes: total,
     },
-    textures: collected.textures,
+    textures,
+    sky,
     models: collected.models,
     audio: sounds,
     acoustics,
@@ -93,12 +101,13 @@ async function writeManifest(collected) {
   await writeJson(file, manifest);
   log.done(
     `${manifest.totals.textures} textures, ${manifest.totals.models} models, ` +
-      `${manifest.totals.audio} sounds, ${manifest.totals.acoustics} acoustics — ` +
+      `1 sky, ${manifest.totals.audio} sounds, ${manifest.totals.acoustics} acoustics — ` +
       `${bytes(total)} total → ${rel(file)}`
   );
 
   const missing = [
-    ...TEXTURES.filter((t) => !collected.textures[t.id]).map((t) => `texture ${t.id}`),
+    ...TEXTURES.filter((t) => !textures[t.id]).map((t) => `texture ${t.id}`),
+    ...(Object.keys(sky.faces).length === 6 ? [] : ['sky']),
     ...MODELS.filter((m) => !collected.models[m.id]).map((m) => `model ${m.id}`),
     ...SOUNDS.filter((s) => !sounds[s.id]).map((s) => `sound ${s.id}`),
     ...ACOUSTICS.filter((a) => !acoustics[a.id]).map((a) => `acoustic ${a.id}`),

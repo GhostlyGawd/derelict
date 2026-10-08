@@ -58,6 +58,12 @@ const act = (what, id) =>
         carrying: g.carry.held ? g.carry.held.id : null,
         released: g.carryables.cradles.filter((c) => c.released).map((c) => c.id).join(','),
         filled: g.carryables.sockets.filter((so) => so.filled).map((so) => so.id).join(','),
+        powered: [...g.poweredZones].sort().join(','),
+        // Phase 6: lamps strike one by one after the press. A lamp that has
+        // started has left emergency red; count every one that has, ship-wide.
+        struck: [...new Set(g.lighting.group.children.filter((n) => n.isPointLight))].filter(
+          (l) => l.color.g > l.color.r
+        ).length,
       });
       // Read on both sides of the press, inside one evaluate, so no frame can
       // pass between them. Phase 4 put moving parts on these interactions, and
@@ -72,10 +78,29 @@ const act = (what, id) =>
 
 /** True when the press changed the game's state without waiting for a frame. */
 const changedImmediately = (r) =>
+  r.before.powered !== r.after.powered ||
   r.before.cells !== r.after.cells ||
   r.before.carrying !== r.after.carrying ||
   r.before.released !== r.after.released ||
   r.before.filled !== r.after.filled;
+
+/**
+ * 6.5: power arrives without gating. The zones a press powers are powered, and
+ * whatever they release is released, inside the press itself — while every lamp
+ * that press is about to strike is still on emergency red. The strike is
+ * something to watch afterwards, never a wait before anything works.
+ */
+function arrivesWithoutGating(label, r, zones) {
+  const now = r.after.powered.split(',');
+  const missing = zones.filter((z) => !now.includes(z));
+  expect(
+    `${label} powers ${zones.join(' + ')} before a single lamp has struck`,
+    missing.length === 0 && r.after.struck === r.before.struck,
+    missing.length
+      ? `${missing.join(', ')} not powered on the press`
+      : `${r.after.struck - r.before.struck} lamp(s) struck inside the press — the strike is in the state path`
+  );
+}
 
 /** An interact press with the crosshair on nothing — the set-down gesture. */
 const setDown = () => page.evaluate(() => window.__derelict.pressInteractForTest(null));
@@ -117,6 +142,8 @@ expect(
   changedImmediately(flip1),
   'the lever moved but nothing changed until a later frame — the animation is gating the interaction'
 );
+arrivesWithoutGating('switch 1', flip1, ['corrA', 'hold']);
+expect('switch 1 releases cradle 1 on the press', flip1.after.released.includes('cradle1'), `released: ${flip1.after.released}`);
 await page.waitForTimeout(200);
 s = await read();
 expect('switch 1 releases cradle 1', s.cradles.cradle1 === true, JSON.stringify(s.cradles));
@@ -137,7 +164,7 @@ expect(
   changedImmediately(seat1),
   'the cell travels but the panel did not read it until later — the animation is gating the interaction'
 );
-const _seated = seat1;
+arrivesWithoutGating('seating cell 1', seat1, ['bay']);
 await page.waitForTimeout(200);
 s = await read();
 expect('seating cell 1 reads 1/2', s.seated === 1, `seated ${s.seated}`);
@@ -151,7 +178,9 @@ await act('cell', 'cell2');
 s = await read();
 expect('cell 2 still not takeable', s.carrying === null, `carrying ${s.carrying}`);
 
-await act('switch', 'switch2');
+const flip2 = await act('switch', 'switch2');
+arrivesWithoutGating('switch 2', flip2, ['corrB', 'annex', 'shortcut']);
+expect('switch 2 releases cradle 2 on the press', flip2.after.released.includes('cradle2'), `released: ${flip2.after.released}`);
 await page.waitForTimeout(200);
 s = await read();
 expect('switch 2 plus bay live releases cradle 2', s.cradles.cradle2 === true, JSON.stringify(s.cradles));

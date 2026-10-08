@@ -3,10 +3,11 @@
   "styleBible": "Late-1990s retro sci-fi FPS aesthetic. Derelict industrial spaceship interior. Dark gunmetal and olive metal, heavy rivets, scuffed grimy surfaces, utilitarian machinery. Sickly green energy glow from conduits and readouts. Low-resolution game-texture look, slightly desaturated, moody. No legible text, no watermarks, no people.",
   "totals": {
     "textures": 8,
+    "sky": 6,
     "models": 10,
-    "audio": 13,
+    "audio": 17,
     "acoustics": 5,
-    "bytes": 2258418
+    "bytes": 2389210
   },
   "textures": {
     "wall_panel_a": {
@@ -291,6 +292,18 @@
       }
     }
   },
+  "sky": {
+    "size": 256,
+    "bytes": 42448,
+    "faces": {
+      "px": "sky/sky_px.png",
+      "nx": "sky/sky_nx.png",
+      "py": "sky/sky_py.png",
+      "ny": "sky/sky_ny.png",
+      "pz": "sky/sky_pz.png",
+      "nz": "sky/sky_nz.png"
+    }
+  },
   "models": {
     "scanner": {
       "file": "models/scanner.glb",
@@ -439,6 +452,27 @@
       "file": "audio/cell_seat.mp3",
       "seconds": 1.6,
       "bytes": 19749
+    },
+    "fan_pass": {
+      "file": "audio/fan_pass.mp3",
+      "seconds": 0.62,
+      "bytes": 7837
+    },
+    "vent_breath": {
+      "file": "audio/vent_breath.mp3",
+      "seconds": 2.4,
+      "bytes": 29153
+    },
+    "lamp_buzz": {
+      "file": "audio/lamp_buzz.wav",
+      "seconds": 1,
+      "bytes": 44144,
+      "loop": true
+    },
+    "spark_crackle": {
+      "file": "audio/spark_crackle.mp3",
+      "seconds": 0.55,
+      "bytes": 7210
     }
   },
   "acoustics": {

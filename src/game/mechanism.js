@@ -20,7 +20,18 @@ import * as THREE from 'three';
 const FAN_BLADES = 5;
 const FAN_RPM = 26;
 
-export function buildMechanism(materials, lighting) {
+/**
+ * Phase 6 levels, as a fraction of each sound's normalised level at the source.
+ * Distance does the rest. These are found by standing still, not announced:
+ * 4.3.2's rule for footsteps holds here too, and a difference loud enough to
+ * notice on the first pass is too loud (6.3.2).
+ */
+const LEVEL = { fan: 0.34, vent: 0.42, spark: 0.5, buzz: 0.16 };
+
+/** How fast the fan runs down once the ship loses power, in seconds. */
+const SPIN_DOWN = 1.6;
+
+export function buildMechanism(materials, lighting, audio = null) {
   const group = new THREE.Group();
   group.name = 'mechanism';
 
@@ -121,27 +132,66 @@ export function buildMechanism(materials, lighting) {
 
   let time = 0;
   let sparkAt = 2.4;
+  /** Fan speed as a fraction of its rated rpm — 1 until the power goes. */
+  let spin = 1;
+  /** False once the departure has taken the ship's power. */
+  let live = true;
+  let lastSector = 0;
+  let wasExhaling = true;
+  let buzz = null;
+  let buzzOn = null;
+  const lampAt = failing[0] ? failing[0].position.toArray() : [16.6, 2.3, 0];
 
+  /**
+   * 6.3.2: every sound here is fired from the frame that makes the motion it
+   * belongs to — a blade crossing, a breath starting, a burst beginning, a lamp
+   * dropping out. None of them has a clock of its own. tools/clock.mjs holds
+   * this to within a frame, by watching the scene and the mixer and never this
+   * code.
+   */
   function update(dt, camera) {
     time += dt;
 
-    hub.rotation.y += (FAN_RPM / 60) * Math.PI * 2 * dt;
+    if (!live) spin *= Math.exp(-dt / SPIN_DOWN);
+    hub.rotation.y += (FAN_RPM / 60) * Math.PI * 2 * dt * spin;
+    // One pass per blade crossing a fixed point on the housing — which is the
+    // blade rate the eye reads, so the ear gets the same one.
+    const sector = Math.floor(hub.rotation.y / ((Math.PI * 2) / FAN_BLADES));
+    if (sector !== lastSector && spin > 0.08) {
+      audio?.playAt('fan_pass', [26, 3.4, -5.4], {
+        volume: LEVEL.fan * Math.min(1, spin * 1.3),
+        // Winding down drops the pitch of the bearing with the speed.
+        rate: 0.75 + 0.25 * spin,
+      });
+    }
+    lastSector = sector;
 
-    // Two breaths a cycle, uneven, so it never settles into a metronome.
-    const breath = Math.sin(time * 0.9) * 0.5 + Math.sin(time * 0.37 + 1.1) * 0.5;
+    // Two breaths a cycle, uneven, so it never settles into a metronome. Once
+    // the power has gone the slats drop to rest and stay there.
+    const breath = live ? Math.sin(time * 0.9) * 0.5 + Math.sin(time * 0.37 + 1.1) * 0.5 : -0.4;
     for (let i = 0; i < slats.length; i++) {
-      slats[i].rotation.x = 0.22 + breath * 0.2 + Math.sin(time * 0.9 + i * 0.4) * 0.03;
+      slats[i].rotation.x = 0.22 + breath * 0.2 + (live ? Math.sin(time * 0.9 + i * 0.4) * 0.03 : 0);
     }
     puffMaterial.opacity = Math.max(0, breath) * 0.11;
     puff.scale.setScalar(1 + Math.max(0, breath) * 0.5);
+    // The breath is heard as it starts — the frame the puff first shows.
+    const exhaling = puffMaterial.opacity > 0;
+    if (exhaling && !wasExhaling) {
+      audio?.playAt('vent_breath', [-32.4, 2.15, 2.6], { volume: LEVEL.vent });
+    }
+    wasExhaling = exhaling;
 
     // Sparks come in bursts with dead air between them, which is what makes
-    // them read as a fault rather than as an effect.
+    // them read as a fault rather than as an effect. A dead cable stops.
     sparkAt -= dt;
-    if (sparkAt <= 0) {
+    if (sparkAt <= 0 && live) {
       sparkAt = 1.6 + Math.random() * 3.4;
       sparkMaterial.userData.burst = 0.28 + Math.random() * 0.22;
       spark.position.set(12.3 + Math.random() * 0.5, 1.5 + Math.random() * 0.3, 0.05 + Math.random() * 0.3);
+      audio?.playAt('spark_crackle', spark.position.toArray(), {
+        volume: LEVEL.spark,
+        rate: 0.9 + Math.random() * 0.2,
+      });
     }
     const burst = sparkMaterial.userData.burst || 0;
     if (burst > 0) {
@@ -152,10 +202,19 @@ export function buildMechanism(materials, lighting) {
       sparkMaterial.opacity = 0;
     }
 
+    // The failing lamp, and its ballast with it: the buzz is up while the lamp
+    // is, and cut in the same frame as a brownout cuts the light.
+    if (!buzz && audio?.ready && live) buzz = audio.loop('lamp_buzz', lampAt, { volume: LEVEL.buzz });
     for (const lamp of failing) {
       // Mostly fine, with brownouts that drop it almost out.
       const n = Math.sin(time * 11.3) + Math.sin(time * 4.7 + 2.1) + Math.sin(time * 23.9 + 0.7);
-      lamp.intensity *= n < -1.55 ? 0.12 : 0.82 + 0.18 * (n * 0.5 + 0.5);
+      const brownout = n < -1.55;
+      lamp.intensity *= brownout ? 0.12 : 0.82 + 0.18 * (n * 0.5 + 0.5);
+      const on = live && !brownout;
+      if (buzz && on !== buzzOn) {
+        buzz.setLevel(on ? 1 : 0);
+        buzzOn = on;
+      }
     }
 
     // The sprites are flat quads, so they have to be turned to face the eye.
@@ -165,13 +224,43 @@ export function buildMechanism(materials, lighting) {
     }
   }
 
+  /**
+   * The departure. Every compartment behind the player goes dark (5.3.1), and
+   * the machinery with it: the fan runs down rather than stopping, and the vent,
+   * the sparks and the lamp's buzz stop where they are (6.3.2).
+   */
+  function powerDown() {
+    live = false;
+    if (buzz) {
+      buzz.setLevel(0);
+      buzzOn = false;
+    }
+  }
+
+  /** Rebuilds the one persistent voice — on restart, and for tools/clock.mjs. */
+  function resetAudio() {
+    buzz?.stop();
+    buzz = null;
+    buzzOn = null;
+  }
+
   function reset() {
     time = 0;
     sparkAt = 2.4;
+    spin = 1;
+    live = true;
     sparkMaterial.opacity = 0;
     sparkMaterial.userData.burst = 0;
     puffMaterial.opacity = 0;
+    wasExhaling = true;
+    resetAudio();
   }
 
-  return { group, update, reset };
+  /**
+   * The moving parts, by name, so tools/clock.mjs can read what is *seen*
+   * straight off the scene rather than trusting the code that drives it.
+   */
+  const parts = { fanHub: hub, fanBlades: FAN_BLADES, ventPuff: puff, spark, failingLamp: failing[0] };
+
+  return { group, update, reset, resetAudio, powerDown, parts };
 }

@@ -14,6 +14,10 @@
  * surfaces are the shipped Phong-with-relief or a stripped Lambert twin. A
  * ratio survives a slow host. An absolute number is a fact about the runner.
  *
+ * Phase 6 made it a table rather than one number: every feature that adds
+ * drawing has a row of its own, and the budget is on the whole frame — see
+ * ROWS below.
+ *
  * Three things make the number mean something:
  *
  *   - `gl.finish()` after every draw. WebGL commands are queued, so timing a
@@ -76,6 +80,29 @@ const STATIONS = [
   { name: 'engine annex', pos: [21.5, 0], yaw: -Math.PI / 2 },
 ];
 
+/**
+ * Phase 6 — the outside is only drawn at the end, so it gets stations of its
+ * own: looking out through the open outer door, and standing under it.
+ */
+const OUTSIDE = [
+  { name: 'chamber, out', pos: [0, -8.4], yaw: 0 },
+  { name: 'threshold', pos: [0, -13.6], yaw: 0 },
+];
+
+/**
+ * 6.4: every new cost has a row. Each feature that adds drawing is weighed on
+ * its own — the same scene with only that feature stripped — so a phase that
+ * makes the frame dearer can say where. The budget itself is on the whole
+ * frame: everything shipped against everything stripped, over every station.
+ *
+ * `strip` names what the stripped configuration takes away.
+ */
+const ROWS = [
+  { name: 'relief', strip: ['relief'], stations: STATIONS },
+  { name: 'sky', strip: ['sky'], stations: OUTSIDE },
+];
+const EVERYTHING = ['relief', 'sky'];
+
 const errors = [];
 const browser = await chromium.launch({
   ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
@@ -124,6 +151,9 @@ const setUp = await page.evaluate(
     for (const id of ['bay', 'corrA', 'hold', 'corrB', 'annex', 'shortcut', 'chamber']) {
       g.lighting.setPowered(id, true);
     }
+    // Both airlock doors open, so the outside stations have an outside to see.
+    // Interior stations face away from it and are closed boxes either way.
+    for (const id of ['airlock', 'airlock-outer']) g.doorsById.get(id)?.cycle();
 
     // The Lambert constructor is borrowed off a material already in the scene
     // rather than imported. The build is a bundle with no global three.js on
@@ -172,8 +202,13 @@ const setUp = await page.evaluate(
       if (!state.owning) original(scene, camera, viewmodel);
     };
 
+    /** `config` is the list of features stripped; empty is the shipped frame. */
     state.wear = (config) => {
-      for (const s of state.swaps) s.node.material = config === 'shipped' ? s.shipped : s.stripped;
+      const off = new Set(config);
+      for (const s of state.swaps) s.node.material = off.has('relief') ? s.stripped : s.shipped;
+      // Hidden, not removed: the renderer falls back to the clear colour,
+      // which is what the frame cost before phase 6 drew behind the door.
+      if (g.outside?.sky) g.outside.sky.visible = !off.has('sky');
     };
 
     /**
@@ -230,7 +265,7 @@ const setUp = await page.evaluate(
     };
 
     window.__cost = state;
-    return { swapped: swaps.length };
+    return { swapped: swaps.length, sky: Boolean(g.outside?.sky) };
   },
   [BURST, BATCHES]
 );
@@ -241,6 +276,11 @@ if (!setUp.swapped) {
   );
 }
 console.log(`  ${setUp.swapped} surfaces carry relief; stripping them is the control\n`);
+if (setUp.sky) {
+  await page.waitForFunction(() => window.__derelict.doorsById.get('airlock-outer')?.open, null, {
+    timeout: 60000,
+  });
+}
 
 const median = (xs) => {
   const s = [...xs].sort((a, b) => a - b);
@@ -248,13 +288,16 @@ const median = (xs) => {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 };
 
-/** One complete interleaved pass over every station. Returns the ratio. */
-async function pass(label) {
+/**
+ * One complete interleaved pass over `stations`, the shipped frame against the
+ * frame with `strip` taken away. Returns the ratio.
+ */
+async function pass(label, stations, strip) {
   const shipped = [];
   const stripped = [];
   const rows = [];
 
-  for (const station of STATIONS) {
+  for (const station of stations) {
     const here = { shipped: [], stripped: [] };
     for (let rep = 0; rep < REPS; rep++) {
       // Order flips every repetition, so neither configuration is always the
@@ -263,7 +306,7 @@ async function pass(label) {
       for (const config of order) {
         const samples = await page.evaluate(
           ([st, cfg]) => window.__cost.run(st, cfg),
-          [station, config]
+          [station, config === 'shipped' ? [] : strip]
         );
         here[config].push(...samples);
       }
@@ -290,8 +333,19 @@ async function pass(label) {
   return ratio;
 }
 
-const first = await pass('pass 1');
-const second = await pass('pass 2');
+// One row per feature, for the record and for the next phase to read. Each is
+// a single pass: what these say is where the cost is, and the gate below is on
+// the whole frame.
+const costs = [];
+for (const row of ROWS) {
+  if (row.name === 'sky' && !setUp.sky) continue;
+  costs.push([row.name, await pass(`${row.name} — shipped against ${row.strip.join(' + ')} stripped`, row.stations, row.strip)]);
+}
+
+const ALL_STATIONS = [...STATIONS, ...(setUp.sky ? OUTSIDE : [])];
+const strip = EVERYTHING.filter((f) => f !== 'sky' || setUp.sky);
+const first = await pass('the whole frame, pass 1', ALL_STATIONS, strip);
+const second = await pass('the whole frame, pass 2', ALL_STATIONS, strip);
 
 const spread = Math.abs(first - second) / ((first + second) / 2);
 expect(
@@ -301,13 +355,18 @@ expect(
 );
 
 const ratio = (first + second) / 2;
+for (const [name, r] of costs) {
+  expect(`${name.padEnd(7)} costs ${r.toFixed(3)}× its stripped frame`, r <= CEILING, `${r.toFixed(3)}× on its own is over the whole budget`);
+}
 expect(
-  `relief costs ${ratio.toFixed(3)}× a stripped frame (budget ${CEILING}×)`,
+  `the shipped frame costs ${ratio.toFixed(3)}× a fully stripped one (budget ${CEILING}×)`,
   ratio <= CEILING,
   `${ratio.toFixed(3)}× is over the budget in tools/framecost.mjs — either the frame got dearer or the budget is wrong, and one of the two has to change on purpose`
 );
 
-console.log(`  frame budget: relief costs ${ratio.toFixed(3)}× a stripped frame`);
+console.log(
+  `  frame budget: ${costs.map(([n, r]) => `${n} ${r.toFixed(3)}×`).join(', ')}; whole frame ${ratio.toFixed(3)}×`
+);
 
 await browser.close();
 

@@ -63,12 +63,13 @@ jobs:
           done
           echo "preview server never came up"; cat /tmp/preview.log; exit 1
 
-      # Nine altitudes. chain drives the interactions directly and proves the
+      # Ten altitudes. chain drives the interactions directly and proves the
       # six steps refuse to work out of order; deadend reasons over the whole
       # walkable floor rather than playing at all, now across both stances;
       # relief moves a lamp and measures whether the surfaces answer it;
       # consume plays the game and requires every manifest entry to be observed
-      # reaching its consumer; framecost weighs the shipped frame against a
+      # reaching its consumer; clock holds every idle sound to the frame of the
+      # motion it belongs to; framecost weighs the shipped frame against a
       # stripped one; smoke teleports between rooms to reach each system
       # quickly; walkthrough refuses to teleport and so is the only one that can
       # catch the level becoming un-navigable; mobile drives the touch scheme.
@@ -91,8 +92,15 @@ jobs:
       - name: Playtest — every generated asset is consumed
         run: node tools/consume.mjs http://127.0.0.1:4173/
 
+      # Phase 6. A sound on its own timer beside a motion passes every other
+      # check here — generated, consumed, panned, in the right room — so this
+      # pairs what is seen with what is heard, frame by frame.
+      - name: Playtest — idle sound keeps its motion's clock
+        run: node tools/clock.mjs http://127.0.0.1:4173/
+
       # A ratio, never a frame rate: an absolute number here would be a fact
-      # about this runner. The budget is in the harness.
+      # about this runner. One row per drawing feature since phase 6; the
+      # budget, on the whole frame, is in the harness.
       - name: Playtest — the frame budget
         run: node tools/framecost.mjs http://127.0.0.1:4173/
 

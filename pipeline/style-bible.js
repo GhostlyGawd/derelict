@@ -31,6 +31,14 @@ export const GLYPH_BIBLE = [
   'Legible at small size on a low-resolution screen.',
 ].join(' ');
 
+/**
+ * Phase 6. The bible above describes an interior, and the sky is the one asset
+ * that is not one. It keeps the palette and the low-resolution look, and drops
+ * the rivets.
+ */
+export const SKY_SUFFIX =
+  'Exterior view of space, seen from the hull. Six seamless cube-map faces, no frame, no lens effects, no text.';
+
 export const MODEL_SUFFIX =
   'single object centered on a plain dark gray background, three-quarter view, entire object visible, video game prop.';
 
@@ -43,6 +51,10 @@ export const AUDIO_SUFFIX =
 
 export function texturePrompt(subject) {
   return `${STYLE_BIBLE} ${subject} ${TEXTURE_SUFFIX}`;
+}
+
+export function skyPrompt(subject) {
+  return `${STYLE_BIBLE} ${subject} ${SKY_SUFFIX}`;
 }
 
 export function modelPrompt(subject) {

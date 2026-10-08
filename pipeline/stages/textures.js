@@ -1,8 +1,9 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
 
-import { TEXTURES } from '../manifest.js';
+import { SKY, TEXTURES } from '../manifest.js';
 import { synthesiseGlyphAtlas } from '../offline/glyphatlas.js';
+import { FACES, synthesiseSky } from '../offline/sky.js';
 import { synthesiseTexture } from '../offline/textures.js';
 import { contactSheet, crunchTexture, encodeMask, encodeNormal, encodeRaster } from '../lib/image.js';
 import { normalMapFrom, reliefCoverage } from '../lib/normal.js';
@@ -87,7 +88,40 @@ export async function runTextures({ force = false }) {
 
   await write(path.join(CACHE, 'textures-contact.png'), await contactSheet(sheet));
   log.note(`contact sheet → ${rel(path.join(CACHE, 'textures-contact.png'))}`);
-  return entries;
+  return { textures: entries, sky: await runSky({ force }) };
+}
+
+/**
+ * Phase 6 — the sky. Drawn straight at its final size: a star is one texel,
+ * and the downscale every tiling surface gets would average each one into the
+ * dark around it. The palette crunch stays, because a sky with smoother
+ * gradients than every wall on the ship would read as pasted in from elsewhere.
+ */
+async function runSky({ force }) {
+  const outDir = path.join(ASSETS, 'sky');
+  await ensureDir(outDir);
+  const files = Object.fromEntries(FACES.map((f) => [f, path.join(outDir, `${SKY.id}_${f}.png`)]));
+
+  let fresh = force;
+  for (const file of Object.values(files)) if (!(await exists(file))) fresh = true;
+
+  if (fresh) {
+    const faces = synthesiseSky(SKY);
+    for (const f of FACES) {
+      await write(files[f], await crunchTexture(await encodeRaster(faces[f]), SKY.size));
+    }
+  }
+
+  let total = 0;
+  for (const file of Object.values(files)) total += await size(file);
+  if (fresh) log.done(`${SKY.id} — 6 × ${SKY.size}px, ${bytes(total)} → ${rel(outDir)}`);
+  else log.step(`${SKY.id} — up to date`);
+
+  return {
+    size: SKY.size,
+    bytes: total,
+    faces: Object.fromEntries(FACES.map((f) => [f, `sky/${SKY.id}_${f}.png`])),
+  };
 }
 
 /**

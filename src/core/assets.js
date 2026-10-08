@@ -17,6 +17,8 @@ export class Assets {
     this.normals = new Map();
     this.acoustics = new Map();
     this.models = new Map();
+    /** Phase 6 — the one cube map. Null until loaded, and on placeholders. */
+    this.skyTexture = null;
     this.audioBuffers = new Map(); // id -> ArrayBuffer, decoded later by AudioBus
     this.missing = new Set();
     this.generated = false;
@@ -37,6 +39,7 @@ export class Assets {
           jobs.push({ kind: 'normal', id, entry: { file: entry.normal, linear: true } });
         }
       }
+      if (this.manifest.sky) jobs.push({ kind: 'sky', id: 'sky', entry: this.manifest.sky });
       for (const [id, entry] of Object.entries(this.manifest.models || {})) {
         jobs.push({ kind: 'model', id, entry });
       }
@@ -67,6 +70,8 @@ export class Assets {
             this.textures.set(job.id, await this.#loadTexture(job.entry));
           } else if (job.kind === 'normal') {
             this.normals.set(job.id, await this.#loadTexture(job.entry));
+          } else if (job.kind === 'sky') {
+            this.skyTexture = await this.#loadCube(job.entry);
           } else if (job.kind === 'acoustic') {
             this.acoustics.set(job.id, await this.#loadArrayBuffer(job.entry));
           } else if (job.kind === 'model') {
@@ -104,6 +109,10 @@ export class Assets {
     return this.audioBuffers.get(id) || null;
   }
 
+  sky() {
+    return this.skyTexture;
+  }
+
   acoustic(id) {
     return this.acoustics.get(id) || null;
   }
@@ -135,6 +144,28 @@ export class Assets {
         },
         undefined,
         () => reject(new Error(`failed to load ${entry.file}`))
+      );
+    });
+  }
+
+  /** Face order is the cube-map convention's, which is also three's: ±X, ±Y, ±Z. */
+  #loadCube(entry) {
+    const order = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
+    return new Promise((resolve, reject) => {
+      new THREE.CubeTextureLoader().load(
+        order.map((f) => `assets/${entry.faces[f]}`),
+        (tex) => {
+          tex.colorSpace = THREE.SRGBColorSpace;
+          // Nearest, like everything else: a star is one texel and should
+          // stay one hard texel rather than a soft dot.
+          tex.magFilter = THREE.NearestFilter;
+          tex.minFilter = THREE.NearestFilter;
+          tex.generateMipmaps = false;
+          tex.needsUpdate = true;
+          resolve(tex);
+        },
+        undefined,
+        () => reject(new Error('failed to load sky'))
       );
     });
   }

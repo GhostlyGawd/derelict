@@ -80,13 +80,14 @@ const manifest = await page.evaluate(() => {
     models: Object.keys(m.models || {}),
     audio: Object.keys(m.audio || {}),
     acoustics: Object.entries(m.acoustics || {}).map(([id, e]) => [id, e.spaces || []]),
+    sky: Boolean(m.sky),
   };
 });
 if (!manifest) throw new Error('no manifest — the gate has nothing to check against');
 console.log(
   `  manifest: ${manifest.textures.length} textures (${manifest.normals.length} with relief), ` +
     `${manifest.models.length} models, ${manifest.audio.length} sounds, ` +
-    `${manifest.acoustics.length} responses`
+    `${manifest.acoustics.length} responses${manifest.sky ? ', 1 sky' : ''}`
 );
 
 // ---- Every texture and every model, observed on something being drawn ------
@@ -169,6 +170,50 @@ for (const id of manifest.models) {
   );
 }
 
+// ---- The sky, and the rule that nothing inside the hull sees it -------------
+//
+// 6.4: no views out before the end. A crack between two wall boxes would show
+// stars without failing a single other check, so every compartment is looked
+// round from its centre and four corners, level and up toward the deckhead,
+// with every door still shut — the state the whole run before the ending is in.
+// The sky is swapped for a flat marker and counted, so this measures geometry
+// rather than how dark the stars happen to be.
+if (manifest.sky) {
+  console.log('\n  the sky, unseen from inside');
+  const leaks = await page.evaluate(() => {
+    const g = window.__derelict;
+    const found = [];
+    let looks = 0;
+    for (const space of g.spaces) {
+      const inset = 0.8;
+      const cx = (space.x[0] + space.x[1]) / 2;
+      const cz = (space.z[0] + space.z[1]) / 2;
+      const points = [
+        [cx, cz],
+        [space.x[0] + inset, space.z[0] + inset],
+        [space.x[1] - inset, space.z[0] + inset],
+        [space.x[0] + inset, space.z[1] - inset],
+        [space.x[1] - inset, space.z[1] - inset],
+      ];
+      for (const [x, z] of points) {
+        for (let k = 0; k < 4; k++) {
+          for (const pitch of [0, 0.55]) {
+            looks++;
+            const fraction = g.skyCoverageForTest(x, z, (k * Math.PI) / 2, pitch);
+            if (fraction > 0) found.push(`${space.id} (${x.toFixed(1)}, ${z.toFixed(1)}) ${(fraction * 100).toFixed(2)}%`);
+          }
+        }
+      }
+    }
+    return { looks, found };
+  });
+  expect(
+    `sky      not visible from ${leaks.looks} interior looks`,
+    leaks.found.length === 0,
+    `stars through the hull at ${leaks.found.slice(0, 6).join('; ')}`
+  );
+}
+
 // ---- Tap the mixer ---------------------------------------------------------
 //
 // Analysers hang off the master and off both wet gains. They observe; they are
@@ -246,17 +291,35 @@ const tapped = await page.evaluate(() => {
   // observation the run-coverage check below wants.
   if (bus.ambient) state.played.add('ambient_hum');
 
-  for (const name of ['play', 'playAt']) {
+  /** Where the game last placed each positional sound — phase 6's pan check. */
+  state.placed = {};
+  for (const name of ['play', 'playAt', 'loop']) {
     const original = bus[name].bind(bus);
     bus[name] = (id, ...rest) => {
       const source = original(id, ...rest);
       // Only a call that actually started a source counts. `play` returns null
       // when the buffer is missing or the volume rounds to nothing, and a
       // sound that never starts has not reached anything.
-      if (source && !state.sweeping) state.played.add(id);
+      if (source && !state.sweeping) {
+        state.played.add(id);
+        if (name !== 'play') state.placed[id] = [...rest[0]];
+      }
       return source;
     };
   }
+  // The voice the lamp already holds was built before this tap went in.
+  window.__derelict.mechanism.resetAudio?.();
+
+  // Left and right at the master, for the pan check. Observing only, like the
+  // analysers above.
+  const split = bus.ctx.createChannelSplitter(2);
+  bus.master.connect(split);
+  state.sides = [0, 1].map((ch) => {
+    const a = bus.ctx.createAnalyser();
+    a.fftSize = 32768;
+    split.connect(a, ch);
+    return a;
+  });
 
   window.__consume = state;
   const t0 = bus.ctx.currentTime;
@@ -417,6 +480,101 @@ for (const [irId, usedBy] of manifest.acoustics) {
     `the wet bus measured ${measured.wet.toFixed(5)} — the convolver is loaded and nothing is feeding it`
   );
 }
+
+// ---- Phase 6: the machinery, heard from where it is --------------------------
+//
+// 6.5: each of the four idle sounds is placed where its source is seen, panned
+// toward it, and carried by the reverb of the compartment it is in. The
+// position is the one the *game* passed, captured at the mixer, and it is
+// compared with the moving part in the scene — not with a number restated here.
+// Then the listener stands in that compartment with the source off to one
+// side, the game's own machinery is held still so nothing else is sounding, and
+// the sound is played from that captured position: the near ear has to be the
+// louder one, and the wet bus has to answer.
+console.log('\n  the machinery, heard from where it is');
+await page.waitForFunction(
+  () => ['fan_pass', 'vent_breath', 'spark_crackle', 'lamp_buzz'].every((id) => window.__consume.placed[id]),
+  null,
+  { timeout: 60000 }
+).catch(() => {});
+
+const IDLE = [
+  { id: 'fan_pass', part: 'fanHub', space: 'annex', stand: [26, -1], yaw: Math.PI / 2 },
+  { id: 'vent_breath', part: 'ventPuff', space: 'hold', stand: [-28, 2.6], yaw: 0 },
+  { id: 'spark_crackle', part: 'spark', space: 'corrB', stand: [8.6, 0.6], yaw: 0, near: 0.7 },
+  { id: 'lamp_buzz', part: 'failingLamp', space: 'corrB', stand: [15.2, 0.6], yaw: Math.PI },
+];
+for (const source of IDLE) {
+  const r = await page.evaluate(async (src) => {
+    const g = window.__derelict;
+    const s = window.__consume;
+    const placed = s.placed[src.id];
+    if (!placed) return { placed: null };
+    const node = g.mechanism.parts[src.part];
+    const seen = node.getWorldPosition ? node.getWorldPosition(node.position.clone()) : node.position;
+    const off = Math.hypot(placed[0] - seen.x, placed[1] - seen.y, placed[2] - seen.z);
+
+    // Hold the machinery still and put the listener in the compartment.
+    const update = g.mechanism.update;
+    g.mechanism.update = () => {};
+    g.mechanism.powerDown();
+    g.player.position.set(src.stand[0], 0, src.stand[1]);
+    g.player.yaw = src.yaw;
+    g.player.pitch = 0;
+    let polls = 0;
+    while (polls++ < 150 && g.audio.space !== src.space) await new Promise((r) => setTimeout(r, 120));
+    await new Promise((r) => setTimeout(r, 900));
+
+    s.sweeping = true;
+    let voice = null;
+    const fire = () => {
+      if (src.id === 'lamp_buzz') {
+        if (!voice) {
+          voice = g.audio.loop('lamp_buzz', placed, { volume: 1 });
+          voice.setLevel(1);
+        }
+      } else {
+        g.audio.playAt(src.id, placed, { volume: 1 });
+      }
+    };
+    const wet = await s.peakWhile(s.wets, fire, 6, 160);
+    const left = s.sample(s.sides[0]);
+    const right = s.sample(s.sides[1]);
+    voice?.stop();
+    s.sweeping = false;
+    g.mechanism.update = update;
+
+    // Which ear should be nearer: the listener's right is (cos yaw, 0, -sin yaw).
+    const side =
+      (placed[0] - src.stand[0]) * Math.cos(src.yaw) - (placed[2] - src.stand[1]) * Math.sin(src.yaw);
+    return { placed, off, wet, left, right, side, space: g.audio.space };
+  }, source);
+
+  if (!r.placed) {
+    expect(`idle     ${source.id.padEnd(14)} placed by the game`, false, 'never played during the run');
+    continue;
+  }
+  expect(
+    `idle     ${source.id.padEnd(14)} placed at its source (${r.off.toFixed(2)} m off)`,
+    r.off <= (source.near ?? 0.5),
+    `the game plays it at [${r.placed.map((v) => v.toFixed(1))}], ${r.off.toFixed(2)} m from the ${source.part} the player sees`
+  );
+  const nearEar = r.side > 0 ? r.right : r.left;
+  const farEar = r.side > 0 ? r.left : r.right;
+  expect(
+    `idle     ${source.id.padEnd(14)} panned toward it (${r.side > 0 ? 'right' : 'left'} ${nearEar.toFixed(4)} over ${farEar.toFixed(4)})`,
+    nearEar > farEar * 1.15,
+    'the source is off to one side and both ears hear it the same'
+  );
+  expect(
+    `idle     ${source.id.padEnd(14)} carried by ${source.space}'s room (${r.wet.toFixed(4)})`,
+    r.space === source.space && r.wet >= AUDIBLE / 4,
+    `listener in ${r.space}, wet bus at ${r.wet.toFixed(5)} — it never reaches the room's response`
+  );
+}
+
+// The run below needs the machinery running again from the top.
+await page.evaluate(() => window.__derelict.mechanism.reset());
 
 // ---- Now play the game, and see what it actually reaches for ---------------
 //
@@ -589,6 +747,37 @@ for (let burst = 0; burst < 30; burst++) {
   await hold(['KeyW'], 1000);
 }
 await page.waitForFunction(() => window.__derelict?.phase === 'ended', null, { timeout: 45000 });
+
+// The run is over and the player has walked out under it. Bound by identity,
+// as every other texture is, and actually filling the view from the threshold.
+if (manifest.sky) {
+  console.log('\n  the sky, seen on the way out');
+  const sky = await page.evaluate(() => {
+    const g = window.__derelict;
+    const mesh = g.outside.sky;
+    let visible = Boolean(mesh);
+    for (let n = mesh; n; n = n.parent) if (!n.visible) visible = false;
+    return {
+      bound: Boolean(mesh) && mesh.material.envMap === g.assets.sky() && Boolean(g.assets.sky()),
+      visible,
+      fog: mesh ? mesh.material.fog : null,
+      ahead: g.skyCoverageForTest(0, -13.6, 0, 0),
+      through: g.skyCoverageForTest(0, -8.4, 0, 0),
+    };
+  });
+  expect('sky      bound on the drawn sky mesh', sky.bound && sky.visible, 'the cube map loaded and the sky mesh does not hold it');
+  expect('sky      exempt from fog', sky.fog === false, 'the sky is being fogged like the inside of the ship');
+  expect(
+    `sky      fills the view from the threshold (${(sky.ahead * 100).toFixed(0)}%)`,
+    sky.ahead > 0.5,
+    'walking out, most of what is ahead should be outside'
+  );
+  expect(
+    `sky      seen through the open outer door (${(sky.through * 100).toFixed(0)}%)`,
+    sky.through > 0.03,
+    'from inside the chamber with the door open, the outside should show through it'
+  );
+}
 
 const played = new Set((await state()).played);
 for (const id of manifest.audio) {

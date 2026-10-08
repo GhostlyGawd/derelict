@@ -16,6 +16,7 @@ import {
   DEPARTURE_TRIGGER,
   OUTER_TRIGGER,
   PLAYER_CROUCH_HEIGHT,
+  PLAYER_EYE,
   PLAYER_HEIGHT,
   PLAYER_RADIUS,
   ROOM_TONE,
@@ -29,6 +30,7 @@ import {
 import { buildLevel } from './game/level.js';
 import { buildLighting } from './game/lighting.js';
 import { buildMechanism } from './game/mechanism.js';
+import { buildOutside } from './game/outside.js';
 import { Player } from './game/player.js';
 import { buildStaticProps } from './game/props.js';
 import { buildViewmodel, fovFor } from './game/viewmodel.js';
@@ -144,6 +146,11 @@ class Derelict {
     const level = buildLevel(this.materials);
     this.scene.add(level.group);
 
+    // Phase 6: the sky and the hull's outside face. Nothing inside the ship can
+    // see either; the outer door is the only way to.
+    this.outside = buildOutside(this.assets, this.materials);
+    this.scene.add(this.outside.group);
+
     const props = buildStaticProps(this.assets, modelCache);
     this.scene.add(props.group);
 
@@ -152,7 +159,7 @@ class Derelict {
     this.lighting = buildLighting(this.materials);
     this.scene.add(this.lighting.group);
 
-    this.mechanism = buildMechanism(this.materials, this.lighting);
+    this.mechanism = buildMechanism(this.materials, this.lighting, this.audio);
     this.scene.add(this.mechanism.group);
 
     this.switches = buildSwitches(this.assets, modelCache);
@@ -291,7 +298,8 @@ class Derelict {
 
     for (const [zone, source] of Object.entries(ZONE_POWER)) {
       if (source === sw.id) {
-        this.lighting.setPowered(zone, true);
+        // From the switch outward: the lamps nearest the lever strike first.
+        this.lighting.setPowered(zone, true, sw.point.toArray());
         this.poweredZones.add(zone);
       }
     }
@@ -334,7 +342,7 @@ class Derelict {
 
     // Seating the first cell brings the Bay up on its own power.
     if (this.cells >= 1 && !this.poweredZones.has('bay')) {
-      this.lighting.setPowered('bay', true);
+      this.lighting.setPowered('bay', true, socket.point.toArray());
       this.poweredZones.add('bay');
     }
 
@@ -402,6 +410,8 @@ class Derelict {
       this.audio.playAt('door_motor', [0, 1.2, -11.4], { volume: 1, rate: 0.72 });
     }
     this.lighting.floodChamber();
+    // And the machinery behind them winds down with the lights (6.3.2).
+    this.mechanism.powerDown();
     // The chamber is the seventh compartment, and it comes up last. The end
     // card counts what got its power back, and this is the one that does it
     // without a switch or a cell.
@@ -557,6 +567,53 @@ class Derelict {
    */
   pressInteractForTest(target = null) {
     if (this.phase === 'playing') this.#press(target);
+  }
+
+  /**
+   * Fraction of a frame that is sky, from a standing eye at (x, z), for
+   * tools/consume.mjs. 6.4 says nothing inside the hull may see out, and a
+   * crack between two wall boxes would show stars without failing anything
+   * else. So the sky is swapped for a flat marker, the scene is drawn once
+   * off-screen, and the marker is counted.
+   */
+  skyCoverageForTest(x, z, yaw, pitch = 0) {
+    const sky = this.outside.sky;
+    if (!sky) return null;
+    const camera = this.camera.clone();
+    camera.position.set(x, PLAYER_EYE, z);
+    camera.rotation.set(pitch, yaw, 0, 'YXZ');
+    camera.aspect = 1.6;
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld(true);
+
+    const w = 160;
+    const h = 100;
+    const target = new THREE.WebGLRenderTarget(w, h);
+    const marker = new THREE.MeshBasicMaterial({
+      color: 0xff00ff,
+      side: THREE.BackSide,
+      depthTest: false,
+      depthWrite: false,
+      fog: false,
+    });
+    const original = sky.material;
+    sky.material = marker;
+    const renderer = this.view.renderer;
+    renderer.setRenderTarget(target);
+    renderer.clear();
+    renderer.render(this.scene, camera);
+    const pixels = new Uint8Array(w * h * 4);
+    renderer.readRenderTargetPixels(target, 0, 0, w, h, pixels);
+    renderer.setRenderTarget(null);
+    sky.material = original;
+    marker.dispose();
+    target.dispose();
+
+    let hits = 0;
+    for (let i = 0; i < pixels.length; i += 4) {
+      if (pixels[i] > 240 && pixels[i + 1] < 16 && pixels[i + 2] > 240) hits++;
+    }
+    return hits / (w * h);
   }
 
   #inside(box) {
