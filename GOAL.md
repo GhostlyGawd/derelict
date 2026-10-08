@@ -87,7 +87,44 @@ The emergency lens is darker than the light it throws.
 the 95th percentile in every compartment, with one frame over 33 ms in each
 run, in the Bay. They are format 1, so the slow end is a floor (8.3.2).
 
-*The rest, as built.* Dust costs 1.07× on its own, and the whole frame is
+*The owner's first play, and what changed for it.* The owner played the
+build on 8 October 2026 and recorded it, committed as
+`tools/traces/owner-2026-10-08-v2-phase8.json`. It replays exactly at all 256
+checkpoints. The verdict: the ship still looks like itself, but the dust was
+overdone and its particles too big. The scanner stayed red on the walk out to
+the planet. And the light bars on the walls clipped and did not connect.
+All three were right, and all three are fixed:
+
+- *Dust.* The first motes were 2 cm, about four pixels across on the owner's
+  phone, which read as squares. There were 36 of them per shaft at 0.55. They
+  are now 7 mm, 20 per shaft, at 0.35.
+- *The scanner off the ship.* Its tint came from the compartment underfoot,
+  and on the threshold there is none, so it fell back to emergency red. This
+  predates phase 8. Off the ship it now takes the powered tint, the light of
+  the chamber behind and the sun ahead.
+- *The conduits.* Bringing the buried runs out of their walls exposed how they
+  had been placed. They sat at four heights (1.95, 2.15, 2.55 and 2.7 m), two
+  cut through corridor labels, one crossed the airlock opening, one ran
+  through the debris in Corridor B, and they ended mid-wall at corners. The
+  table was rebuilt from the walls, door trims and wall-mounted things: one
+  height of 2.2 m everywhere, broken only by a door frame, a label or a
+  fixture, and meeting at every room corner. `tools/colour.mjs` now fails any
+  run that is off that height or passes through any of those. Run against the
+  old table it failed on the heights, the airlock opening and the debris.
+
+The owner also said the scanner's motion and placement felt off. The viewmodel
+code has not changed since phase 6. Phase 7 moved the touch buttons into the
+bottom-right corner, which is where the scanner sits on a portrait phone, so
+the two now overlap. That is the likely cause. It is put to the owner rather
+than changed by guesswork.
+
+The same trace is the first with raw frame intervals from real hardware, and it
+shows the first real hitch the project has measured: one 195 ms frame in the
+Annex during its power strike. That is otherwise 17 ms at the median and 18 ms
+at the 95th percentile everywhere. It is reported here and not chased in this
+phase.
+
+*The rest, as built.* Dust, at its first size, cost 1.07× on its own, and the whole frame is
 1.37× against the 1.9× budget. The game asks the browser to check for a new
 worker on every visit. Left to itself, a browser may wait a day, and the
 visit after a deploy has to fetch the new list. A pad's Start resumes as well

@@ -221,24 +221,57 @@ export const SHAFTS = LIGHTS.filter((l) => l.zone !== 'chamber').map((l) => ({
 /**
  * Emissive conduit strips: unlit runs of the generated conduit texture that
  * read red on emergency power and green once energised.
+ *
+ * Phase 8 rebuilt this table after the owner's play of the build. Until then
+ * the runs were placed by hand at four different heights, half of them sat
+ * inside their walls, and once those were brought out they cut through the
+ * corridor labels, across the airlock opening and through the debris. Now
+ * every run is at one height, CONDUIT_Y, on the face of its wall. Each one is
+ * broken only by a door frame, a label, a fixture or something mounted on the
+ * wall, and runs on adjoining walls meet at the corner. The table was derived
+ * from WALLS, the door trims and what is mounted on each wall, and
+ * tools/colour.mjs checks it against all three.
  */
+export const CONDUIT_Y = 2.2;
+
 export const CONDUITS = [
-  { zone: 'bay', axis: 'z', at: -6.72, from: -6.6, to: 6.6, y: 2.55, side: 1 },
-  { zone: 'bay', axis: 'z', at: 6.72, from: -6.6, to: 6.6, y: 2.55, side: -1 },
-  // The corridor and passage runs sat 12 cm inside their walls from the
-  // greybox until phase 8: a wall is centred on its line, so a 2.6 m corridor's
-  // faces are at ±1.1, not ±1.3. Nobody had seen half the conduit on the ship.
-  // tools/colour.mjs photographs every run now, which is what found it.
-  { zone: 'corrA', axis: 'z', at: -1.09, from: -18.6, to: -7.2, y: 2.15, side: 1 },
-  { zone: 'corrA', axis: 'z', at: 1.09, from: -18.6, to: -7.2, y: 2.15, side: -1 },
-  { zone: 'hold', axis: 'x', at: -32.72, from: -8.6, to: 8.6, y: 2.7, side: 1 },
-  { zone: 'hold', axis: 'z', at: -8.72, from: -32.6, to: -19.4, y: 2.7, side: 1 },
-  { zone: 'corrB', axis: 'z', at: -1.09, from: 7.2, to: 18.6, y: 2.15, side: 1 },
-  { zone: 'corrB', axis: 'z', at: 1.09, from: 7.2, to: 18.6, y: 2.15, side: -1 },
-  { zone: 'annex', axis: 'x', at: 32.72, from: -8.6, to: 8.6, y: 2.7, side: -1 },
-  { zone: 'annex', axis: 'z', at: -8.72, from: 19.4, to: 32.6, y: 2.7, side: 1 },
-  { zone: 'shortcut', axis: 'z', at: 3.81, from: 7.2, to: 18.6, y: 1.95, side: 1 },
-  { zone: 'shortcut', axis: 'z', at: 5.39, from: 7.2, to: 18.6, y: 1.95, side: -1 },
+  // bay
+  { zone: 'bay', axis: 'z', at: -6.79, from: -6.75, to: -4.0, y: CONDUIT_Y, side: 1 },
+  { zone: 'bay', axis: 'z', at: -6.79, from: 3.05, to: 6.75, y: CONDUIT_Y, side: 1 },
+  { zone: 'bay', axis: 'z', at: 6.79, from: -6.75, to: 6.75, y: CONDUIT_Y, side: -1 },
+  { zone: 'bay', axis: 'x', at: -6.79, from: -6.75, to: -1.5, y: CONDUIT_Y, side: 1 },
+  { zone: 'bay', axis: 'x', at: -6.79, from: 1.5, to: 6.75, y: CONDUIT_Y, side: 1 },
+  { zone: 'bay', axis: 'x', at: 6.79, from: -6.75, to: -1.5, y: CONDUIT_Y, side: -1 },
+  { zone: 'bay', axis: 'x', at: 6.79, from: 1.5, to: 3.4, y: CONDUIT_Y, side: -1 },
+  { zone: 'bay', axis: 'x', at: 6.79, from: 5.8, to: 6.75, y: CONDUIT_Y, side: -1 },
+  // corrA
+  { zone: 'corrA', axis: 'z', at: -1.09, from: -18.72, to: -12.3, y: CONDUIT_Y, side: 1 },
+  { zone: 'corrA', axis: 'z', at: -1.09, from: -10.25, to: -7.28, y: CONDUIT_Y, side: 1 },
+  { zone: 'corrA', axis: 'z', at: 1.09, from: -18.72, to: -7.28, y: CONDUIT_Y, side: -1 },
+  // hold
+  { zone: 'hold', axis: 'x', at: -19.21, from: -8.75, to: -1.5, y: CONDUIT_Y, side: -1 },
+  { zone: 'hold', axis: 'x', at: -19.21, from: 4.25, to: 8.75, y: CONDUIT_Y, side: -1 },
+  { zone: 'hold', axis: 'x', at: -32.79, from: -8.75, to: -3.95, y: CONDUIT_Y, side: 1 },
+  { zone: 'hold', axis: 'x', at: -32.79, from: -2.85, to: 2.05, y: CONDUIT_Y, side: 1 },
+  { zone: 'hold', axis: 'x', at: -32.79, from: 3.15, to: 8.75, y: CONDUIT_Y, side: 1 },
+  { zone: 'hold', axis: 'z', at: -8.79, from: -32.75, to: -19.25, y: CONDUIT_Y, side: 1 },
+  { zone: 'hold', axis: 'z', at: 8.79, from: -32.75, to: -19.25, y: CONDUIT_Y, side: -1 },
+  // corrB
+  { zone: 'corrB', axis: 'z', at: -1.09, from: 7.28, to: 8.4, y: CONDUIT_Y, side: 1 },
+  { zone: 'corrB', axis: 'z', at: -1.09, from: 10.4, to: 18.72, y: CONDUIT_Y, side: 1 },
+  { zone: 'corrB', axis: 'z', at: 1.09, from: 7.28, to: 11.25, y: CONDUIT_Y, side: -1 },
+  { zone: 'corrB', axis: 'z', at: 1.09, from: 13.65, to: 18.72, y: CONDUIT_Y, side: -1 },
+  // shortcut
+  { zone: 'shortcut', axis: 'z', at: 3.81, from: 7.28, to: 18.72, y: CONDUIT_Y, side: 1 },
+  { zone: 'shortcut', axis: 'z', at: 5.39, from: 7.28, to: 18.72, y: CONDUIT_Y, side: -1 },
+  // annex
+  { zone: 'annex', axis: 'x', at: 19.21, from: -8.75, to: -4.6, y: CONDUIT_Y, side: 1 },
+  { zone: 'annex', axis: 'x', at: 19.21, from: 1.5, to: 3.4, y: CONDUIT_Y, side: 1 },
+  { zone: 'annex', axis: 'x', at: 19.21, from: 5.8, to: 8.75, y: CONDUIT_Y, side: 1 },
+  { zone: 'annex', axis: 'x', at: 32.79, from: -8.75, to: 1.05, y: CONDUIT_Y, side: -1 },
+  { zone: 'annex', axis: 'x', at: 32.79, from: 2.15, to: 8.75, y: CONDUIT_Y, side: -1 },
+  { zone: 'annex', axis: 'z', at: -8.79, from: 19.25, to: 32.75, y: CONDUIT_Y, side: 1 },
+  { zone: 'annex', axis: 'z', at: 8.79, from: 19.25, to: 32.75, y: CONDUIT_Y, side: -1 },
 ];
 
 /** Where the player wakes up, and which way they are facing (radians, 0 = -Z). */

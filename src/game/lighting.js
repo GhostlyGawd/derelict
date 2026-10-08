@@ -67,11 +67,16 @@ function surge(t) {
  * Phase 8 — air in the light (8.3.5). Motes per shaft: square points, no
  * texture, nearest like everything else, lit only by their own lamp.
  */
-const MOTES = 36;
-/** World size of a mote. About three backbuffer pixels a metre away, and gone by the far wall. */
-const MOTE_SIZE = 0.02;
-/** How bright the dust is in a lamp at full power. Found by standing in it; quiet on purpose. */
-const DUST_OPACITY = 0.55;
+const MOTES = 20;
+/**
+ * World size of a mote: about one backbuffer pixel a metre away. The first
+ * build used 0.02 — four pixels across on the owner's phone, which read as
+ * squares rather than as dust — with 36 motes a shaft at 0.55. "A bit much"
+ * was the verdict; this is a third of the size, fewer and dimmer.
+ */
+const MOTE_SIZE = 0.007;
+/** How bright the dust is in a lamp at full power. Quiet on purpose: found by looking, never announced. */
+const DUST_OPACITY = 0.35;
 
 /** A small deterministic hash: the same mote drifts the same way in every run and every replay. */
 function hash(n) {

@@ -149,7 +149,7 @@ its own stutter. The conduit strips, coloured per vertex, fill green along their
 runs from the same end. The zone counts as powered from the press itself. The
 strike is something to watch, never something to wait for.
 
-Every lit shaft has dust in it: a few dozen square motes with no texture, drawn
+Every lit shaft has dust in it: twenty pixel-sized motes with no texture, drawn
 only inside the cone and only as bright as their lamp is on that frame, so the
 strike stutters in the air too and the departure takes it out with the lights.
 
@@ -330,7 +330,9 @@ event, so each run is a trace. A failing seed is shrunk and kept in
 **colour** photographs every dead/live pair in both states, through the real
 lights and textures, and simulates three colour-vision deficiencies on the
 pixels. It also photographs every conduit run, because its first run found six
-of them inside their walls, where they had been since the greybox.
+of them inside their walls, where they had been since the greybox, and it
+checks that every run sits at the one conduit height and passes through no
+door, label, fixture or prop.
 
 Every assertion is written against a condition, never against a stopwatch, and
 where a stall has to be detected it is measured against the game clock rather

@@ -613,7 +613,11 @@ class Derelict {
     // chamber was: the threshold is the same deck plate.
     this.audio.setSpace(space ? space.id : null, space ? ROOM_TONE[space.id] : null);
     if (space) this.surface = SURFACES[space.id] || 'deck';
-    const powered = space ? this.poweredZones.has(space.id) : false;
+    // Off the ship there is no compartment to ask. What lights the scanner out
+    // there is the chamber's flood behind you and the sun ahead, so it takes
+    // the powered tint — it used to fall back to emergency red, which put the
+    // last red light in the game in the player's hands, on the threshold.
+    const powered = space ? this.poweredZones.has(space.id) : true;
     this.viewmodel.setTint(
       powered ? POWERED_TINT : EMERGENCY_TINT,
       powered ? 2.4 : 1.5

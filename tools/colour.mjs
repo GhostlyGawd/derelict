@@ -164,6 +164,76 @@ for (const r of runs) {
   expect(`${r.name} is visible (${(r.coverage * 100).toFixed(1)}% of the frame)`, r.coverage > 0.005, 'not drawn where a player could see it');
 }
 
+// ---- And none of them runs through anything ----------------------------------
+// Brought out of their walls, the runs then cut through two corridor labels,
+// across the airlock opening and through the debris, and stopped dead at
+// different heights in every room — the owner's report on the first play of
+// this build. So: one height, and nothing a run passes through. Each run's
+// strip is swept 40 cm out from its wall and tested against every door opening
+// and its frame, every label and placard, every fixture, and every vertex of
+// the props, in the band the strip occupies.
+console.log('\n  every conduit run is clear of doors, labels and fixtures');
+const clash = await page.evaluate(() => {
+  const g = window.__derelict;
+  const strips = [];
+  for (const zone of ['bay', 'corrA', 'hold', 'corrB', 'annex', 'shortcut']) {
+    for (const strip of g.lighting.partsIn(zone).strips) strips.push({ zone, strip });
+  }
+  const boxOf = (o) => {
+    o.geometry.computeBoundingBox();
+    return o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld);
+  };
+  const heights = new Set();
+  const things = [];
+  g.scene.traverse((o) => {
+    if (!o.isMesh) return;
+    let top = o;
+    while (top.parent && top.parent !== g.scene) top = top.parent;
+    if (['level', 'lighting', 'outside'].includes(top.name)) return;
+    if (top.name === 'props') {
+      const pos = o.geometry.attributes.position;
+      const v = o.position.clone();
+      for (let i = 0; i < pos.count; i++) {
+        v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+        things.push({ what: 'a prop', min: v.clone(), max: v.clone() });
+      }
+      return;
+    }
+    const b = boxOf(o);
+    things.push({ what: top.name || o.name || 'a fixture', min: b.min, max: b.max });
+  });
+  const found = [];
+  for (const { zone, strip } of strips) {
+    const b = boxOf(strip);
+    const n = strip.position.clone().set(0, 0, 1).applyQuaternion(strip.getWorldQuaternion(strip.quaternion.clone()));
+    heights.add(Math.round(((b.min.y + b.max.y) / 2) * 100) / 100);
+    // The volume in front of the strip.
+    const far = b.clone().translate(n.clone().multiplyScalar(0.4));
+    const v = b.clone().union(far);
+    const hit = (t) =>
+      t.max.x > v.min.x + 0.01 && t.min.x < v.max.x - 0.01 && t.max.y > v.min.y && t.min.y < v.max.y && t.max.z > v.min.z + 0.01 && t.min.z < v.max.z - 0.01;
+    for (const t of things) if (hit(t)) found.push(`${zone} run at ${strip.position.x.toFixed(2)}, ${strip.position.z.toFixed(2)} meets ${t.what}`);
+    // Door openings and their frames, from the wall table itself.
+    const alongX = Math.abs(n.z) > 0.5;
+    for (const wall of g.walls) {
+      if ((wall.axis === 'z') !== alongX) continue;
+      const plane = alongX ? strip.position.z : strip.position.x;
+      if (Math.abs(plane - wall.at) > 0.35) continue;
+      const lo = alongX ? b.min.x : b.min.z;
+      const hi = alongX ? b.max.x : b.max.z;
+      for (const o of wall.openings || []) {
+        const half = o.width / 2 + 0.14;
+        if (hi > o.center - half && lo < o.center + half && b.min.y < o.height + 0.14) {
+          found.push(`${zone} run crosses the opening at ${o.center} on the wall at ${wall.at}`);
+        }
+      }
+    }
+  }
+  return { found: [...new Set(found)], heights: [...heights], count: strips.length };
+});
+expect(`${clash.count} runs, all at one height (${clash.heights.join(', ')} m)`, clash.heights.length === 1, `heights ${clash.heights.join(', ')}`);
+expect('no run crosses a door, a label, a fixture or a prop', clash.found.length === 0, clash.found.slice(0, 6).join('; '));
+
 const dead = { ...(await photograph()), ...(await panel(0)) };
 // Power the Hold and Corridor A, release cradle 1, and let every lamp finish
 // striking before the second photograph.
