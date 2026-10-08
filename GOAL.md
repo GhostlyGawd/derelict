@@ -1,11 +1,11 @@
 
 # DERELICT — Spec
 
-**How to read this document.** Phase 5 (v1.4) is the most recent section and is
-shipped, as are Phase 4, Phase 3, Phase 2, Amendment 1 and the v1.0 sections
-below them. There is no draft in flight. Where any two disagree, the later
-section wins. Nothing here is a suggestion — if we change something during a
-build, we change this document first.
+**How to read this document.** Phase 6 (v1.5) is the most recent section and
+is a **draft** in flight. Merging it ratifies it. Phase 5, Phase 4, Phase 3,
+Phase 2, Amendment 1 and the v1.0 sections below it are shipped. Where any two
+disagree, the later section wins. Nothing here is a suggestion — if we change
+something during a build, we change this document first.
 
 ---
 
@@ -37,10 +37,292 @@ to tri budget, crunch textures to 256 px).
 
 ---
 
+# Phase 6 — v1.5
+
+**Status: DRAFT.** Proposed 8 October 2026; ratified by merging the pull
+request that carries it, as phases 4 and 5 were. Once merged, it holds on the
+same terms as everything below: nothing here is a suggestion, and if we change
+something during the build we change this document first.
+
+This was drafted after the owner signed all three of phase 5's open bars (see
+5.5). It is the first phase to start with nothing owed, which is why it can
+afford to be wide.
+
+Supersedes part of v1 §3, §5 and §7 and phase 2's viewmodel rule. See 6.6.
+Everything in v1 and phases 2–5 not named here still stands, including
+Amendment 1.
+
+## 6.1 The one-liner
+
+The ship keeps going when you stop looking at it. Power arrives in a room
+instead of being switched on, the machinery you can see you can also hear, the
+tool in your hands knows where it is, and outside the door there is finally
+something outside.
+
+## 6.2 What phase 6 demonstrates
+
+**That the instruments make breadth cheap to judge.** Phase 4 went wide and
+produced two bugs that only a person could find. Phase 5 built the gate and the
+budget so that the next wide phase would not repeat that. This is the next wide
+phase, so it is the test of that claim. Every feature here produces something
+the consumption gate must observe or the frame budget must weigh, and a bug of
+the kind phase 4 shipped should now fail CI before the owner ever hears it.
+
+**That the rhythm holds.** 5.2 proposed alternating between wide and narrow
+phases. The owner chose wide for this one. If phase 7 should be narrow, this
+phase must show where.
+
+Every tradeoff during the build is settled against those two sentences.
+
+## 6.3 What gets built
+
+Four features in four domains. Each is judged on its own, and each can ship
+without the other three.
+
+### 6.3.1 The outside — rendering
+
+**What is wrong now.** The ending is signed: walking out reads as leaving. What
+the player walks out *into* is `scene.background`, a flat `0x05070a`, under the
+same fog as the inside of the ship. The threshold is a deck plate hanging in
+grey-black. Four phases made the inside a place, and nothing has made the
+outside one.
+
+**What gets built.**
+
+- **A generated sky, as a pipeline asset.** This is a new asset class, the
+  first since the impulse responses. It is a cube map with six faces, drawn by
+  a generator from the same style bible. It holds a seeded starfield, the lit
+  limb of a nearby body with a banded atmosphere, and one hard point of sun. It
+  is crunched and nearest-filtered like every other texture at 256 px per
+  face, and it is deterministic and reproducible byte-for-byte.
+- **Exempt from fog, and only from fog.** The sky is the one material on the
+  ship with `fog: false`. Everything else keeps the v1 §6 treatment.
+- **Never visible from inside.** There are no viewports, and the outer door is
+  the only opening onto it. The first time a player sees outside is when that
+  door cycles, so seeing it *is* the ending rather than scenery added to it.
+- **The hull has an outside face.** Turn round on the threshold and you see
+  the ship's skin around the door. It is built in engine from the existing
+  wall surfaces, as the threshold already is.
+
+Rejected: a viewport in the Bay. It is the obvious place for a window, and it
+would spend the ending's one reveal on the opening minute. A procedural sky
+computed in a shader is cheaper to ship and would be the first thing on the
+ship that the pipeline did not produce. That is the argument that beat canvas
+text in phase 3, hand-tuned reverb in phase 4, and hosted services in
+Amendment 1. A lit planet that throws light onto the threshold was also
+rejected: it would need a new light, and the light count is fixed for the
+reason `LIGHTS` gives.
+
+### 6.3.2 Machinery you can hear — audio
+
+**What is wrong now.** Phase 4 gave the ship four pieces of idle life: the
+Annex fan, the breathing Hold vent, the failing lamp in Corridor B, and the
+sparks at the debris. All four move and none of them makes a sound. The ship
+has a convolver per compartment, equal-power panning, and a gate that proves
+every sound reaches the master bus, yet the most mechanical things on it are
+mute.
+
+**What gets built.**
+
+- **Four generated sounds, one per source.** A slow blade-pass thump with a
+  tired bearing under it for the fan. A filtered breath for the vent. A mains
+  buzz for the lamp that drops out when the lamp does. Short crackle bursts
+  for the sparks. All are DSP in the existing audio generator.
+- **Each sound is played by the same clock as its motion.** The vent breathes
+  in when the vent opens, the buzz cuts when the lamp gutters, and every
+  crackle lands on a visible spark. A sound that runs on its own timer next to
+  a motion is worse than silence: it is the plate reverb of mechanism.
+- **Positional, and fed to the room.** The sounds go through the existing
+  `PannerNode` and the reverb send, so the fan sounds like it is in the Annex
+  because the Annex's own response carries it. This is the first time anything
+  except footsteps and the surge excites the rooms continuously.
+- **They die with the power.** At the departure, when every compartment behind
+  the player goes dark, the fan spins down audibly rather than cutting, and the
+  others stop where they are.
+- **Below the footsteps.** These sounds are found by standing still. They are
+  not announced. The rule 4.3.2 set for footsteps applies here as well: a
+  difference loud enough to notice on first pass is too loud.
+
+Rejected: a sound for every powered fixture (switches humming, consoles
+chirping). That is more, and it is noise. The four sources are the four things
+that visibly move. Looped room ambiences per compartment were also rejected,
+because room tone already follows the player (4.3.2) and a second bed would
+argue with it.
+
+### 6.3.3 Power you can watch arrive — lighting
+
+**What is wrong now.** v1 §3 says a switch makes "the Hold's lighting snap
+from red to green-white", and it still snaps. Every lamp in the zone, every
+conduit strip and every light shaft changes on the same frame. It is the
+largest visual event in the game, and it happens three times. Phase 4's rule
+was that state changes should have a visible moving part. That rule reached
+the lever and stopped short of the lights the lever controls.
+
+**What gets built.**
+
+- **Lamps strike in sequence**, outward from the switch that powered them. Each
+  one gets a short fluorescent stutter before it holds. The order is computed
+  from distance along the zone's own lamps in `LIGHTS`, so it stays data-driven
+  like everything else in the layout.
+- **Conduit strips fill along their run** from the end nearest the source,
+  rather than turning green all at once.
+- **The surge plays under the sequence**, not before it. The existing
+  `power_surge` sound is already the right length to carry it.
+- **Animation never gates an interaction.** This is the 4.3.3 rule applied
+  again. The zone is powered on the frame the switch is pressed. The cradle
+  releases, the chain advances and `spaceAt` answers "powered" before the first
+  lamp has struck. The sequence is something the player watches, never
+  something they wait for.
+
+Rejected: dynamic shadows from the striking lamps. They are real and
+expensive, and every light on the ship is a fixed-count point light for the
+reason `LIGHTS` gives. Changing the lamp *count* during a strike was also
+rejected. The strike changes intensity and colour only, and never the number
+of lights, because changing the count recompiles every material.
+
+### 6.3.4 The scanner reads the room — interface
+
+**What is wrong now.** The scanner is in the player's hands for every second
+of the run, and the only thing its readout has ever said is a colour. Phase 5
+rejected making it *scan* something because that is a mechanic in disguise,
+and that call stands. This feature is narrower than scanning.
+
+**What gets built.**
+
+- **The existing readout plane shows two lines in the glyph atlas:** the name
+  of the compartment the player is standing in, read from `SPACES` exactly as
+  the bulkhead labels are, and its power state. It uses the same colour
+  language as everything else: red until the room is live, green after.
+- **It reports only where the player is.** It never shows another
+  compartment, a direction, the cell count, the next step, or where a cell is.
+  The airlock panel shows 0/2 and the scanner must not repeat it, because a
+  count you carry everywhere is an objective tracker. The no-hints bar was
+  signed without any of this, and phase 3 already settled that labels name
+  spaces and never direct traffic. The scanner is held to the same rule.
+- **Off the ship it has nothing to name.** On the threshold `spaceAt` returns
+  nothing, and the readout goes blank. That is correct for the same reason the
+  reverb falls away there.
+- **The interaction pulse stays.** The readout still flares on every press, as
+  v1 §4 asked.
+
+No new assets: the atlas already carries every letter in every space's name.
+
+Rejected: the readout as a second HUD showing the objective, the count or a
+compass. That is a HUD placed on a prop, and v1 §4 allows the crosshair and
+the prompt and nothing else. Leaving the scanner as decoration was also
+rejected. It is the one object the player looks at the whole time, and it has
+said nothing for five phases.
+
+**Unchanged:** the five spaces, the six-step chain, the route, crouch, the
+HUD, the signage, the threshold, the ending sequence and its end card, the
+retro rendering treatment, and the asset budgets.
+
+## 6.4 Scope guardrails
+
+Still permanently out, unchanged: **combat, enemies, saving, settings menus,
+procedural generation, additional levels or rooms**, **narrative** (phase 3),
+**physically-based rendering** (phase 4), and **cutscenes** (phase 5).
+
+New for this phase, and permanent: **no views out before the end.** No
+viewports, windows or exterior cameras. The outside is reached by walking out.
+If a future phase wants a window, it changes this document first.
+
+**Every new cost has a row.** The frame budget from 5.3.2 stays at 1.9×, and
+each feature that adds drawing reports its own ratio against the same scene
+without it. A feature that does not fit inside the budget does not ship. The
+budget is not raised to make room for it.
+
+## 6.5 Definition of done
+
+| | Verified by |
+|---|---|
+| **The sky is generated, bound and unfogged.** It is in the manifest, observed bound on a drawn mesh during the departure, and not drawn at all from any station inside the hull. | Claude — the consumption gate, plus a check that the sky is out of frame from every interior station |
+| **Every idle source is heard, from where it is.** Each of the four new sounds reaches the master bus during a full run, panned toward its source and present on the wet bus of that source's compartment. | Claude — the consumption gate, extended to assert the pan and the compartment |
+| **Sound and motion share a clock.** Each idle sound's onsets line up with its source's visible events within one frame. | Claude — a harness that records both and compares the timestamps |
+| **Power arrives without gating.** Every zone reads powered, and every downstream step of the chain succeeds, on the frame the switch is pressed and before the first lamp has struck. | Claude — the chain harness, unchanged in what it asserts, now under the strike sequence |
+| **The scanner names only where you are.** At every interior station the readout names that station's own space and power state, and on the threshold it is blank. Its text never contains a count, a direction or another space's name. | Claude — a check over the readout's text at each station |
+| **The scanner is big enough to read.** The readout's cap height clears a pixel floor at the shipped render scale. | Claude — the cap-height harness, gaining a row |
+| **Every feature fits the budget.** Each drawing feature reports its own ratio, and the shipped frame is still inside 1.9×. | Claude — the frame-cost harness, gaining rows |
+| **Still generated end to end.** The sky and the four sounds come from the pipeline, and a clean checkout reproduces them byte-for-byte. | The existing determinism gate |
+| **Nothing regresses.** All harnesses green, the six-step chain still solvable, and the deployment still live. | CI |
+| **Outside looks like outside.** The threshold reads as standing on a ship in space, not in front of a backdrop. | **The owner** |
+| **The machinery sounds like it is there.** Standing still in the Annex, you hear the fan before you look for it. Nothing sounds like a loop. | **The owner**, on headphones |
+| **Power arriving reads as power arriving.** The strike feels like a room coming up, not like a delay. | **The owner** |
+| **The scanner helps without hinting.** It reads, it is worth glancing at, and it never tells you what to do next. | **The owner** |
+| **It still feels good on a phone.** | **The owner** |
+
+The clock bar exists because the failure it catches is silent. A sound running
+on its own timer beside a motion passes every other check in this table: it is
+generated, consumed, panned and in the right room. Only comparing timestamps
+finds it, and once the owner hears it, it is already in the build.
+
+## 6.6 Amendments to earlier sections
+
+- **v1 §3, the player experience.** The lighting no longer *snaps*; it strikes.
+  The ending also gains something to walk out into.
+- **v1 §5, level.** The hull gains an exterior face around the outer door. It
+  is still not a room, and `SPACES` does not change.
+- **v1 §7, asset manifest.** Gains one sky: six faces at 256 px. Audio grows
+  from thirteen sounds to seventeen.
+- **v1 §4 and phase 2, the viewmodel.** The scanner's readout shows text. The
+  HUD rule is unchanged, because the readout is part of a prop the player
+  holds and is not drawn over the screen.
+
+## 6.7 The box
+
+One new asset class, four new sounds, **zero new models, zero new rooms,
+zero new interactive types, zero new movement verbs**.
+
+If the phase needs a second new asset class or a fifth sound, change this
+document first instead of adding it.
+
+## 6.8 Build order
+
+Ordered so the riskiest thing is proved first, and so each feature can ship
+alone if the cycle runs long.
+
+1. **The outside.** It is the only new asset class, and the one thing that can
+   fail before it reaches the screen. A 256 px cube face under the palette
+   crunch may band into stripes rather than read as sky. If it cannot be made
+   to read, that is found out here, the same way phase 3 proved the
+   letterforms before placing a label.
+2. **Power arriving.** It touches the lighting that every other harness
+   photographs, so it should land while there is still time to re-baseline
+   them.
+3. **Machinery you can hear**, with the clock harness built before the sounds
+   are wired, red before green.
+4. **The scanner readout.**
+5. **Integration and ship.**
+
+## 6.9 Decisions taken in the draft
+
+The owner chose a wide phase and signed phase 5's three open bars before this
+draft was written. The four features were chosen by Claude and are put up for
+ratification as phase 4's were: propose, then argue in the pull request.
+
+- **Four domains: rendering, audio, lighting, interface.** Rejected: viewmodel
+  weight, because the scanner already has sway, bob and a press kick. Haptics
+  were also rejected, because they cannot be reviewed on iOS Safari and the
+  owner's phone is not known to be Android.
+- **Each feature fills in something earlier phases already built.** Phase 4
+  built the idle life and left it silent. Phase 5 built the threshold and left
+  it facing a flat colour. v1 built the scanner readout and left it saying one
+  colour. Phase 4's mechanism rule never reached the lights. This phase adds
+  almost no new kinds of thing. It completes four that exist.
+- **The scanner readout is the call most worth rejecting.** It is the closest
+  thing in this phase to a hint, and it changes something the owner has
+  already signed as solvable cold. If it reads as a HUD on a prop, cut it.
+  The other three still form a phase.
+- **No viewport.** A permanent guardrail rather than a decision for this
+  phase only. It keeps the outside as the ending's single reveal.
+
+---
+
 # Phase 5 — v1.4
 
 **Status: SHIPPED.** Spec ratified 2 August 2026 by merging PR #20; built and
-shipped the same day. On the same terms as v1 and phases 2, 3 and 4: nothing
+shipped the same day in PR #21. All three of its owner bars were signed on
+8 October 2026. On the same terms as v1 and phases 2, 3 and 4: nothing
 here is a suggestion, and if we change something during the build we change this
 document first.
 
@@ -211,7 +493,11 @@ it wants one, that is a signal that it has become a different phase.
 | **It still feels good on a phone.** | **The owner** |
 | **It sounds like an inside.** Carried over from 4.5 unsigned — the first play's report was a bug, and nobody has listened since it was fixed. | **The owner**, on headphones |
 
-**What is signed, at ship.** Every bar marked "Claude" is green in CI. The
+**Signed since ship, 8 October 2026.** The owner has played v1.4 and signed
+all three: the ending reads as leaving, it feels good on a phone, and it sounds
+like an inside. The acoustics bar, open since phase 4, is closed.
+
+**What was signed, at ship.** Every bar marked "Claude" is green in CI. The
 frame budget's two passes repeat to within 1% of each other inside a run; the
 ratio itself reads 1.24–1.27× on a quiet host and 1.50× on a loaded one, which
 is a real effect rather than instrument noise and is why the budget is set at
