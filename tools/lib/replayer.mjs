@@ -54,15 +54,22 @@ export async function boot(page, base, query = '') {
  * in the page after every frame; the values come back as `samples`. A value of
  * `{ stop: reason }` ends the replay there — the monkey uses that to stop at
  * the first broken invariant. `after`, likewise, is run once at the end, and
- * may be async; its value comes back as `after`.
+ * may be async; its value comes back as `after`. `inject` is script source
+ * added to the page once it has booted, before the run starts.
  */
-export async function replay(browser, base, trace, { errors = [], perFrame = null, after = null } = {}) {
+export async function replay(browser, base, trace, { errors = [], perFrame = null, after = null, inject = [] } = {}) {
   const { context, page } = await deviceFor(browser, trace, errors);
   await boot(page, base);
-  await page.evaluate(() => {
+  for (const content of inject) await page.addScriptTag({ content });
+  await page.evaluate((desk) => {
+    // Headless Chromium grants a real pointer lock, and its change events land
+    // whenever the wall clock says: a replay once lost its lock on a pause the
+    // recording had kept, and stopped being able to turn. Switched off before
+    // the run starts, so the only lock changes are the ones the trace recorded.
+    if (desk) window.__derelict.canvas.requestPointerLock = () => Promise.resolve();
     window.__derelict.manualClockOnStart = true;
     document.getElementById('start').click();
-  });
+  }, !trace.touch);
   await page.waitForFunction(
     () => window.__derelict?.phase === 'playing' && window.__derelict.manualClock,
     null,
@@ -84,7 +91,9 @@ export async function replay(browser, base, trace, { errors = [], perFrame = nul
       // Desktop traces were played with the pointer locked; headless Chromium
       // cannot take a real lock, so the input layer is told it has one, and any
       // recorded change of lock is applied as it happened.
-      if (!t.touch) g.input.locked = true;
+      if (!t.touch) {
+        g.input.locked = true;
+      }
 
       const live = new Map(); // identifier -> [x, y], for the `touches` list
       const dispatch = (e) => {

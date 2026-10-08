@@ -181,8 +181,11 @@ would. Nothing drives it the way a careless one does.
   traces in the phase 7 format from a grammar of hostile moves: mashing
   interact through animations, holding and releasing crouch under the slab,
   setting a cell down in every reachable place, pausing and resuming mid-strike,
-  resizing the viewport mid-run, two thumbs and keys and a pad all at once. Each
-  trace replays through the real input layer, exactly as an owner trace does.
+  two thumbs and keys and a pad all at once. Each trace replays through the
+  real input layer, exactly as an owner trace does. (The draft also listed
+  resizing the viewport mid-run. A trace has no record of the viewport
+  changing and replay cannot change it mid-run, so a resize would make a run
+  that cannot be replayed. It was dropped in the build.)
 - **Invariants checked on every frame.** No exception is thrown. The player
   never stands inside geometry and never falls through the floor. Exactly two
   cells exist at all times, each held, lying on the floor, in a cradle or
