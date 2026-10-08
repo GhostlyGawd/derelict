@@ -20,8 +20,12 @@ export class Hud {
       endReadout: document.getElementById('end-readout'),
       keysDesktop: document.getElementById('keys-desktop'),
       keysMobile: document.getElementById('keys-mobile'),
+      keysPad: document.getElementById('keys-pad'),
     };
     this._prompt = null;
+    // The controls card gains its pad line once the browser reports a pad,
+    // which it does only after a button on it has been pressed (8.3.4).
+    window.addEventListener('gamepadconnected', () => this.el.keysPad?.classList.remove('hidden'));
   }
 
   useTouchLayout() {

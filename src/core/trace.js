@@ -27,6 +27,9 @@
  *                                             w (the view), i (interact), c (crouch)
  *   ['l', frame, locked]                      pointer lock gained or lost
  *   ['u', frame, id]                          an overlay button: resume, restart
+ *   ['p', frame, axes, buttons]               a pad's state when it changed: four
+ *                                             axes, sixteen buttons as 0/1; or
+ *                                             ['p', frame, null] when it went away
  *   ['r', frame, scale]                       the render scale changed (not input;
  *                                             replay skips it, the profiler reads it)
  *
@@ -100,6 +103,11 @@ export class TraceRecorder {
   }
 
   /** Called when the end card goes up. */
+  /** The pad's raw state changed. Polled, not evented, so the input layer calls this. */
+  pad(raw) {
+    if (this.recording) this.events.push(raw ? ['p', this.frame, raw.axes, raw.buttons] : ['p', this.frame, null]);
+  }
+
   /** The render scale changed under the watchdog. */
   scaleChanged(scale) {
     if (this.recording) this.events.push(['r', this.frame, scale]);

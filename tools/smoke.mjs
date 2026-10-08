@@ -350,6 +350,98 @@ if (s.cells !== 0 || s.airlockOpen || s.carrying || s.released.length) {
 console.log('  restart clean');
 await shot('restarted');
 
+// ---- The pad plays the game (8.3.4) ----------------------------------------
+// A synthetic standard pad, polled by the game as a real one would be. Every
+// action a pad has must reach the game, and the prompt must name its button.
+console.log('\n  the pad');
+{
+  const pp = await browser.newPage({ viewport: { width: 1024, height: 640 } });
+  pp.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  pp.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+  await pp.addInitScript({ path: path.resolve('tools/lib/fakepad.js') });
+  await pp.goto(BASE, { waitUntil: 'networkidle' });
+  await pp.waitForFunction(() => window.__derelict?.phase === 'title', null, { timeout: 60000 });
+  await pp.evaluate(() => window.dispatchEvent(new Event('gamepadconnected')));
+  const padLine = await pp.evaluate(() => !document.getElementById('keys-pad').classList.contains('hidden'));
+  if (!padLine) throw new Error('a pad connected and the controls card did not name its buttons');
+  await pp.click('#start');
+  await pp.waitForFunction(() => window.__derelict?.phase === 'playing', null, { timeout: 15000 });
+  const gs = () =>
+    pp.evaluate(() => {
+      const g = window.__derelict;
+      return {
+        x: g.player.position.x,
+        z: g.player.position.z,
+        yaw: g.player.yaw,
+        crouching: g.player.crouching,
+        phase: g.phase,
+        used: g.switches.find((s) => s.id === 'switch1').used,
+        prompt: document.getElementById('prompt').textContent,
+      };
+    });
+  const set = (fn) => pp.evaluate(fn);
+  const frames = (n) =>
+    pp.evaluate(
+      (k) => new Promise((r) => { let i = 0; const f = () => (++i >= k ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); }),
+      n
+    );
+
+  let a = await gs();
+  await set(() => (window.__pad.axes[1] = -1));
+  await frames(30);
+  await set(() => (window.__pad.axes[1] = 0));
+  let b = await gs();
+  if (Math.hypot(b.x - a.x, b.z - a.z) < 0.3) throw new Error('the left stick did not move the player');
+  console.log(`  left stick moved ${Math.hypot(b.x - a.x, b.z - a.z).toFixed(2)} m`);
+
+  a = b;
+  await set(() => (window.__pad.axes[2] = 0.8));
+  await frames(20);
+  await set(() => (window.__pad.axes[2] = 0));
+  b = await gs();
+  if (Math.abs(b.yaw - a.yaw) < 0.1) throw new Error('the right stick did not turn the view');
+  console.log(`  right stick turned ${(b.yaw - a.yaw).toFixed(2)} rad`);
+
+  await set(() => (window.__pad.buttons[1] = 1));
+  await frames(6);
+  if (!(await gs()).crouching) throw new Error('B held did not crouch');
+  await set(() => (window.__pad.buttons[1] = 0));
+  await frames(6);
+  if ((await gs()).crouching) throw new Error('letting go of B did not stand back up');
+  console.log('  B held crouches, and letting go stands');
+
+  // Up to switch 1, the way the other harnesses stand at it.
+  await pp.evaluate(() => {
+    const g = window.__derelict;
+    g.player.position.set(-31.9, 0, -3.4);
+    g.player.yaw = Math.PI / 2;
+    g.player.pitch = 0;
+  });
+  await set(() => (window.__pad.axes[3] = 0.05)); // inside the dead zone: a touch of the pad, no look
+  await frames(6);
+  const named = (await gs()).prompt;
+  if (named !== '[A] Restore Power') throw new Error(`the prompt with a pad in hand read "${named}"`);
+  await set(() => (window.__pad.buttons[0] = 1));
+  await frames(4);
+  await set(() => (window.__pad.buttons[0] = 0));
+  await frames(4);
+  if (!(await gs()).used) throw new Error('A at switch 1 did not flip it');
+  console.log(`  prompt read "${named}", and A flipped switch 1`);
+
+  await set(() => (window.__pad.buttons[9] = 1));
+  await frames(4);
+  await set(() => (window.__pad.buttons[9] = 0));
+  await frames(4);
+  if ((await gs()).phase !== 'paused') throw new Error('Start did not pause');
+  await set(() => (window.__pad.buttons[9] = 1));
+  await frames(4);
+  await set(() => (window.__pad.buttons[9] = 0));
+  await frames(4);
+  if ((await gs()).phase !== 'playing') throw new Error('Start did not resume');
+  console.log('  Start pauses, and Start resumes');
+  await pp.close();
+}
+
 await browser.close();
 
 if (errors.length) {

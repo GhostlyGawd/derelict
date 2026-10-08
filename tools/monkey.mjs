@@ -8,8 +8,8 @@
  * drives the game the way a careful player would. This one drives it the way a
  * careless one does.
  *
- * For each seed in a fixed list, on a desktop, a portrait phone or a landscape
- * phone:
+ * For each seed in a fixed list, on a desktop, a portrait phone, a landscape
+ * phone or a desktop with a pad:
  *
  *   1. The game is opened with `?trace`, and an autopilot plays it, heading for
  *      the next step of the chain, interrupted by seeded bursts of hostile
@@ -31,7 +31,7 @@
  *
  * Seeded and fixed, so a red run is a reproducible run and never a flake.
  *
- *   node tools/monkey.mjs [baseUrl] [--seeds=N]
+ *   node tools/monkey.mjs [baseUrl] [--seeds=N]   (twelve by default: three per device)
  */
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -39,7 +39,7 @@ import path from 'node:path';
 import { boot, deviceFor, launch, replay } from './lib/replayer.mjs';
 
 const BASE = process.argv.find((a) => /^https?:/.test(a)) || 'http://127.0.0.1:4173/';
-const COUNT = Number(process.argv.find((a) => a.startsWith('--seeds='))?.split('=')[1] || 9);
+const COUNT = Number(process.argv.find((a) => a.startsWith('--seeds='))?.split('=')[1] || 12);
 const BRAIN = readFileSync(path.resolve('tools/lib/monkey-page.js'), 'utf8');
 const REGRESSIONS = path.resolve('tools/traces/monkey');
 
@@ -47,6 +47,9 @@ const DEVICES = [
   { name: 'desktop', viewport: { w: 1024, h: 640, dpr: 1 }, touch: false },
   { name: 'portrait phone', viewport: { w: 390, h: 844, dpr: 1 }, touch: true },
   { name: 'landscape phone', viewport: { w: 844, h: 390, dpr: 1 }, touch: true },
+  // Moving, crouching and pressing on a pad, turning with the mouse: two
+  // devices in two hands, which is the combination nothing else drives.
+  { name: 'desktop with a pad', viewport: { w: 1024, h: 640, dpr: 1 }, touch: false, pad: true },
 ];
 /** The fixed seed list. Change it on purpose, never to make a run go green. */
 const SEEDS = [8101, 8102, 8103, 8104, 8105, 8106, 8107, 8108, 8109, 8110, 8111, 8112].slice(0, COUNT);
@@ -70,6 +73,7 @@ const FINISH = `async () => window.__monkey.finish({ cap: 20000 })`;
 /** One monkey run, recorded. */
 async function drive(seed, device) {
   const { context, page } = await deviceFor(browser, device, errors);
+  if (device.pad) await page.addInitScript({ path: path.resolve('tools/lib/fakepad.js') });
   await boot(page, BASE, '?trace');
   await page.addScriptTag({ content: BRAIN });
   await page.evaluate((desk) => {

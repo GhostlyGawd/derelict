@@ -20,6 +20,8 @@
 (() => {
   const g = window.__derelict;
   const touch = g.input.usingTouch;
+  /** A synthetic pad (tools/lib/fakepad.js): the run moves, crouches and presses with it. */
+  const pad = window.__pad || null;
   const LOOK = touch ? 0.0042 : 0.0022;
   const STEP = 0.1;
   const THRESHOLD = { x: [-2.2, 2.2], z: [-14.8, -11.4] };
@@ -77,11 +79,16 @@
     stick: null, // touch: { id, x, y }
     look: null, // touch: { id, x, y, ox, oy }
     nextId: 100,
+    release: 0,
   };
 
   function setForward(on) {
     if (on === hands.forward) return;
     hands.forward = on;
+    if (pad) {
+      pad.axes[1] = on ? -1 : 0;
+      return;
+    }
     if (!touch) return key('KeyW', on);
     if (on) {
       const x = W() * 0.14;
@@ -98,6 +105,10 @@
   function setCrouch(on) {
     if (on === hands.crouch) return;
     hands.crouch = on;
+    if (pad) {
+      pad.buttons[1] = on ? 1 : 0;
+      return;
+    }
     if (!touch) return key('KeyC', on);
     const [x, y] = centre(crouchBtn);
     fire(on ? 'touchstart' : 'touchend', 7, x, y, crouchBtn);
@@ -129,6 +140,12 @@
     }
   }
   function press() {
+    // A pad is polled once a frame, so a press has to stay down for one.
+    if (pad) {
+      pad.buttons[0] = 1;
+      hands.release = 2;
+      return;
+    }
     if (!touch) {
       key('KeyE', true);
       key('KeyE', false);
@@ -138,6 +155,11 @@
     fire('touchstart', 8, x, y, interactBtn);
     fire('touchend', 8, x, y, interactBtn);
   }
+  /** Once a frame: lets go of pad buttons that were only pressed. */
+  function handsTick() {
+    if (pad && hands.release > 0 && --hands.release === 0) pad.buttons[0] = 0;
+  }
+
   function letGo() {
     setForward(false);
     setCrouch(false);
@@ -564,7 +586,9 @@
   // ---------------------------------------------------------------- hostile
   const KINDS = touch
     ? ['tapstorm', 'thumbs', 'cancel', 'mash', 'crouchflicker', 'spin', 'hitch', 'pause', 'drop']
-    : ['mash', 'crouchflicker', 'spin', 'wander', 'hitch', 'pause', 'drop', 'keysoup'];
+    : pad
+      ? ['padmash', 'unplug', 'mash', 'crouchflicker', 'spin', 'keysoup', 'hitch', 'drop']
+      : ['mash', 'crouchflicker', 'spin', 'wander', 'hitch', 'pause', 'drop', 'keysoup'];
 
   function hostile(kind, rand, t, len) {
     const r = rand();
@@ -611,6 +635,22 @@
           if (rand() < 0.1) turn((rand() - 0.5) * 0.8, 0);
         }
         break;
+      case 'padmash':
+        // Both sticks anywhere, and A, B and Start in any order, with the
+        // keyboard and mouse still live: two hands on two devices.
+        for (let i = 0; i < 4; i++) if (rand() < 0.2) pad.axes[i] = Math.round((rand() * 2 - 1) * 1000) / 1000;
+        for (const b of [0, 1, 9]) if (rand() < (b === 9 ? 0.02 : 0.15)) pad.buttons[b] = pad.buttons[b] ? 0 : 1;
+        if (rand() < 0.05) key('KeyW', rand() < 0.5);
+        break;
+      case 'unplug':
+        // Pulled out mid-stride, B held, and plugged back in.
+        if (t === 0) {
+          pad.axes[1] = -1;
+          pad.buttons[1] = 1;
+        }
+        if (t === 5) pad.unplugged = true;
+        if (t === len - 5) pad.unplugged = false;
+        break;
       case 'tapstorm': {
         const id = 200 + ((rand() * 6) | 0);
         const x = rand() * W();
@@ -651,7 +691,7 @@
 
   /** The situations worth a burst of their own (8.3.3). */
   const SITUATED = {
-    squeeze: touch ? ['crouchflicker', 'thumbs', 'cancel', 'mash'] : ['crouchflicker', 'keysoup', 'mash', 'spin'],
+    squeeze: touch ? ['crouchflicker', 'thumbs', 'cancel', 'mash'] : pad ? ['crouchflicker', 'padmash', 'unplug'] : ['crouchflicker', 'keysoup', 'mash', 'spin'],
     strike: ['pause', 'mash', 'hitch', 'spin'],
     carrying: touch ? ['drop', 'mash', 'tapstorm'] : ['drop', 'mash', 'keysoup'],
     departure: touch ? ['mash', 'spin', 'thumbs', 'hitch'] : ['mash', 'spin', 'keysoup', 'hitch'],
@@ -668,6 +708,12 @@
 
   function endHostile() {
     letGo();
+    if (pad) {
+      pad.axes.fill(0);
+      pad.buttons.fill(0);
+      pad.unplugged = false;
+      hands.release = 0;
+    }
     if (!touch) {
       for (const code of ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyC', 'ControlLeft', 'ArrowLeft', 'ArrowUp', 'Space', 'Enter']) {
         key(code, false);
@@ -731,6 +777,7 @@
           break;
         }
       }
+      handsTick();
       try {
         g.stepForTest(dt, { render: false });
       } catch (err) {
@@ -768,6 +815,7 @@
         reason = `autopilot: ${r}`;
         break;
       }
+      handsTick();
       try {
         g.stepForTest(1 / 60, { render: false });
       } catch (err) {

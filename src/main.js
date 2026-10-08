@@ -119,6 +119,7 @@ class Derelict {
     this.manualClockOnStart = false;
     this.inputVersion = INPUT_VERSION;
     this.trace = traceRequested() ? new TraceRecorder(this, { inputVersion: INPUT_VERSION }) : null;
+    if (this.trace) this.input.onPadChange = (raw) => this.trace.pad(raw);
 
     this.#bindUi();
   }
@@ -211,6 +212,12 @@ class Derelict {
     save?.addEventListener('click', () => this.trace?.save());
     this.input.onEscape = () => {
       if (this.phase === 'playing') this.#pause();
+    };
+    // A pad has no Escape and no pointer to click Resume with, so Start does
+    // both (8.3.4).
+    this.input.onPadStart = () => {
+      if (this.phase === 'playing') this.#pause();
+      else if (this.phase === 'paused') this.#resume();
     };
   }
 
@@ -524,7 +531,12 @@ class Derelict {
   }
 
   #tick(dt, render = true, raw = dt * 1000) {
+    // The pad is polled before the trace stamps the frame, so a change it
+    // records belongs to the frame that acts on it — the same rule every
+    // evented input already follows.
+    this.input.pollPad();
     this.trace?.tick(dt, raw);
+    this.input.applyPad(dt);
     this.frameIndex++;
     this.elapsed += dt;
 
@@ -604,7 +616,9 @@ class Derelict {
     // cell down — and on touch the context button is lit only when a prompt is
     // showing. Without this the set-down gesture would be invisible on a phone.
     const action = target?.prompt ?? (this.carry.held ? 'Set Down Cell' : null);
-    this.hud.setPrompt(action && (this.input.usingTouch ? action : `[E] ${action}`));
+    // The prompt names the button on whatever the player last used (8.3.4).
+    const key = this.input.promptKey;
+    this.hud.setPrompt(action && (key ? `[${key}] ${action}` : action));
     if (this.input.takeInteract()) this.#press(target);
   }
 

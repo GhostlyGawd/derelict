@@ -203,6 +203,74 @@ console.log(
 );
 judge('round trip, desktop', desk, await replay(desk));
 
+// The same with a pad (8.3.4): sticks, A, B and Start, through the polled path
+// rather than an evented one. Recorded on a desktop with a synthetic pad; the
+// replay has no pad at all, only the trace's record of what it reported.
+const padded = await (async () => {
+  const { context, page } = await deviceFor({ viewport: { w: 1024, h: 640, dpr: 1 }, touch: false });
+  await page.addInitScript({ path: path.resolve('tools/lib/fakepad.js') });
+  await boot(page, '?trace');
+  await page.evaluate(() => document.getElementById('start').click());
+  await page.waitForFunction(() => window.__derelict?.phase === 'playing', null, { timeout: 15000 });
+  const trace = await page.evaluate(async () => {
+    const g = window.__derelict;
+    const pad = window.__pad;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    // Forward, easing on, with the right stick swinging the view about.
+    for (let i = 0; i < 30; i++) {
+      pad.axes[1] = -Math.min(1, i / 10);
+      pad.axes[2] = Math.sin(i / 5) * 0.8;
+      pad.axes[3] = Math.cos(i / 7) * 0.3;
+      await wait(30);
+    }
+    pad.axes[2] = 0;
+    pad.axes[3] = 0;
+    // Crouch held while strafing.
+    pad.buttons[1] = 1;
+    pad.axes[0] = 0.7;
+    await wait(500);
+    pad.buttons[1] = 0;
+    pad.axes[0] = 0;
+    // A at nothing, then Start to pause and Start to come back.
+    pad.buttons[0] = 1;
+    await wait(80);
+    pad.buttons[0] = 0;
+    await wait(80);
+    pad.buttons[9] = 1;
+    await wait(80);
+    pad.buttons[9] = 0;
+    await wait(200);
+    const paused = g.phase;
+    pad.buttons[9] = 1;
+    await wait(80);
+    pad.buttons[9] = 0;
+    await wait(200);
+    // Pulled out mid-stride, and put back.
+    pad.axes[1] = -1;
+    await wait(200);
+    pad.unplugged = true;
+    await wait(300);
+    pad.unplugged = false;
+    pad.axes[1] = 0;
+    await wait(300);
+    g.trace.end();
+    return { paused, trace: g.trace.export() };
+  });
+  await context.close();
+  return trace;
+})();
+const padEvents = padded.trace.events.filter((e) => e[0] === 'p');
+console.log(`  recorded ${padded.trace.frames.length} frames, ${padEvents.length} pad states, with a pad`);
+expect('the recording captured the pad', padEvents.length > 20, `${padEvents.length} pad events`);
+expect('Start paused the run', padded.paused === 'paused', `phase after Start was ${padded.paused}`);
+expect('the pad going away was recorded', padEvents.some((e) => e[2] === null), 'no disconnect in the trace');
+expect(
+  'the pad moved and turned the player',
+  Math.hypot(padded.trace.final[3], padded.trace.final[4] - 4.6) > 0.5 && Math.abs(padded.trace.final[5]) > 0.05,
+  `ended at ${JSON.stringify(padded.trace.final)}`
+);
+judge('round trip, pad', padded.trace, await replay(padded.trace));
+
 // ---- 2. Committed traces ------------------------------------------------------
 let committed = [];
 try {
