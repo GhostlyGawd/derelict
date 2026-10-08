@@ -1,12 +1,12 @@
 
 # DERELICT — Spec
 
-**How to read this document.** Phase 8 (v1.7) is the most recent section and
-is a **draft** in flight; merging it ratifies it. Phase 7, Phase 6, Phase 5,
-Phase 4, Phase 3, Phase 2, Amendment 1 and the v1.0 sections below them are
-shipped. Where any two disagree, the later section wins. Nothing here is a
-suggestion — if we change something during a build, we change this document
-first.
+**How to read this document.** Phase 8 (v1.7) is the most recent section. It
+is approved and built, and ships when its pull requests merge; its owner bars
+are open. Phase 7, Phase 6, Phase 5, Phase 4, Phase 3, Phase 2, Amendment 1 and
+the v1.0 sections below them are shipped. Where any two disagree, the later
+section wins. Nothing here is a suggestion — if we change something during a
+build, we change this document first.
 
 ---
 
@@ -40,10 +40,62 @@ to tri budget, crunch textures to 256 px).
 
 # Phase 8 — v1.7
 
-**Status: DRAFT.** Proposed 8 October 2026. Merging this section ratifies it,
-and the build follows in its own pull request. On the same terms as everything
-below: nothing here is a suggestion, and if we change something during the
-build we change this document first.
+**Status: APPROVED AND BUILT.** Proposed 8 October 2026 in PR #28 and
+approved by the owner the same day; built the same day in PR #29. It ships
+when both merge. Every bar Claude can verify is green. The owner's bars are
+open: the ship still looking like itself, the pad, the dust, the home screen in
+airplane mode, and a recording on the new build. On the same terms as
+everything below: nothing here is a suggestion, and if we change something
+during the build we change this document first.
+
+**What the build changed in this section, and why.**
+
+*The instruments found two real bugs, and neither was new.* The colour harness
+photographed a corridor's conduit and found nothing there. Six of the twelve
+runs, in both corridors and the Service Passage, had been 12 cm inside their
+walls since the greybox. A wall is centred on its line, so a 2.6 m corridor's
+faces are at ±1.1 m, and the runs were placed at ±1.22. Nobody had ever seen
+them, including the corridor fill phase 6 built. They are in front of the wall
+now, and the harness photographs every run. Building the second visit turned
+up the other: `vercel.json` served the whole of `/assets` immutable for a year,
+including generated assets and `manifest.json`, whose names never change. A
+returning visitor could keep a texture, or a whole manifest, from a build that
+no longer existed. The bundle moved to `/bundle` and is the only thing served
+immutable, and the weight harness checks that every immutable file is named by
+its content.
+
+*The monkey found no bug in the game.* Twelve seeds on four devices, with a
+burst each under the slab, mid-strike, carrying and walking out, broke no
+invariant, and every run was played out. It found two bugs in itself first. Its
+synthetic touches ended on whatever element they had wandered over, which a
+real phone never does. And headless Chromium grants a real pointer lock whose
+change events land on the wall clock, so a replay once lost its lock on a pause
+the recording had kept, and could not turn. Replay now switches the real lock
+off before a desktop run starts. To show the invariants can fail at all, the
+harness breaks the game seven ways and requires each to be caught. The draft's
+mid-run viewport resize was dropped (see 8.3.3).
+
+*The colours, measured.* Every pair now clears 3:1 at its worst. Deuteranopia
+is the worst case for each: switch indicator 3.60, cradle lamp 3.59, conduit
+3.45, lamp lens 3.70, airlock count 3.33. Room light is 7.32 as a plain ratio
+(see 8.3.1), and the airlock pip is 10.53. The changes are small. Dead is a
+darker red and live a brighter green. The live conduit is driven past its
+texture, because the strip's own texture darkens whatever colour it carries.
+The emergency lens is darker than the light it throws.
+
+*The phone, read.* Both owner traces report 17 ms at the median and 18 ms at
+the 95th percentile in every compartment, with one frame over 33 ms in each
+run, in the Bay. They are format 1, so the slow end is a floor (8.3.2).
+
+*The rest, as built.* Dust costs 1.07× on its own, and the whole frame is
+1.37× against the 1.9× budget. The game asks the browser to check for a new
+worker on every visit. Left to itself, a browser may wait a day, and the
+visit after a deploy has to fetch the new list. A pad's Start resumes as well
+as pausing, since a pad has no Escape and no pointer for the Resume button.
+Starting a run still takes a click or a tap, because browsers do not let a pad
+button unlock audio. The controls card gains a pad line once a pad is
+reported. The pad's action checks live in the systems smoke test rather than
+in a fourth new harness, so the box in 8.7 holds.
 
 The owner chose the shape: wide, per the rhythm 5.2 proposed, with all six of
 the features Claude put forward (8.9). It is the widest phase so far. Phase 4
@@ -344,8 +396,8 @@ guardrail first.
 - **v1 §2, "instant to load."** The first visit is measured, as 7.6 made it.
   Every visit after it is instant by construction and gated at zero bytes.
 - **v1 §4, controls.** Gains a gamepad: left stick move, right stick look, A
-  interact, B held crouch, Start pause. The interact prompt names the device in
-  use.
+  interact, B held crouch, Start pause and resume. The interact prompt names
+  the device in use.
 - **v1 §7, asset manifest.** Gains one icon, generated from the glyph atlas and
   the style bible.
 - **v1 §11, definition of done.** Gains colour-vision contrast as a standing
