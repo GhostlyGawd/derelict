@@ -224,7 +224,7 @@ still holds.
   out, which is why the views-out rule is lifted for the house (9.5).
 - **The handheld.** The bottom-right device in the reference becomes the
   house's viewmodel, an old battery lantern. That settles backlog item 1
-  (below) in a new form: it is placed against the touch buttons and the
+  (9.4.7) in a new form: it is placed against the touch buttons and the
   owner's thumbs from the start, rather than corrected afterwards.
 
 **Proved on one room first.** The entry hall is built and dressed to the
@@ -233,10 +233,72 @@ fabric cannot reach that look, it is found out there, and the phase is
 rethought before nine more rooms are built the same way. Phase 3 did the same
 by proving the letterforms first.
 
-### 9.4.5 The story
+### 9.4.5 A style engine — art direction as code
 
-- **Premise chosen by the owner** from the options put to them in this pull
-  request. It is written in the build and the full text is shown to the owner
+**What is wrong now.** The ship's look comes from a style bible: one paragraph
+of prose, plus generators that each interpret it in their own way. That
+worked for steel, because rivets, panels and wear on edges are close to
+geometry. It will not reach the reference: damp that blooms rather than
+stains, wood that has grain rather than stripes, plaster that looks
+brush-painted, and a frame whose colour is held in one narrow green band. At
+the owner's request this phase treats art style as something to build and
+measure, not as a sentence to interpret.
+
+**What gets built.**
+
+- **Painterly techniques as shared generator code**, used by every house
+  surface and available to the ship:
+  - brush-stroke stamping along a flow field, so surfaces look painted rather
+    than noised;
+  - damp that spreads from edges and corners by diffusion and leaves tide
+    lines;
+  - wood grain grown from rings and knots and then cut into planks, rather
+    than striped noise;
+  - flaking paint and wallpaper that tear along seams;
+  - patterned textiles woven from a motif and then worn where feet go.
+- **The style as numbers, not only prose.** The style bible gains a style
+  target: a palette, a value distribution, a colour cast, a saturation and a
+  level of fine detail. The generators read those numbers, and the colour
+  grade in 9.4.4 is derived from them. Changing the look means changing the
+  target.
+- **A style harness.** It renders fixed views of the house through the real
+  pipeline and scores each frame against the target: luminance percentiles,
+  share of pixels in the green cast, mean saturation, fine-detail energy and
+  palette size. It is gated within a stated tolerance, so a change to one
+  generator that drags the whole house off its look fails CI. Like 3.5's pixel
+  floor, it can show a frame is in the right family. Whether it looks right is
+  the owner's bar.
+
+**The target, measured from the reference** as statistics only. Nothing in
+the image is copied or committed. At 448 × 299:
+
+| | Reference |
+|---|---|
+| Mean colour (sRGB) | 35, 46, 27 |
+| Luminance, 5th / 50th / 95th percentile | 0.006 / 0.015 / 0.159 |
+| Share of pixels where green dominates | 96% |
+| Mean saturation | 0.45 |
+| Fine detail (mean absolute Laplacian, 0–255) | 10.0 |
+| Distinct colours at 15-bit | 763 |
+
+The house is held to these within tolerances the build sets on the entry hall
+and records here before it dresses another room. The numbers describe a look.
+They are not a picture to match pixel for pixel, and the house's own rooms
+will differ from the reference in every detail.
+
+Rejected: an image model to paint the textures (the owner chose code), which
+would lift Amendment 1 and end byte-for-byte builds. Sampling or tracing the
+reference, which would make the house a copy. A style that lives only in
+prose, which is how the ship's worked and why it would not stretch to this.
+
+### 9.4.6 The story
+
+- **The premise, chosen by the owner: the flood and the stopped clocks.** A
+  family lived here by the river. On the night it rose, their daughter was
+  lost, and her father stopped every clock in the house at that hour. The
+  water went down and the damp never did. The house still keeps his hour, and
+  the dining-room clock is the puzzle because of it. The notes are mostly his.
+  The text is written in the build, and the full text is shown to the owner
   before it is placed in the house.
 - **Twelve notes at most,** each short enough to read on a phone without
   scrolling. The rooms themselves carry the rest: what is on the table, which
@@ -244,7 +306,7 @@ by proving the letterforms first.
 - **No voice, no cutscene, no narrator.** The player keeps the camera from the
   first frame to the last, as on the ship.
 
-### 9.4.6 The backlog, built alongside
+### 9.4.7 The backlog, built alongside
 
 The owner asked for this phase to be creative and for the outstanding work to
 run underneath it. It does, in this order and without its own phase:
@@ -301,6 +363,7 @@ traced, sampled or imported.
 | **Every asset is consumed.** Every generated texture, model, sound and the colour grade is observed in use during a full run of the house. | Claude — the consumption gate, on the house |
 | **It fits its budgets.** The house's frame against its own stripped frame inside 1.9×, its bytes to title gated at its own measured figure plus 15%, and no shader compiles after the title. | Claude — `tools/framecost.mjs`, `tools/weight.mjs`, and the new compile check |
 | **Still generated end to end.** A clean checkout reproduces every house asset byte-for-byte. | The existing determinism gate |
+| **The house holds its style.** Fixed views of every room score within the stated tolerance of the style target in 9.4.5: value, cast, saturation, detail and palette. | Claude — the style harness, in CI |
 | **The entry hall reads as the reference.** The damp, the wood, the green and the one lamp, in our own house. | **The owner**, at the first milestone |
 | **The house is frightening without a monster.** | **The owner** |
 | **The story lands.** | **The owner** |
@@ -311,7 +374,8 @@ traced, sampled or imported.
 
 One new level, a separate demo of about ten spaces on two floors. At most ten
 new surface textures, fourteen new models and twelve new sounds. Two new asset
-classes: the colour grade and the night outside. One new movement capability,
+classes: the colour grade and the night outside. The style engine is
+generator code, not an asset, and the style harness is one new instrument. One new movement capability,
 stairs, and no new movement verb. One new piece of interface, the note reader,
 and one new HUD element, the key ring.
 
@@ -331,19 +395,21 @@ In milestones, each its own pull request with a preview for the owner:
 2. **The loop in greybox.** Doors, locks, keys, drawers, the clock and the key
    ring, with placeholder notes. The chain harness and the monkey run on the
    house. It is playable start to finish, grey. **Preview to the owner.**
-3. **The entry hall, dressed.** The new surface generators, the props the hall
-   needs, the green grade, the lamp and the night through the front door, in
-   one room only. **The owner signs the look here, or the phase is
-   rethought.**
+3. **The entry hall, dressed.** The style engine and its harness, red before
+   green against the target in 9.4.5. Then the new surface generators, the
+   props the hall needs, the green grade, the lamp and the night through the
+   front door, in one room only. **The owner signs the look here, or the phase
+   is rethought.**
 4. **The rest of the house, dressed.**
-5. **The story.** The owner picks the premise and approves the text, then the
-   notes are placed and the environmental storytelling is dressed in.
+5. **The story.** The owner approves the text, then the notes are placed and
+   the environmental storytelling is dressed in.
 6. **Dread.** The out-of-view changes and their harness, then the sound.
 7. **Integration and ship.** The owner plays it cold and records a trace.
 
 ## 9.9 What the build asks of the owner
 
-- **A premise,** from the options in this pull request.
+- **Approval of the story's text** before it is placed (the premise is
+  settled: the flood and the stopped clocks).
 - **A look at milestone 2** (is the house the right shape?) and **milestone 3**
   (is the entry hall the right look?).
 - **A cold play at the end,** with `?trace`, to time the ten minutes.
@@ -362,6 +428,12 @@ In milestones, each its own pull request with a preview for the owner:
 - **No combat; pure dread.** Rejected: a stalker to avoid, and Resident
   Evil-style combat, which would lift the oldest permanent rule in this
   document.
+- **Art style as an engine, still all code.** Asked after the first draft:
+  should this phase explore real art styles? The owner chose to build them
+  into the generators and measure them. Rejected: an image model, and a
+  comparison of the two on the same room, which would double milestone 3.
+- **The flood and the stopped clocks,** as one premise. Chosen from three
+  drafted in the pull request, combining the first two.
 - **Notes plus the rooms themselves.** Rejected: rooms only, which is subtler
   and harder to make land on a first try. Also rejected: notes plus voice,
   which would be the hardest thing the pipeline had ever made, for the least
