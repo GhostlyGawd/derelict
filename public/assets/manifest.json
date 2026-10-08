@@ -5,9 +5,9 @@
     "textures": 8,
     "sky": 6,
     "models": 10,
-    "audio": 13,
+    "audio": 17,
     "acoustics": 5,
-    "bytes": 2300866
+    "bytes": 2389210
   },
   "textures": {
     "wall_panel_a": {
@@ -452,6 +452,27 @@
       "file": "audio/cell_seat.mp3",
       "seconds": 1.6,
       "bytes": 19749
+    },
+    "fan_pass": {
+      "file": "audio/fan_pass.mp3",
+      "seconds": 0.62,
+      "bytes": 7837
+    },
+    "vent_breath": {
+      "file": "audio/vent_breath.mp3",
+      "seconds": 2.4,
+      "bytes": 29153
+    },
+    "lamp_buzz": {
+      "file": "audio/lamp_buzz.wav",
+      "seconds": 1,
+      "bytes": 44144,
+      "loop": true
+    },
+    "spark_crackle": {
+      "file": "audio/spark_crackle.mp3",
+      "seconds": 0.55,
+      "bytes": 7210
     }
   },
   "acoustics": {

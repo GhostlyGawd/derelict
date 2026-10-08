@@ -1,5 +1,5 @@
 /**
- * Web Audio playback for the ten generated sounds.
+ * Web Audio playback for the generated sounds.
  *
  * The context is created inside the Begin-button gesture so iOS Safari lets it
  * run. Anything the pipeline has not produced falls back to a synthesised
@@ -171,6 +171,54 @@ export class AudioBus {
     const gain = this.ctx.createGain();
     gain.gain.value = volume;
 
+    const panner = this.#panner(position, maxDistance);
+
+    source.connect(gain).connect(panner);
+    panner.connect(this.dry);
+    panner.connect(this.send);
+    source.start(this.ctx.currentTime + delay);
+    return source;
+  }
+
+  /**
+   * Phase 6 — a steady tone with a place in the room, for the failing lamp's
+   * buzz. Looped sample-for-sample (the asset is WAV and a whole number of
+   * cycles), panned and fed to the room like any `playAt` sound, and silent
+   * until its owner says otherwise: the level belongs to whatever the tone is
+   * the sound *of*, and is set from the same frame that moves it (6.3.2).
+   */
+  loop(id, position, { volume = 1, maxDistance = 26 } = {}) {
+    if (!this.ready) return null;
+    const buffer = this.buffers.get(id);
+    if (!buffer) return null;
+
+    const source = this.ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    const gain = this.ctx.createGain();
+    gain.gain.value = 0.0001;
+    const panner = this.#panner(position, maxDistance);
+    source.connect(gain).connect(panner);
+    panner.connect(this.dry);
+    panner.connect(this.send);
+    source.start();
+
+    const ctx = this.ctx;
+    return {
+      source,
+      panner,
+      /** 0..1 of `volume`. A short time constant, so a cut is a cut and not a click. */
+      setLevel(level) {
+        gain.gain.setTargetAtTime(Math.max(0.0001, level * volume), ctx.currentTime, 0.006);
+      },
+      stop() {
+        gain.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.02);
+        source.stop(ctx.currentTime + 0.15);
+      },
+    };
+  }
+
+  #panner(position, maxDistance) {
     const panner = this.ctx.createPanner();
     panner.panningModel = 'equalpower';
     panner.distanceModel = 'inverse';
@@ -178,12 +226,7 @@ export class AudioBus {
     panner.maxDistance = maxDistance;
     panner.rolloffFactor = 1.2;
     setPosition(panner, position[0], position[1] ?? 1.2, position[2]);
-
-    source.connect(gain).connect(panner);
-    panner.connect(this.dry);
-    panner.connect(this.send);
-    source.start(this.ctx.currentTime + delay);
-    return source;
+    return panner;
   }
 
   /** Where the ears are. Called every frame from the game loop. */
@@ -377,6 +420,10 @@ export const SOUND_IDS = [
   'end_sting',
   'cell_lift',
   'cell_seat',
+  'fan_pass',
+  'vent_breath',
+  'lamp_buzz',
+  'spark_crackle',
 ];
 
 /** Sets a panner's position across both the current and the legacy API. */
@@ -444,6 +491,10 @@ const SHAPES = {
   end_sting: { seconds: 2.6, build: sting },
   cell_lift: { seconds: 0.5, build: (t, d) => thud(t, d, 150) },
   cell_seat: { seconds: 0.7, build: (t, d) => thud(t, d, 72) },
+  fan_pass: { seconds: 0.4, build: (t, d) => thud(t, d, 58) * 0.4 },
+  vent_breath: { seconds: 1.6, build: (t, d) => noise() * 0.15 * Math.sin((Math.PI * t) / d) },
+  lamp_buzz: { seconds: 1, build: (t) => Math.sign(Math.sin(t * 2 * Math.PI * 120)) * 0.05 },
+  spark_crackle: { seconds: 0.3, build: (t) => (Math.random() < 0.02 ? noise() : 0) * Math.exp(-t * 8) },
 };
 
 function synthesise(ctx, id) {

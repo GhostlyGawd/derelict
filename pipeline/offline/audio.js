@@ -100,6 +100,14 @@ export function synthesiseSound(spec, sampleRate) {
       return lift(spec, sampleRate);
     case 'seat':
       return seat(spec, sampleRate);
+    case 'fan':
+      return fan(spec, sampleRate);
+    case 'vent':
+      return vent(spec, sampleRate);
+    case 'buzz':
+      return buzz(spec, sampleRate);
+    case 'crackle':
+      return crackle(spec, sampleRate);
     default:
       return clunk(spec, sampleRate);
   }
@@ -434,5 +442,106 @@ function seat(spec, sampleRate) {
     }
 
     return v * window(t, spec.seconds, 0.004, 0.35);
+  });
+}
+
+/* ---------------------------------------------------- phase 6: idle life --- */
+//
+// Four voices for the four things phase 4 made move and left silent. None of
+// them is a loop with its own idea of time: the fan, the vent and the sparks
+// are single events the game fires when the motion happens, and the lamp is a
+// steady tone the game gates on and off with the lamp. 6.3.2 — a sound on its
+// own timer beside a motion is worse than silence.
+
+/**
+ * One blade passing the Annex extractor's housing. Fired once per blade, so at
+ * 26 rpm and five blades this lands a little over twice a second and overlaps
+ * itself — the bearing tone under it carries from one pass into the next and
+ * that is what makes it a machine rather than a metronome.
+ */
+function fan(spec, sampleRate) {
+  const random = rng(0xfa17);
+  const lp = lowpass(sampleRate);
+  const bp = bandpass(sampleRate);
+  return render(spec.seconds, sampleRate, (t) => {
+    let v = 0;
+    // The pressure pulse of a blade going past the throat: a soft, low push of
+    // air rather than a hit.
+    const push = Math.sin(Math.PI * clamp01(t / 0.11)) * expDecay(Math.max(0, t - 0.11), 14);
+    v += lp(random() * 2 - 1, 420) * push * 1.4;
+    v += Math.sin(TAU * 58 * t) * push * 0.35;
+    // A tired bearing: a narrow, slightly unsteady tone that never quite holds
+    // its pitch.
+    const wander = 1 + 0.012 * Math.sin(TAU * 3.1 * t) + 0.006 * Math.sin(TAU * 7.7 * t);
+    v += Math.sin(TAU * 312 * wander * t) * 0.05 * expDecay(t, 3.2);
+    v += bp(random() * 2 - 1, 640, 18) * 0.07 * expDecay(t, 5);
+    return v * window(t, spec.seconds, 0.004, 0.18);
+  });
+}
+
+/**
+ * The Hold vent drawing a breath: duct air rising and falling through the
+ * slats, and the slats knocking once in their frame as they swing open.
+ */
+function vent(spec, sampleRate) {
+  const random = rng(0x7e47);
+  const lp = lowpass(sampleRate);
+  const hp = highpass(sampleRate);
+  const bp = bandpass(sampleRate);
+  return render(spec.seconds, sampleRate, (t) => {
+    const u = t / spec.seconds;
+    // Swells for most of the breath and lets go faster than it came in.
+    const swell = Math.pow(Math.sin(Math.PI * Math.pow(u, 0.75)), 1.6);
+    const cutoff = 380 + 1100 * swell;
+    let v = hp(lp(random() * 2 - 1, cutoff), 90) * swell * 0.9;
+    // Duct resonance, so it is air in a pipe rather than air in a room.
+    v += bp(random() * 2 - 1, 210 + 40 * swell, 9) * swell * 0.35;
+    // The slats settle against their stops as they open.
+    if (t < 0.18) v += modes(t, [[188, 0.08, 38], [431, 0.035, 55]]);
+    return v * window(t, spec.seconds, 0.02, 0.3);
+  });
+}
+
+/**
+ * The failing lamp's ballast. A mains buzz — a fundamental and its odd
+ * harmonics, slightly clipped — with a little hiss. Rendered as exactly a whole
+ * number of cycles so the game can loop it sample-for-sample; it is gated with
+ * the lamp, never left running beside it.
+ */
+function buzz(spec, sampleRate) {
+  const random = rng(0xb022);
+  const hp = highpass(sampleRate);
+  const f = spec.hz;
+  return render(spec.seconds, sampleRate, (t) => {
+    const p = TAU * f * t;
+    let v = Math.sin(p) * 0.5 + Math.sin(3 * p) * 0.22 + Math.sin(5 * p) * 0.12 + Math.sin(7 * p) * 0.06;
+    v = Math.tanh(v * 1.8) * 0.6;
+    v += hp(random() * 2 - 1, 3000) * 0.03;
+    return v;
+  });
+}
+
+/** Sparks at the debris: a burst of hard, irregular clicks and a short zap. */
+function crackle(spec, sampleRate) {
+  const random = rng(0xc4ac);
+  const hp = highpass(sampleRate);
+  const bp = bandpass(sampleRate);
+  // Click times decided up front, clustered at the front of the burst like the
+  // flashes they belong to.
+  const clicks = [];
+  for (let at = 0; at < spec.seconds * 0.8; ) {
+    clicks.push([at, 0.4 + random() * 0.6]);
+    at += 0.004 + Math.pow(random(), 2) * 0.05 * (1 + at * 6);
+  }
+  let next = 0;
+  let env = 0;
+  return render(spec.seconds, sampleRate, (t) => {
+    while (next < clicks.length && clicks[next][0] <= t) env = Math.max(env, clicks[next++][1]);
+    env *= 0.985;
+    let v = hp(random() * 2 - 1, 1800) * env * 0.9;
+    // The arc itself: a short, dirty tone that only lives in the first instant.
+    v += bp(random() * 2 - 1, 2400, 6) * expDecay(t, 26) * 0.5;
+    v += Math.sign(Math.sin(TAU * 100 * t)) * expDecay(t, 40) * 0.08;
+    return v * window(t, spec.seconds, 0.0008, 0.06);
   });
 }

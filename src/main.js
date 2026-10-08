@@ -159,7 +159,7 @@ class Derelict {
     this.lighting = buildLighting(this.materials);
     this.scene.add(this.lighting.group);
 
-    this.mechanism = buildMechanism(this.materials, this.lighting);
+    this.mechanism = buildMechanism(this.materials, this.lighting, this.audio);
     this.scene.add(this.mechanism.group);
 
     this.switches = buildSwitches(this.assets, modelCache);
@@ -410,6 +410,8 @@ class Derelict {
       this.audio.playAt('door_motor', [0, 1.2, -11.4], { volume: 1, rate: 0.72 });
     }
     this.lighting.floodChamber();
+    // And the machinery behind them winds down with the lights (6.3.2).
+    this.mechanism.powerDown();
     // The chamber is the seventh compartment, and it comes up last. The end
     // card counts what got its power back, and this is the one that does it
     // without a switch or a cell.

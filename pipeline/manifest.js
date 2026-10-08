@@ -218,7 +218,10 @@ export const MODELS = [
   },
 ];
 
-/** The ten sounds, all generated. Eight from v1, two added by phase 2. */
+/**
+ * Every sound, all generated. Eight from v1, two from phase 2, three from
+ * phase 4, four from phase 6.
+ */
 export const SOUNDS = [
   {
     id: 'ambient_hum',
@@ -331,6 +334,43 @@ export const SOUNDS = [
     prompt: audioPrompt(
       'A power cell sliding home into a socket: metal guide rails, a solid latching clunk, then contacts engaging and the circuit coming alive with a rising hum.'
     ),
+  },
+
+  // ---- Phase 6: the machinery you can see, heard -------------------------
+  // One voice per thing that moves. Each is fired by the motion it belongs to
+  // (6.3.2), so none of them is a loop with a clock of its own. The lamp's
+  // buzz is the one steady tone, and it is WAV rather than MP3 so it can loop
+  // without the codec's padding ticking once a cycle.
+  {
+    id: 'fan_pass',
+    seconds: 0.62,
+    gain: 0.75,
+    synth: 'fan',
+    prompt: audioPrompt('One blade of a slow, worn ceiling extractor fan passing its housing: a soft low push of air over a tired, slightly unsteady bearing whine.'),
+  },
+  {
+    id: 'vent_breath',
+    seconds: 2.4,
+    gain: 0.7,
+    synth: 'vent',
+    prompt: audioPrompt('A wall vent drawing one breath of air through louvred slats, a hollow duct swell rising and falling, the slats knocking once as they open.'),
+  },
+  {
+    id: 'lamp_buzz',
+    seconds: 1,
+    hz: 120,
+    gain: 0.55,
+    synth: 'buzz',
+    wav: true,
+    loop: true,
+    prompt: audioPrompt('The steady electrical buzz of a failing fluorescent ballast, mains hum with harsh odd harmonics.'),
+  },
+  {
+    id: 'spark_crackle',
+    seconds: 0.55,
+    gain: 0.8,
+    synth: 'crackle',
+    prompt: audioPrompt('A short burst of electrical sparks from a damaged live cable, hard irregular crackles and a brief zap.'),
   },
 ];
 
