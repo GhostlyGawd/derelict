@@ -77,6 +77,19 @@ the end sting are 2.6% of the bytes, about 0.07 s, so the deferral 7.3.3
 allowed is not earned and nothing changes. The budget is 3.87 MB, the
 measurement plus 15%.
 
+*The owner's run.* Recorded on the new controls on 8 October 2026 and
+committed as `tools/traces/owner-2026-10-08-v2.json`. It is a complete run on
+a 440 × 760 portrait phone: 110 s of game time, 6,588 frames, about 4,000
+touch events, both cells seated, and it ends on the threshold. Replay agrees at
+all 219 checkpoints and ends 0.000 m from where the player stood, so the 7.5
+bar "the owner's run replays in CI" is met. What it shows about real thumbs:
+73 look touches, 65 of them started while the stick was held, and every one of
+them landed in the lower half of the screen. That is the region the old button
+column crowded, which is the case for tucking the buttons into the corner. None
+started left of centre, so this run did not exercise the reach-across case. The
+owner has not yet recorded a before-trace on the old controls, so the bar that
+needs one is still open.
+
 The owner chose the shape: narrow, per the rhythm 5.2 proposed, built around
 the one thing phase 6's play turned up, plus a second instrument the owner
 asked to add (7.3.3).
