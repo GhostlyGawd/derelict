@@ -1,8 +1,8 @@
 
 # DERELICT — Spec
 
-**How to read this document.** Phase 7 (v1.6) is the most recent section and
-is a **draft** in flight; merging it ratifies it. Phase 6 is built and signed,
+**How to read this document.** Phase 7 (v1.6) is the most recent section. It
+is built and signed; merging it ratifies and ships it. Phase 6 is built and signed,
 and ships when its pull requests merge. Phase 5, Phase 4, Phase 3, Phase 2,
 Amendment 1 and the v1.0 sections below them are shipped. Where any two disagree,
 the later section wins. Nothing here is a suggestion — if we change
@@ -40,10 +40,67 @@ to tri budget, crunch textures to 256 px).
 
 # Phase 7 — v1.6
 
-**Status: DRAFT.** Proposed 8 October 2026. Merging the pull request that
-carries it ratifies it, as with phases 4, 5 and 6. Once merged it holds on the
-same terms as everything below: nothing here is a suggestion, and if we change
+**Status: BUILT, and signed.** Proposed 8 October 2026 in PR #24, approved
+and built the same day in PR #25. Merging the two ratifies and ships it.
+
+**Signed by the owner, 8 October 2026,** after recording a run on each set of
+controls: *"The after feels way better. The before ran into the same bugs."*
+Every bar in 7.5 is met. It holds on the same
+terms as everything below: nothing here is a suggestion, and if we change
 something during the build we change this document first.
+
+**What the build changed in this section, and why.**
+
+*What an old trace can prove.* The draft said the owner would record a run on
+the current controls "so the overlap they reported exists as a failing replay
+before anything is changed." That cannot work. A trace replays the raw touches
+through the input layer it is given. Replayed against the layer it was recorded
+on, it reproduces the run exactly, overlap and all, and passes. Replayed against
+a layer that has been deliberately changed, it is expected to diverge, and that
+divergence is the change working rather than a regression. So every trace now
+carries the version of the input layer that recorded it, and replay asserts only
+against that version. The owner's trace on the current controls is evidence: it
+records where the thumbs actually land. 7.3.1's zones and button placement are
+settled against it, and the harness reports how many of its touches the new
+layer would assign differently. The regression test is a second trace, recorded
+by the owner after the fix. 7.5 and 7.8 say so.
+
+*What the instruments found while being built.* The round trip failed on its
+first run. Record and replay ended in exactly the same place but disagreed at
+the one checkpoint in between: the recorder was writing each checkpoint at the
+top of a frame and labelling it one frame late. The fix is in the recorder. The
+round trips now cover two thumbs on a portrait phone (242 frames, 206 events)
+and keys plus mouse on a desktop, and both agree exactly at every checkpoint.
+The new touch checks reproduced the owner's report on the old layer before the
+fix: a second thumb landing left of centre while moving was dropped.
+
+*The weight, measured.* 3.37 MB to the title, decoded. Models are 32%,
+textures 23%, script 19%, sounds 15% and responses 10%. On a pinned 10 Mbit/s,
+40 ms connection the title takes 2.6 s, nearly all of it transfer. The sky and
+the end sting are 2.6% of the bytes, about 0.07 s, so the deferral 7.3.3
+allowed is not earned and nothing changes. The budget is 3.87 MB, the
+measurement plus 15%.
+
+*The owner's run.* Recorded on the new controls on 8 October 2026 and
+committed as `tools/traces/owner-2026-10-08-v2.json`. It is a complete run on
+a 440 × 760 portrait phone: 110 s of game time, 6,588 frames, about 4,000
+touch events, both cells seated, and it ends on the threshold. Replay agrees at
+all 219 checkpoints and ends 0.000 m from where the player stood, so the 7.5
+bar "the owner's run replays in CI" is met. What it shows about real thumbs:
+73 look touches, 65 of them started while the stick was held, and every one of
+them landed in the lower half of the screen. That is the region the old button
+column crowded, which is the case for tucking the buttons into the corner. None
+started left of centre, so this run did not exercise the reach-across case.
+
+*The owner's before-run, measured.* Recorded on the old controls the same day
+and committed as `tools/traces/owner-2026-10-08-v1-before.json`: 98 s, both
+cells, ending on the threshold. Built from the v1 branch, it replays exactly at
+all 196 checkpoints, so the recording holds the bug as the owner met it. Run
+through the zone table, its 64 touch-downs on the view show what changed. Version
+1 gave 15 stick, 45 look and 4 dropped. The zone table gives 13 stick, 51 look
+and none dropped. That is six touches assigned differently: two look touches
+version 1 took as movement, and four it threw away. Those six are the owner's
+report, counted.
 
 The owner chose the shape: narrow, per the rhythm 5.2 proposed, built around
 the one thing phase 6's play turned up, plus a second instrument the owner
@@ -131,6 +188,11 @@ reproduce it, the fix was already written against a guess.
 - **Traces are committed and run in CI.** `tools/traces/` holds them. One is
   generated by the harness itself, as a round-trip check that record and replay
   agree. One or more come from the owner's phone.
+- **A trace is bound to the input layer that recorded it.** Each one carries
+  that layer's version. Replay asserts only against the same version. When the
+  layer changes on purpose, older traces are retired from the gate and kept as
+  evidence, with the harness reporting what the new layer does differently with
+  them.
 
 **The cost, stated plainly.** Replay is only as good as the game is
 deterministic. Movement, collision and the chain are driven by the time step
@@ -203,7 +265,8 @@ verbs.**
 | **Move and look at once, in portrait.** The left thumb holds the stick while the right thumb turns the camera, including a right thumb that starts left of centre. | Claude — the touch harness, extended to two simultaneous thumbs on a portrait phone |
 | **A look touch is never taken as movement.** No touch outside the movement zone starts the stick, and a second touch is never ignored. | Claude — a sweep of touch-down points across the screen against the zone table |
 | **Record and replay agree.** A run the harness records itself replays to the same phase, cells and position. | Claude — `tools/replay.mjs`, round trip |
-| **The owner's run replays in CI.** At least one trace from the owner's phone is committed and green. | **The owner** records it; Claude commits and runs it |
+| **The owner's run replays in CI.** At least one trace from the owner's phone, recorded on the new controls, is committed and green. | **The owner** records it; Claude commits and runs it |
+| **The fix is measured against real thumbs.** The owner's trace on the old controls is replayed through the new zone table, and the touches it assigns differently are reported. | Claude — `tools/replay.mjs`, against the retired trace |
 | **The weight is a number, and inside its budget.** Bytes to title by kind, gated; time to title reported. | Claude — `tools/weight.mjs`, in CI |
 | **Nothing regresses.** All harnesses green, the six-step chain still solvable, the pipeline still byte-reproducible, the deployment still live. | CI |
 | **The controls feel right on a phone.** Looking goes where the right thumb is, and moving does not happen by accident. | **The owner** |
@@ -228,19 +291,22 @@ harnesses.
 
 1. **The trace.** The injectable time step, the recorder, the replayer, and the
    self-recorded round trip, red before green. Once it ships to the preview, the
-   owner records a run on the current controls, so the overlap they reported
-   exists as a failing replay before anything is changed.
+   owner records a run on the current controls. That run is the evidence of
+   where their thumbs land, and the fix is settled against it.
 2. **The weight.** Measured before the touch changes, so the controls work lands
    inside a known budget.
 3. **Two thumbs.** The zone table, the reassignment rules, button placement, and
-   the two-thumb harness, checked against the owner's trace.
+   the two-thumb harness, checked against the owner's trace. The input layer's
+   version goes up, and the owner records a second run on the new controls as
+   the regression trace.
 4. **Integration and ship.**
 
-**The one thing the build asks of the owner.** Step 1 asks the owner for one thing mid-build: open the preview with `?trace`
-on their phone, play, and send the file from the end card. If that is not
-convenient, the build goes ahead on the harness's own two-thumb recordings and
-the owner's trace is added when it arrives. The bar in 7.5 stays unsigned until
-then.
+**What the build asks of the owner.** Two recordings. Open the preview with
+`?trace` on a phone, play, and download the file from the end card: once on the
+current controls (evidence), and once after the fix (the regression trace). If
+that is not convenient, the build goes ahead on the harness's own two-thumb
+recordings, and the owner's traces are added when they arrive. The bars in 7.5
+that need them stay unsigned until then.
 
 ## 7.9 Decisions taken in the draft
 

@@ -20,9 +20,15 @@ npm run dev
 
 **Desktop** — mouse look (click to capture the pointer), `WASD` to move, `E` to
 interact, `C` or left `Ctrl` held to crouch, `Esc` to pause.
-**Mobile** — left thumb anywhere on the left half is the movement stick, drag on
-the right half to look, tap the context button to interact, hold the crouch
-button to crouch.
+**Mobile** — a touch in the lower-left of the screen (the left third in
+landscape) is the movement stick; drag anywhere else to look, and a second
+thumb is always look while you are moving. Tap the context button to interact,
+and hold the crouch button to crouch.
+
+**Recording a run** — open the game with `?trace` on the end of the URL and
+play. The end card offers the file: every raw input event and the time step of
+every frame. Nothing is sent anywhere. Committed to `tools/traces/`, it becomes
+a test that replays your run through the real input layer.
 
 ## The route
 
@@ -136,7 +142,7 @@ strike is something to watch, never something to wait for.
 ```bash
 npm run build
 npm run preview     # in another shell
-npm test            # all ten harnesses
+npm test            # all twelve harnesses
 ```
 
 Individually, optionally with `--shots` to write screenshots to `tools/shots`:
@@ -149,13 +155,15 @@ npm run test:relief       # normal maps are bound, and the lighting reads them
 npm run test:legible      # every space named once, and readable
 npm run test:consume      # every generated asset is observed in use
 npm run test:clock        # every idle sound on its motion's clock
+npm run test:replay       # recorded runs replay to where they ended
+npm run test:weight       # bytes to title, gated; time to title, reported
 npm run test:framecost    # what each feature costs, and the whole frame
 npm run test:smoke        # systems
 npm run test:walkthrough  # the route, on foot
 npm run test:mobile       # touch controls
 ```
 
-All ten run in CI on every pull request, alongside a check that regenerating
+All twelve run in CI on every pull request, alongside a check that regenerating
 `public/assets` reproduces exactly what is committed — so a generator cannot
 change without its output changing with it, and vice versa.
 
@@ -245,11 +253,31 @@ away — input stays live and look input still turns the player right up until
 the end card. Whether the moment *lands* is the owner's call and this cannot
 say.
 
-**mobile** drives synthetic touch streams in an emulated phone: the left stick
-walks the player, a right-side drag turns the camera, the context button throws
-a switch, takes a cell, puts it down, picks it back up and seats it. The
-set-down is the part worth testing there, because it is the one action with
-nothing in the crosshair to light the context button.
+**mobile** drives synthetic touch streams in an emulated phone: the stick walks
+the player, a drag turns the camera, the context button throws a switch, takes
+a cell, puts it down, picks it back up and seats it. The set-down is worth
+testing there, because it is the one action with nothing in the crosshair to
+light the context button. Since phase 7 it also drives two thumbs at once. The
+left thumb walks while the right goes down left of centre and looks. A single
+thumb reaching across to look must not walk. A sweep of nearly 600 touch-downs
+across the screen is judged against the same zone table the game reads. The
+first two reproduced the owner's report exactly before the fix.
+
+**replay** plays recorded runs back. It first records two runs of its own, two
+thumbs on a portrait phone and keys plus mouse on a desktop, and replays each
+in a fresh page by stepping the game's own frame body with every recorded time
+step. Both have to agree at every checkpoint. Its first run caught the recorder
+labelling checkpoints one frame late. Then it replays every trace in
+`tools/traces/` that was recorded on the current input layer. A trace recorded
+on an older layer is kept as evidence rather than gated, because a deliberate
+change to how touches are assigned is supposed to make it diverge. The harness
+reports what the new layer would do differently with it.
+
+**weight** counts every byte the page takes before the title appears, decoded,
+so the count is the same whether or not the server compresses. It gates the
+total at the phase 7 measurement, 3.37 MB, plus 15%. Time to title on a pinned
+10 Mbit/s connection is reported and not gated, because part of it is the
+runner's CPU.
 
 Every assertion is written against a condition, never against a stopwatch, and
 where a stall has to be detected it is measured against the game clock rather

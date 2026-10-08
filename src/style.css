@@ -184,6 +184,27 @@ body {
   background: rgba(90, 190, 120, 0.5);
 }
 
+/* Phase 7 (7.3.1). On a phone in portrait the buttons used to fill the bottom
+   of a right half barely wider than a thumb's sweep, so a right thumb looking
+   had nowhere to land but above them or across the midline. They tuck into the
+   corner now — smaller, and tight to the edge — and the look area is everything
+   outside the stick's zone in touchzones.js. */
+@media (orientation: portrait) {
+  #touch-interact {
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(28px, calc(env(safe-area-inset-bottom) + 12px));
+    width: 88px;
+    height: 88px;
+  }
+
+  #touch-crouch {
+    right: max(20px, env(safe-area-inset-right));
+    bottom: max(130px, calc(env(safe-area-inset-bottom) + 114px));
+    width: 70px;
+    height: 70px;
+  }
+}
+
 /* ---------------------------------------------------------- Overlays --- */
 
 #fade {
