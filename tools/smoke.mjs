@@ -137,6 +137,7 @@ const sounds = await page.evaluate(() => {
   return {
     ready: bus.ready,
     buffers: [...bus.buffers.entries()].map(([id, b]) => [id, +b.duration.toFixed(2)]),
+    listed: Object.keys(window.__derelict.assets.manifest?.audio || {}),
     ambient: Boolean(bus.ambient),
     responses: [...bus.responses.entries()].map(([id, b]) => [id, +b.duration.toFixed(2)]),
     spaces: [...bus.irOfSpace.entries()],
@@ -146,7 +147,16 @@ if (!sounds.ready) throw new Error('audio bus never became ready');
 if (!sounds.ambient) throw new Error('ambient loop did not start');
 const silent = sounds.buffers.filter(([, d]) => d <= 0);
 if (silent.length) throw new Error(`empty audio buffers: ${silent.map(([id]) => id).join(', ')}`);
-if (sounds.buffers.length !== 13) throw new Error(`expected 13 sounds, decoded ${sounds.buffers.length}`);
+// Read from the manifest rather than restated here: phase 6 grew the set from
+// thirteen to seventeen, and a number in this file is a second copy to drift.
+const decoded = new Set(sounds.buffers.map(([id]) => id));
+const undecoded = sounds.listed.filter((id) => !decoded.has(id));
+if (!sounds.listed.length || undecoded.length || sounds.buffers.length !== sounds.listed.length) {
+  throw new Error(
+    `the manifest lists ${sounds.listed.length} sounds and ${sounds.buffers.length} decoded` +
+      (undecoded.length ? ` — missing ${undecoded.join(', ')}` : '')
+  );
+}
 console.log('  audio:', sounds.buffers.map(([id, d]) => `${id} ${d}s`).join(', '));
 
 // Phase 4: the impulse responses are a second asset class in the same bus.
