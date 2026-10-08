@@ -1,5 +1,5 @@
 import { SPACES } from '../src/game/layout.js';
-import { GLYPH_BIBLE, audioPrompt, modelPrompt, texturePrompt } from './style-bible.js';
+import { GLYPH_BIBLE, audioPrompt, modelPrompt, skyPrompt, texturePrompt } from './style-bible.js';
 
 /**
  * The asset manifest from section 7 of the spec, as data.
@@ -89,6 +89,22 @@ export const TEXTURES = [
     prompt: GLYPH_BIBLE,
   },
 ];
+
+/**
+ * Phase 6 — the outside. One cube map, six faces, drawn by asking what lies in
+ * each texel's direction. It is the one texture on the ship that is not
+ * tileable, not double-rendered and not lit: it is the view out of the outer
+ * door and nothing else, and nothing inside the hull ever sees it (6.4).
+ */
+export const SKY = {
+  id: 'sky',
+  size: 256,
+  seed: 6,
+  synth: 'sky',
+  prompt: skyPrompt(
+    'The view from the outer door of a derelict ship: deep black space thick with single-pixel stars, a faint band of unresolved starlight, the lit limb of a large banded gas giant filling the lower half of the view ahead, and one small hard white sun above and to the left of it.'
+  ),
+};
 
 /**
  * Props built by image→3D. `size`/`fit` are the real-world scale the
@@ -383,4 +399,4 @@ function hash(text) {
   return h >>> 0;
 }
 
-export const ALL = { TEXTURES, MODELS, SOUNDS, ACOUSTICS };
+export const ALL = { TEXTURES, SKY, MODELS, SOUNDS, ACOUSTICS };

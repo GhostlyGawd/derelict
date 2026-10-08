@@ -16,6 +16,7 @@ import {
   DEPARTURE_TRIGGER,
   OUTER_TRIGGER,
   PLAYER_CROUCH_HEIGHT,
+  PLAYER_EYE,
   PLAYER_HEIGHT,
   PLAYER_RADIUS,
   ROOM_TONE,
@@ -29,6 +30,7 @@ import {
 import { buildLevel } from './game/level.js';
 import { buildLighting } from './game/lighting.js';
 import { buildMechanism } from './game/mechanism.js';
+import { buildOutside } from './game/outside.js';
 import { Player } from './game/player.js';
 import { buildStaticProps } from './game/props.js';
 import { buildViewmodel, fovFor } from './game/viewmodel.js';
@@ -143,6 +145,11 @@ class Derelict {
 
     const level = buildLevel(this.materials);
     this.scene.add(level.group);
+
+    // Phase 6: the sky and the hull's outside face. Nothing inside the ship can
+    // see either; the outer door is the only way to.
+    this.outside = buildOutside(this.assets, this.materials);
+    this.scene.add(this.outside.group);
 
     const props = buildStaticProps(this.assets, modelCache);
     this.scene.add(props.group);
@@ -557,6 +564,53 @@ class Derelict {
    */
   pressInteractForTest(target = null) {
     if (this.phase === 'playing') this.#press(target);
+  }
+
+  /**
+   * Fraction of a frame that is sky, from a standing eye at (x, z), for
+   * tools/consume.mjs. 6.4 says nothing inside the hull may see out, and a
+   * crack between two wall boxes would show stars without failing anything
+   * else. So the sky is swapped for a flat marker, the scene is drawn once
+   * off-screen, and the marker is counted.
+   */
+  skyCoverageForTest(x, z, yaw, pitch = 0) {
+    const sky = this.outside.sky;
+    if (!sky) return null;
+    const camera = this.camera.clone();
+    camera.position.set(x, PLAYER_EYE, z);
+    camera.rotation.set(pitch, yaw, 0, 'YXZ');
+    camera.aspect = 1.6;
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld(true);
+
+    const w = 160;
+    const h = 100;
+    const target = new THREE.WebGLRenderTarget(w, h);
+    const marker = new THREE.MeshBasicMaterial({
+      color: 0xff00ff,
+      side: THREE.BackSide,
+      depthTest: false,
+      depthWrite: false,
+      fog: false,
+    });
+    const original = sky.material;
+    sky.material = marker;
+    const renderer = this.view.renderer;
+    renderer.setRenderTarget(target);
+    renderer.clear();
+    renderer.render(this.scene, camera);
+    const pixels = new Uint8Array(w * h * 4);
+    renderer.readRenderTargetPixels(target, 0, 0, w, h, pixels);
+    renderer.setRenderTarget(null);
+    sky.material = original;
+    marker.dispose();
+    target.dispose();
+
+    let hits = 0;
+    for (let i = 0; i < pixels.length; i += 4) {
+      if (pixels[i] > 240 && pixels[i + 1] < 16 && pixels[i + 2] > 240) hits++;
+    }
+    return hits / (w * h);
   }
 
   #inside(box) {

@@ -3,10 +3,11 @@
   "styleBible": "Late-1990s retro sci-fi FPS aesthetic. Derelict industrial spaceship interior. Dark gunmetal and olive metal, heavy rivets, scuffed grimy surfaces, utilitarian machinery. Sickly green energy glow from conduits and readouts. Low-resolution game-texture look, slightly desaturated, moody. No legible text, no watermarks, no people.",
   "totals": {
     "textures": 8,
+    "sky": 6,
     "models": 10,
     "audio": 13,
     "acoustics": 5,
-    "bytes": 2258418
+    "bytes": 2300866
   },
   "textures": {
     "wall_panel_a": {
@@ -289,6 +290,18 @@
           }
         }
       }
+    }
+  },
+  "sky": {
+    "size": 256,
+    "bytes": 42448,
+    "faces": {
+      "px": "sky/sky_px.png",
+      "nx": "sky/sky_nx.png",
+      "py": "sky/sky_py.png",
+      "ny": "sky/sky_ny.png",
+      "pz": "sky/sky_pz.png",
+      "nz": "sky/sky_nz.png"
     }
   },
   "models": {

@@ -80,13 +80,14 @@ const manifest = await page.evaluate(() => {
     models: Object.keys(m.models || {}),
     audio: Object.keys(m.audio || {}),
     acoustics: Object.entries(m.acoustics || {}).map(([id, e]) => [id, e.spaces || []]),
+    sky: Boolean(m.sky),
   };
 });
 if (!manifest) throw new Error('no manifest — the gate has nothing to check against');
 console.log(
   `  manifest: ${manifest.textures.length} textures (${manifest.normals.length} with relief), ` +
     `${manifest.models.length} models, ${manifest.audio.length} sounds, ` +
-    `${manifest.acoustics.length} responses`
+    `${manifest.acoustics.length} responses${manifest.sky ? ', 1 sky' : ''}`
 );
 
 // ---- Every texture and every model, observed on something being drawn ------
@@ -166,6 +167,50 @@ for (const id of manifest.models) {
     drawn.loadedModels.includes(id)
       ? 'the generated model loaded but nothing in either scene came from it'
       : 'the model never loaded, so anything wearing its name is the greybox stand-in'
+  );
+}
+
+// ---- The sky, and the rule that nothing inside the hull sees it -------------
+//
+// 6.4: no views out before the end. A crack between two wall boxes would show
+// stars without failing a single other check, so every compartment is looked
+// round from its centre and four corners, level and up toward the deckhead,
+// with every door still shut — the state the whole run before the ending is in.
+// The sky is swapped for a flat marker and counted, so this measures geometry
+// rather than how dark the stars happen to be.
+if (manifest.sky) {
+  console.log('\n  the sky, unseen from inside');
+  const leaks = await page.evaluate(() => {
+    const g = window.__derelict;
+    const found = [];
+    let looks = 0;
+    for (const space of g.spaces) {
+      const inset = 0.8;
+      const cx = (space.x[0] + space.x[1]) / 2;
+      const cz = (space.z[0] + space.z[1]) / 2;
+      const points = [
+        [cx, cz],
+        [space.x[0] + inset, space.z[0] + inset],
+        [space.x[1] - inset, space.z[0] + inset],
+        [space.x[0] + inset, space.z[1] - inset],
+        [space.x[1] - inset, space.z[1] - inset],
+      ];
+      for (const [x, z] of points) {
+        for (let k = 0; k < 4; k++) {
+          for (const pitch of [0, 0.55]) {
+            looks++;
+            const fraction = g.skyCoverageForTest(x, z, (k * Math.PI) / 2, pitch);
+            if (fraction > 0) found.push(`${space.id} (${x.toFixed(1)}, ${z.toFixed(1)}) ${(fraction * 100).toFixed(2)}%`);
+          }
+        }
+      }
+    }
+    return { looks, found };
+  });
+  expect(
+    `sky      not visible from ${leaks.looks} interior looks`,
+    leaks.found.length === 0,
+    `stars through the hull at ${leaks.found.slice(0, 6).join('; ')}`
   );
 }
 
@@ -589,6 +634,37 @@ for (let burst = 0; burst < 30; burst++) {
   await hold(['KeyW'], 1000);
 }
 await page.waitForFunction(() => window.__derelict?.phase === 'ended', null, { timeout: 45000 });
+
+// The run is over and the player has walked out under it. Bound by identity,
+// as every other texture is, and actually filling the view from the threshold.
+if (manifest.sky) {
+  console.log('\n  the sky, seen on the way out');
+  const sky = await page.evaluate(() => {
+    const g = window.__derelict;
+    const mesh = g.outside.sky;
+    let visible = Boolean(mesh);
+    for (let n = mesh; n; n = n.parent) if (!n.visible) visible = false;
+    return {
+      bound: Boolean(mesh) && mesh.material.envMap === g.assets.sky() && Boolean(g.assets.sky()),
+      visible,
+      fog: mesh ? mesh.material.fog : null,
+      ahead: g.skyCoverageForTest(0, -13.6, 0, 0),
+      through: g.skyCoverageForTest(0, -8.4, 0, 0),
+    };
+  });
+  expect('sky      bound on the drawn sky mesh', sky.bound && sky.visible, 'the cube map loaded and the sky mesh does not hold it');
+  expect('sky      exempt from fog', sky.fog === false, 'the sky is being fogged like the inside of the ship');
+  expect(
+    `sky      fills the view from the threshold (${(sky.ahead * 100).toFixed(0)}%)`,
+    sky.ahead > 0.5,
+    'walking out, most of what is ahead should be outside'
+  );
+  expect(
+    `sky      seen through the open outer door (${(sky.through * 100).toFixed(0)}%)`,
+    sky.through > 0.03,
+    'from inside the chamber with the door open, the outside should show through it'
+  );
+}
 
 const played = new Set((await state()).played);
 for (const id of manifest.audio) {

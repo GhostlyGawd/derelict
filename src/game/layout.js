@@ -272,7 +272,12 @@ export const DOORS = [
     model: 'airlock_door',
     // Slower than the inner door and heavier-sounding: this is the one holding
     // the vacuum back, and it is the last piece of machinery in the game.
-    leaves: [{ size: [2.36, 2.52, 0.22], pos: [0, 1.26, -11.4], slide: [0, -2.75, 0] }],
+    //
+    // Phase 6: 4 cm wider than its 2.4 m opening, so the leaf runs into both
+    // jambs. At 2.36 it left a 2 cm crack down each side, invisible for a phase
+    // because what showed through was the near-black clear colour — and the
+    // first thing tools/consume.mjs found once there were stars behind it.
+    leaves: [{ size: [2.44, 2.52, 0.22], pos: [0, 1.26, -11.4], slide: [0, -2.75, 0] }],
     duration: 3.6,
   },
   {
