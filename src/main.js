@@ -506,12 +506,13 @@ class Derelict {
 
   #frame(now) {
     requestAnimationFrame((t) => this.#frame(t));
-    const dt = Math.min(0.05, (now - this.lastFrame) / 1000);
+    const raw = now - this.lastFrame;
+    const dt = Math.min(0.05, raw / 1000);
     this.lastFrame = now;
     // Under a replay the browser's clock still ticks, and is ignored: the
     // frames are stepped from the recording instead.
     if (this.manualClock) return;
-    this.#tick(dt);
+    this.#tick(dt, true, raw);
   }
 
   /**
@@ -522,12 +523,15 @@ class Derelict {
     this.#tick(dt, render);
   }
 
-  #tick(dt, render = true) {
-    this.trace?.tick(dt);
+  #tick(dt, render = true, raw = dt * 1000) {
+    this.trace?.tick(dt, raw);
     this.frameIndex++;
     this.elapsed += dt;
 
-    if (this.view.sample(dt)) this.#resize();
+    if (this.view.sample(dt)) {
+      this.#resize();
+      this.trace?.scaleChanged(this.view.scale);
+    }
 
     // The clock runs until the player steps off the ship, so the departure is
     // part of the time aboard rather than free.

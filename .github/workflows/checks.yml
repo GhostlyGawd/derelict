@@ -116,6 +116,12 @@ jobs:
       - name: Playtest — the frame budget
         run: node tools/framecost.mjs http://127.0.0.1:4173/
 
+      # Phase 8. The other half of the frame budget: absolute frame times from
+      # the owner's own phone, read out of the committed traces and broken down
+      # by compartment and event. Reported, never gated.
+      - name: Report — frame times on the owner's phone
+        run: node tools/profile.mjs http://127.0.0.1:4173/
+
       - name: Playtest — systems
         run: node tools/smoke.mjs http://127.0.0.1:4173/ --shots
 

@@ -358,5 +358,11 @@ export function buildLighting(materials) {
     return zones.get(zoneId)?.lights ?? [];
   }
 
-  return { group, setPowered, floodChamber, reset, update, lampsIn };
+  /** Whether any zone is part-way through its strike, for tools/profile.mjs. */
+  function striking() {
+    for (const zone of zones.values()) if (zone.powered && zone.t < 1) return true;
+    return false;
+  }
+
+  return { group, setPowered, floodChamber, reset, update, lampsIn, striking };
 }

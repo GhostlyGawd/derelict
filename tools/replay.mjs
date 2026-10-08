@@ -29,7 +29,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { chromium } from 'playwright';
+import { launch, deviceFor as device, boot as bootAt, replay as replayIn } from './lib/replayer.mjs';
 
 import { inStickZone } from '../src/core/touchzones.js';
 
@@ -41,15 +41,7 @@ const POSITION_TOLERANCE = 0.05;
 const YAW_TOLERANCE = 0.01;
 
 const errors = [];
-const browser = await chromium.launch({
-  ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
-  args: [
-    '--use-gl=swiftshader',
-    '--enable-unsafe-swiftshader',
-    '--no-sandbox',
-    '--autoplay-policy=no-user-gesture-required',
-  ],
-});
+const browser = await launch();
 
 let failures = 0;
 function expect(label, condition, detail) {
@@ -61,24 +53,9 @@ function expect(label, condition, detail) {
   }
 }
 
-/** A page shaped like the device the trace was recorded on. */
-async function deviceFor(trace) {
-  const context = await browser.newContext({
-    viewport: { width: Math.round(trace.viewport.w), height: Math.round(trace.viewport.h) },
-    deviceScaleFactor: trace.viewport.dpr || 1,
-    hasTouch: Boolean(trace.touch),
-    isMobile: Boolean(trace.touch),
-  });
-  const page = await context.newPage();
-  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
-  page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
-  return { context, page };
-}
-
-async function boot(page, query = '') {
-  await page.goto(`${BASE}${query}`, { waitUntil: 'networkidle' });
-  await page.waitForFunction(() => window.__derelict?.phase === 'title', null, { timeout: 60000 });
-}
+const deviceFor = (trace) => device(browser, trace, errors);
+const boot = (page, query = '') => bootAt(page, BASE, query);
+const replay = (trace) => replayIn(browser, BASE, trace, { errors });
 
 // ---- 1. Round trip -----------------------------------------------------------
 //
@@ -168,6 +145,14 @@ console.log(
     `${recorded.checkpoints.length} checkpoints, input layer v${recorded.input}`
 );
 expect('the recording captured raw touches', recorded.events.some((e) => e[0] === 't'), 'no touch events in the trace');
+expect(
+  'the recording carries raw frame intervals and the device (format 2, 8.3.2)',
+  recorded.version === 2 &&
+    recorded.intervals?.length === recorded.frames.length &&
+    typeof recorded.device?.renderer === 'string' &&
+    recorded.device.scale > 0,
+  `version ${recorded.version}, ${recorded.intervals?.length} intervals for ${recorded.frames.length} frames, device ${JSON.stringify(recorded.device)}`
+);
 expect(
   'the run went somewhere',
   recorded.final && Math.hypot(recorded.final[3], recorded.final[4] - 4.6) > 0.5,
@@ -260,102 +245,6 @@ if (failures) {
 console.log('\nreplay: OK — recorded runs replay to where they ended');
 
 // ------------------------------------------------------------------------------
-
-/**
- * Plays a trace back in a fresh page shaped like the device it came from, and
- * returns the replay's own checkpoints and final state.
- */
-async function replay(trace) {
-  const { context, page } = await deviceFor(trace);
-  await boot(page);
-  await page.evaluate(() => {
-    window.__derelict.manualClockOnStart = true;
-    document.getElementById('start').click();
-  });
-  await page.waitForFunction(
-    () => window.__derelict?.phase === 'playing' && window.__derelict.manualClock,
-    null,
-    { timeout: 15000 }
-  );
-
-  const result = await page.evaluate(async (t) => {
-    const g = window.__derelict;
-    const canvas = g.canvas;
-    const targets = {
-      w: canvas,
-      i: document.getElementById('touch-interact'),
-      c: document.getElementById('touch-crouch'),
-    };
-    const TYPE = { s: 'touchstart', m: 'touchmove', e: 'touchend', c: 'touchcancel' };
-    // Desktop traces were played with the pointer locked; headless Chromium
-    // cannot take a real lock, so the input layer is told it has one, and any
-    // recorded change of lock is applied as it happened.
-    if (!t.touch) g.input.locked = true;
-
-    const live = new Map(); // identifier -> [x, y], for the `touches` list
-    const dispatch = (e) => {
-      const [kind, , ...rest] = e;
-      if (kind === 'k') {
-        const [down, code, repeat] = rest;
-        window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code, repeat: Boolean(repeat), bubbles: true }));
-      } else if (kind === 'm') {
-        document.dispatchEvent(new MouseEvent('mousemove', { movementX: rest[0], movementY: rest[1], bubbles: true }));
-      } else if (kind === 'b') {
-        canvas.dispatchEvent(new MouseEvent('mousedown', { button: rest[0], bubbles: true }));
-      } else if (kind === 't') {
-        const [k, where, touches] = rest;
-        const target = targets[where] || canvas;
-        const changed = touches.map(
-          ([identifier, clientX, clientY]) => new Touch({ identifier, target, clientX, clientY })
-        );
-        for (const [id, x, y] of touches) {
-          if (k === 'e' || k === 'c') live.delete(id);
-          else live.set(id, [x, y]);
-        }
-        const all = [...live.entries()].map(
-          ([identifier, [clientX, clientY]]) => new Touch({ identifier, target, clientX, clientY })
-        );
-        target.dispatchEvent(
-          new TouchEvent(TYPE[k], { changedTouches: changed, touches: all, bubbles: true, cancelable: true })
-        );
-      } else if (kind === 'l') {
-        g.input.locked = Boolean(rest[0]);
-        if (!rest[0]) g.input.onEscape();
-      } else if (kind === 'u') {
-        document.getElementById(rest[0])?.click();
-      }
-    };
-
-    const snap = (frame) => {
-      const p = g.player.position;
-      const r = (v) => Math.round(v * 1e4) / 1e4;
-      return [frame, g.phase, g.cells, r(p.x), r(p.z), r(g.player.yaw)];
-    };
-
-    const checkpoints = [];
-    let next = 0;
-    const events = t.events;
-    for (let frame = 0; frame < t.frames.length; frame++) {
-      while (next < events.length && events[next][1] <= frame) dispatch(events[next++]);
-      g.stepForTest(t.frames[frame], { render: false });
-      if ((frame + 1) % 30 === 0) checkpoints.push(snap(frame + 1));
-      // Let the page breathe now and then: timers the game set (a restart, the
-      // end card) still run on the wall clock.
-      if (frame % 500 === 499) await new Promise((r) => setTimeout(r, 0));
-    }
-    while (next < events.length) dispatch(events[next++]);
-
-    // The end card goes up on a wall-clock timer after the fade. A run that
-    // reached the threshold should reach 'ended'; give it the time.
-    if (t.final?.[1] === 'ended') {
-      for (let i = 0; i < 80 && g.phase !== 'ended'; i++) await new Promise((r) => setTimeout(r, 100));
-    }
-    return { checkpoints, final: snap(t.frames.length) };
-  }, trace);
-
-  await context.close();
-  return result;
-}
 
 /**
  * 7.5: the fix measured against real thumbs. Walks a retired touch trace's
