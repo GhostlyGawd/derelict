@@ -25,6 +25,8 @@
  */
 import { chromium } from 'playwright';
 
+import { POWERED } from '../src/game/layout.js';
+
 const BASE = process.argv[2] || 'http://127.0.0.1:4173/';
 
 /**
@@ -212,6 +214,85 @@ if (manifest.sky) {
     leaks.found.length === 0,
     `stars through the hull at ${leaks.found.slice(0, 6).join('; ')}`
   );
+}
+
+// ---- Phase 8: dust in the light, and only there ------------------------------
+//
+// 8.3.5: motes drawn only inside lit shafts, and bright only as their own lamp
+// is. In a fresh page on a manual clock, so every frame of a strike is seen:
+// nothing before the power, every mote inside its cone, the dust's brightness a
+// fixed multiple of its lamp's on every frame (so the stutter is in the air
+// too), and the air going dark with the lamps on the way out.
+{
+  console.log('\n  dust in the light');
+  const dp = await browser.newPage({ viewport: { width: 1024, height: 640 } });
+  dp.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  dp.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+  await dp.goto(BASE, { waitUntil: 'networkidle' });
+  await dp.waitForFunction(() => window.__derelict?.phase === 'title', null, { timeout: 60000 });
+  await dp.evaluate(() => {
+    window.__derelict.manualClockOnStart = true;
+    document.getElementById('start').click();
+  });
+  await dp.waitForFunction(() => window.__derelict?.phase === 'playing' && window.__derelict.manualClock, null, { timeout: 15000 });
+  const dust = await dp.evaluate((full) => {
+    const g = window.__derelict;
+    const all = [];
+    for (const zone of ['bay', 'corrA', 'hold', 'corrB', 'annex', 'shortcut']) {
+      for (const d of g.lighting.partsIn(zone).dust) all.push({ zone, ...d });
+    }
+    const drawn = (d) => d.shaft.visible && d.points.visible && d.points.material.opacity > 0;
+    const out = { shafts: all.length, motes: 0, litBefore: 0, outside: 0, ratios: [], levels: new Set(), moved: 0, litAfter: 0, endLevel: 0 };
+    for (const d of all) out.motes += d.points.geometry.attributes.position.count;
+    g.stepForTest(1 / 60, { render: false });
+    out.litBefore = all.filter(drawn).length;
+
+    const hold = all.filter((d) => d.zone === 'hold' || d.zone === 'corrA');
+    const before = hold.map((d) => Array.from(d.points.geometry.attributes.position.array));
+    g.pressInteractForTest(g.switches.find((s) => s.id === 'switch1'));
+    for (let f = 0; f < 240; f++) {
+      g.stepForTest(1 / 60, { render: false });
+      for (const d of hold) {
+        if (!d.shaft.visible) continue;
+        const k = Math.max(0, Math.min(1.6, d.light.intensity / full));
+        if (k > 0.01) out.ratios.push(d.points.material.opacity / k);
+        out.levels.add(Math.round(d.points.material.opacity * 1000));
+        const pos = d.points.geometry.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          const y = pos.getY(i) + d.height / 2;
+          const r = Math.hypot(pos.getX(i), pos.getZ(i));
+          if (y < 0 || y > d.height || r > d.radius * (1 - y / d.height) + 1e-6) out.outside++;
+        }
+      }
+    }
+    hold.forEach((d, j) => {
+      const now = d.points.geometry.attributes.position.array;
+      if (now.some((v, i) => Math.abs(v - before[j][i]) > 1e-4)) out.moved++;
+    });
+    out.litAfter = hold.filter(drawn).length;
+    out.held = hold.length;
+
+    // And out: the departure takes every lamp behind the player down.
+    g.lighting.floodChamber();
+    for (let f = 0; f < 300; f++) g.stepForTest(1 / 60, { render: false });
+    out.endLevel = Math.max(...hold.map((d) => d.points.material.opacity));
+    out.levels = out.levels.size;
+    return out;
+  }, POWERED.intensity);
+  await dp.close();
+
+  const spread = dust.ratios.length ? Math.max(...dust.ratios) - Math.min(...dust.ratios) : Infinity;
+  expect(`dust    ${dust.shafts} shafts carry ${dust.motes} motes`, dust.shafts > 0 && dust.motes >= dust.shafts * 10, `${dust.shafts} shafts, ${dust.motes} motes`);
+  expect('dust    none drawn before any power', dust.litBefore === 0, `${dust.litBefore} shafts of dust lit on emergency power`);
+  expect(`dust    drawn in every shaft the switch lit (${dust.litAfter} of ${dust.held})`, dust.litAfter === dust.held && dust.held > 0, `${dust.litAfter} of ${dust.held}`);
+  expect('dust    every mote inside its cone, on every frame of the strike', dust.outside === 0, `${dust.outside} mote-frames outside the light`);
+  expect('dust    drifts', dust.moved === dust.held, `${dust.held - dust.moved} shafts of dust stood still`);
+  expect(
+    `dust    brightness follows its own lamp on every frame (${dust.levels} levels through the strike)`,
+    spread < 1e-6 && dust.levels >= 4,
+    `opacity/intensity varies by ${spread.toExponential(2)}; ${dust.levels} distinct levels`
+  );
+  expect('dust    goes dark with the lamps on the way out', dust.endLevel < 0.01, `still at ${dust.endLevel.toFixed(3)}`);
 }
 
 // ---- Tap the mixer ---------------------------------------------------------

@@ -1,8 +1,9 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
 
-import { SKY, TEXTURES } from '../manifest.js';
+import { ICON, SKY, TEXTURES } from '../manifest.js';
 import { synthesiseGlyphAtlas } from '../offline/glyphatlas.js';
+import { synthesiseIcon } from '../offline/icon.js';
 import { FACES, synthesiseSky } from '../offline/sky.js';
 import { synthesiseTexture } from '../offline/textures.js';
 import { contactSheet, crunchTexture, encodeMask, encodeNormal, encodeRaster } from '../lib/image.js';
@@ -88,7 +89,7 @@ export async function runTextures({ force = false }) {
 
   await write(path.join(CACHE, 'textures-contact.png'), await contactSheet(sheet));
   log.note(`contact sheet → ${rel(path.join(CACHE, 'textures-contact.png'))}`);
-  return { textures: entries, sky: await runSky({ force }) };
+  return { textures: entries, sky: await runSky({ force }), icon: await runIcon({ force }) };
 }
 
 /**
@@ -121,6 +122,34 @@ async function runSky({ force }) {
     size: SKY.size,
     bytes: total,
     faces: Object.fromEntries(FACES.map((f) => [f, `sky/${SKY.id}_${f}.png`])),
+  };
+}
+
+/**
+ * Phase 8 — the icon, for a home screen and a browser tab (8.3.6). Drawn at
+ * 512 and crunched to each size like every texture, so it carries the same
+ * palette as the ship it stands for.
+ */
+async function runIcon({ force }) {
+  const outDir = path.join(ASSETS, 'icon');
+  await ensureDir(outDir);
+  const files = Object.fromEntries(ICON.sizes.map((n) => [n, path.join(outDir, `${ICON.id}_${n}.png`)]));
+
+  let fresh = force;
+  for (const file of Object.values(files)) if (!(await exists(file))) fresh = true;
+  if (fresh) {
+    const source = await encodeRaster(synthesiseIcon(ICON));
+    for (const n of ICON.sizes) await write(files[n], await crunchTexture(source, n));
+  }
+
+  let total = 0;
+  for (const file of Object.values(files)) total += await size(file);
+  if (fresh) log.done(`${ICON.id} — ${ICON.sizes.join(' and ')} px, ${bytes(total)} → ${rel(outDir)}`);
+  else log.step(`${ICON.id} — up to date`);
+
+  return {
+    bytes: total,
+    sizes: Object.fromEntries(ICON.sizes.map((n) => [n, `icon/${ICON.id}_${n}.png`])),
   };
 }
 

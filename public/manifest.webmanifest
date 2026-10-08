@@ -1,0 +1,14 @@
+{
+  "name": "DERELICT",
+  "short_name": "DERELICT",
+  "description": "A short first-person vignette on a dead ship. Every asset is generated.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "background_color": "#05070a",
+  "theme_color": "#05070a",
+  "icons": [
+    { "src": "/assets/icon/icon_192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/assets/icon/icon_512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

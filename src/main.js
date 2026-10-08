@@ -152,6 +152,30 @@ class Derelict {
     this.phase = 'title';
     this.lastFrame = performance.now();
     requestAnimationFrame((t) => this.#frame(t));
+    this.#registerWorker();
+  }
+
+  /**
+   * Phase 8 (8.3.6): after the title is up — so nothing it fetches is paid for
+   * before the first frame — the service worker takes the build onto the
+   * device, and every later visit and every offline one comes from there.
+   *
+   * A browser driven by automation registers only when asked to with `?sw`.
+   * Every harness measures the game rather than the cache, and only
+   * tools/weight.mjs, which is about the cache, asks.
+   */
+  #registerWorker() {
+    if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return;
+    if (navigator.webdriver && !new URLSearchParams(window.location.search).has('sw')) return;
+    navigator.serviceWorker
+      .register('/sw.js')
+      // Asked for on every visit rather than left to the browser, which may
+      // wait a day: the visit after a deploy fetches the new list, and the
+      // one after that is the new build.
+      .then((reg) => reg.update())
+      .catch(() => {
+        /* no worker, or offline: the game runs from whatever it has */
+      });
   }
 
   #buildWorld() {
@@ -568,6 +592,10 @@ class Derelict {
     // After the lighting pass, so the failing lamp rides on top of whatever
     // state its zone is in rather than fighting it for the same value.
     this.mechanism.update(dt, this.camera);
+    // Last of all, so the dust in a shaft follows its lamp through everything
+    // that touched it this frame — the strike, the failing lamp, the
+    // departure (8.3.5).
+    this.lighting.updateDust(this.elapsed);
 
     const space = spaceAt(this.player.position.x, this.player.position.z);
     // The ears go where the head is, and the compartment decides what the room
@@ -716,7 +744,7 @@ class Derelict {
       // would tint the marker; it is in the picture, but not in the mask.
       const hidden = [];
       this.scene.traverse((o) => {
-        if (o.visible && o.isMesh && o.material?.transparent && o !== mask) {
+        if (o.visible && (o.isMesh || o.isPoints) && o.material?.transparent && o !== mask) {
           o.visible = false;
           hidden.push(o);
         }

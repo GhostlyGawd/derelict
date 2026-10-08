@@ -1,5 +1,5 @@
 import { SPACES } from '../src/game/layout.js';
-import { GLYPH_BIBLE, audioPrompt, modelPrompt, skyPrompt, texturePrompt } from './style-bible.js';
+import { GLYPH_BIBLE, audioPrompt, iconPrompt, modelPrompt, skyPrompt, texturePrompt } from './style-bible.js';
 
 /**
  * The asset manifest from section 7 of the spec, as data.
@@ -96,6 +96,19 @@ export const TEXTURES = [
  * tileable, not double-rendered and not lit: it is the view out of the outer
  * door and nothing else, and nothing inside the hull ever sees it (6.4).
  */
+/**
+ * Phase 8 — the icon, the one new asset class (8.3.6). What the game is on a
+ * home screen and in a browser tab. Generated, like everything else.
+ */
+export const ICON = {
+  id: 'icon',
+  sizes: [192, 512],
+  seed: 8,
+  glyph: 'D',
+  synth: 'icon',
+  prompt: iconPrompt('The letter D for DERELICT, on a riveted gunmetal bulkhead plate.'),
+};
+
 export const SKY = {
   id: 'sky',
   size: 256,

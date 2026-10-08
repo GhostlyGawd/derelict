@@ -100,8 +100,10 @@ const OUTSIDE = [
 const ROWS = [
   { name: 'relief', strip: ['relief'], stations: STATIONS },
   { name: 'sky', strip: ['sky'], stations: OUTSIDE },
+  // Phase 8: the motes in every lit shaft (8.3.5).
+  { name: 'dust', strip: ['dust'], stations: STATIONS },
 ];
-const EVERYTHING = ['relief', 'sky'];
+const EVERYTHING = ['relief', 'sky', 'dust'];
 
 const errors = [];
 const browser = await chromium.launch({
@@ -209,6 +211,9 @@ const setUp = await page.evaluate(
       // Hidden, not removed: the renderer falls back to the clear colour,
       // which is what the frame cost before phase 6 drew behind the door.
       if (g.outside?.sky) g.outside.sky.visible = !off.has('sky');
+      g.scene.traverse((node) => {
+        if (node.isPoints && node.name === 'dust') node.visible = !off.has('dust');
+      });
     };
 
     /**

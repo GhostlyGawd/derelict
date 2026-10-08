@@ -63,6 +63,87 @@ function surge(t) {
   return 1 + 0.28 * Math.exp(-(t - 0.46) * 9) * Math.sin((t - 0.46) * 34);
 }
 
+/**
+ * Phase 8 — air in the light (8.3.5). Motes per shaft: square points, no
+ * texture, nearest like everything else, lit only by their own lamp.
+ */
+const MOTES = 36;
+/** World size of a mote. About three backbuffer pixels a metre away, and gone by the far wall. */
+const MOTE_SIZE = 0.02;
+/** How bright the dust is in a lamp at full power. Found by standing in it; quiet on purpose. */
+const DUST_OPACITY = 0.55;
+
+/** A small deterministic hash: the same mote drifts the same way in every run and every replay. */
+function hash(n) {
+  const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+/**
+ * The motes for one shaft, as a child of its cone so they are shown and hidden
+ * with it. Each mote is a fixed set of numbers — where in the cone, how fast it
+ * turns, how far it bobs — and its position is a function of the game clock,
+ * never a simulation, so a replay draws the same dust (and asserts on none of
+ * it).
+ */
+function buildDust(cone, radius, height, index) {
+  const geo = new THREE.BufferGeometry();
+  const position = new THREE.BufferAttribute(new Float32Array(MOTES * 3), 3);
+  const color = new THREE.BufferAttribute(new Float32Array(MOTES * 3), 3);
+  const seeds = new Float32Array(MOTES * 5);
+  for (let i = 0; i < MOTES; i++) {
+    const n = index * 1000 + i;
+    seeds[i * 5] = Math.sqrt(hash(n)); // radial fraction, area-even
+    seeds[i * 5 + 1] = hash(n + 0.1) * Math.PI * 2; // angle
+    seeds[i * 5 + 2] = 0.08 + hash(n + 0.2) * 0.8; // height fraction
+    seeds[i * 5 + 3] = (hash(n + 0.3) - 0.5) * 0.12; // turn rate, rad/s
+    seeds[i * 5 + 4] = hash(n + 0.4) * Math.PI * 2; // bob phase
+    const b = 0.45 + 0.55 * hash(n + 0.5);
+    color.setXYZ(i, b, b, b);
+  }
+  geo.setAttribute('position', position);
+  geo.setAttribute('color', color);
+  // The cone is the bound: nothing is ever drawn outside it.
+  geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), Math.hypot(radius, height / 2));
+  const material = new THREE.PointsMaterial({
+    color: POWERED.color,
+    size: MOTE_SIZE,
+    sizeAttenuation: true,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    fog: true,
+    toneMapped: false,
+  });
+  const points = new THREE.Points(geo, material);
+  points.name = 'dust';
+  points.renderOrder = 3;
+  cone.add(points);
+  return { points, seeds, radius, height };
+}
+
+/** Moves one shaft's motes to where they are at `time`. Positions are in the cone's frame. */
+function driftDust(dust, time) {
+  const { seeds, radius, height } = dust;
+  const pos = dust.points.geometry.attributes.position;
+  for (let i = 0; i < MOTES; i++) {
+    const s = i * 5;
+    const y = THREE.MathUtils.clamp(
+      seeds[s + 2] * height + 0.18 * Math.sin(time * 0.23 + seeds[s + 4]),
+      0.05,
+      height * 0.9
+    );
+    // The cone narrows to its apex at the lamp; a mote stays inside it at
+    // whatever height it has drifted to.
+    const r = seeds[s] * radius * (1 - y / height) * 0.92;
+    const a = seeds[s + 1] + time * seeds[s + 3];
+    pos.setXYZ(i, Math.cos(a) * r, y - height / 2, Math.sin(a) * r);
+  }
+  pos.needsUpdate = true;
+}
+
 export function buildLighting(materials) {
   const group = new THREE.Group();
   group.name = 'lighting';
@@ -119,6 +200,7 @@ export function buildLighting(materials) {
   }
 
   // --------------------------------------------------------- light shafts
+  let dustIndex = 0;
   for (const def of SHAFTS) {
     const height = def.pos[1];
     const material = materials.shaft(POWERED.color);
@@ -134,7 +216,10 @@ export function buildLighting(materials) {
     zoneOf(def.zone).shafts.push(cone);
     // Each shaft hangs under one lamp, and comes on when that lamp does.
     const lamp = zoneOf(def.zone).lamps.find((l) => l.pos[0] === def.pos[0] && l.pos[2] === def.pos[2]);
-    if (lamp) lamp.shaft = cone;
+    if (lamp) {
+      lamp.shaft = cone;
+      lamp.dust = buildDust(cone, def.radius, height, dustIndex++);
+    }
   }
 
   // ------------------------------------------------------------ conduits
@@ -364,6 +449,28 @@ export function buildLighting(materials) {
   }
 
   /**
+   * The dust takes its brightness from its own lamp, on the same frame, after
+   * everything else has decided what the lamp is doing — so the strike's
+   * stutter and the departure's fade both show in the air (8.3.5). It moves
+   * only while it can be seen.
+   */
+  function updateDust(elapsed) {
+    for (const zone of zones.values()) {
+      for (const lamp of zone.lamps) {
+        const dust = lamp.dust;
+        if (!dust) continue;
+        if (!lamp.shaft.visible) {
+          dust.points.material.opacity = 0;
+          continue;
+        }
+        const k = Math.max(0, Math.min(1.6, lamp.light.intensity / POWERED.intensity));
+        dust.points.material.opacity = DUST_OPACITY * k;
+        driftDust(dust, elapsed);
+      }
+    }
+  }
+
+  /**
    * The lamps in a zone. Phase 4's failing lamp rides on top of whatever state
    * the zone is in rather than replacing it, so it needs the light itself.
    */
@@ -371,10 +478,16 @@ export function buildLighting(materials) {
     return zones.get(zoneId)?.lights ?? [];
   }
 
-  /** The lamp lenses and conduit strips of a zone, for tools/colour.mjs. */
+  /** The lamp lenses, conduit strips and dust of a zone, for tools/colour.mjs and tools/consume.mjs. */
   function partsIn(zoneId) {
     const zone = zones.get(zoneId);
-    return zone ? { lenses: zone.lamps.map((l) => l.lensMesh), strips: zone.strips.map((s) => s.mesh) } : null;
+    return zone
+      ? {
+          lenses: zone.lamps.map((l) => l.lensMesh),
+          strips: zone.strips.map((s) => s.mesh),
+          dust: zone.lamps.filter((l) => l.dust).map((l) => ({ ...l.dust, light: l.light, shaft: l.shaft })),
+        }
+      : null;
   }
 
   /** Whether any zone is part-way through its strike, for tools/profile.mjs. */
@@ -383,5 +496,5 @@ export function buildLighting(materials) {
     return false;
   }
 
-  return { group, setPowered, floodChamber, reset, update, lampsIn, striking, partsIn };
+  return { group, setPowered, floodChamber, reset, update, updateDust, lampsIn, striking, partsIn };
 }

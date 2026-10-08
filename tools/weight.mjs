@@ -19,9 +19,30 @@
  * last ten seconds of a run. 7.3.3 allows one optimisation, deferring those,
  * only if that share is real.
  *
+ * Phase 8 adds the second visit (8.3.6). The built site is copied somewhere
+ * this harness can change it, served by a server here that applies
+ * vercel.json's own headers and counts every byte it sends, and visited with
+ * the service worker allowed:
+ *
+ *   - the second visit takes nothing from the network but the worker's own
+ *     update check;
+ *   - with the network cut, the game still reaches its title;
+ *   - after a simulated deploy, the next visit is still the old build and the
+ *     one after it is the new one, with only the changed files fetched;
+ *   - deploying a worker that retires itself leaves no worker and no cache;
+ *   - and nothing served immutable is a file whose name does not change when
+ *     its content does.
+ *
  *   node tools/weight.mjs [baseUrl]
  */
+import { createServer } from 'node:http';
+import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
 import { chromium } from 'playwright';
+
+import { writePrecache } from '../src/sw/precache.mjs';
 
 const BASE = process.argv[2] || 'http://127.0.0.1:4173/';
 
@@ -145,6 +166,189 @@ console.log(
   `  the transfer alone at that rate is about ${((total / NETWORK.downloadThroughput)).toFixed(1)} s; ` +
     `deferring the end-only assets would save about ${(endOnly / NETWORK.downloadThroughput).toFixed(2)} s of it`
 );
+
+// ---- 8.3.6: the second visit, offline, a deploy, and a retirement ------------
+console.log('\n  the second visit');
+const DIST = path.resolve('dist');
+const vercel = JSON.parse(readFileSync(path.resolve('vercel.json'), 'utf8'));
+/** vercel.json's `source` patterns, close enough for the shapes this file uses. */
+const ruleMatches = (source, url) => new RegExp(`^${source.replace(/\(\.\*\)/g, '.*')}$`).test(url);
+const headersFor = (url) => {
+  const out = { 'Cache-Control': 'public, max-age=0, must-revalidate' }; // Vercel's default for static files
+  for (const rule of vercel.headers || []) {
+    if (ruleMatches(rule.source, url)) for (const h of rule.headers) out[h.key] = h.value;
+  }
+  return out;
+};
+
+// Static: every file served immutable must be one whose name changes with its
+// content. The generated assets keep their names from build to build.
+{
+  const files = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const full = path.join(dir, name);
+      if (statSync(full).isDirectory()) walk(full);
+      else files.push(`/${path.relative(DIST, full).split(path.sep).join('/')}`);
+    }
+  };
+  walk(DIST);
+  const pinned = files.filter((f) => /immutable/.test(headersFor(f)['Cache-Control'] || ''));
+  const unhashed = pinned.filter((f) => !/-[A-Za-z0-9_-]{8,}\.[a-z0-9]+$/.test(f));
+  expect(
+    `${pinned.length} files served immutable, every one named by its content`,
+    pinned.length > 0 && unhashed.length === 0,
+    `${unhashed.length} immutable files keep their name when their content changes: ${unhashed.slice(0, 4).join(', ')}`
+  );
+}
+
+const SITE = mkdtempSync(path.join(tmpdir(), 'derelict-site-'));
+cpSync(DIST, SITE, { recursive: true });
+const TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.webmanifest': 'application/manifest+json',
+  '.png': 'image/png',
+  '.glb': 'model/gltf-binary',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+};
+let served = [];
+const server = createServer((req, res) => {
+  const url = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+  const file = path.join(SITE, url === '/' ? 'index.html' : url);
+  if (!file.startsWith(SITE) || !existsSync(file) || statSync(file).isDirectory()) {
+    res.writeHead(404);
+    res.end();
+    return;
+  }
+  const body = readFileSync(file);
+  served.push({ url, bytes: body.length });
+  res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', ...headersFor(url) });
+  res.end(body);
+});
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+const ORIGIN = `http://127.0.0.1:${server.address().port}`;
+const sum = (list) => list.reduce((n, r) => n + r.bytes, 0);
+
+const ctx = await browser.newContext({ viewport: { width: 1024, height: 640 }, serviceWorkers: 'allow' });
+const visit = async (page) => {
+  await page.goto(`${ORIGIN}/?sw`, { waitUntil: 'load' });
+  await page.waitForFunction(() => window.__derelict?.phase === 'title', null, { timeout: 120000 });
+};
+const settled = (page) =>
+  page.evaluate(async () => {
+    const reg = await navigator.serviceWorker.ready;
+    for (let i = 0; i < 600 && (reg.installing || reg.waiting || reg.active?.state !== 'activated'); i++) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    return { state: reg.active?.state, controlled: Boolean(navigator.serviceWorker.controller) };
+  });
+const marker = (page) => page.evaluate(() => document.documentElement.dataset.build || null);
+
+let page = await ctx.newPage();
+page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+await visit(page);
+const first = await settled(page);
+const firstBytes = sum(served);
+console.log(`  first visit and install: ${(firstBytes / 1e6).toFixed(2)} MB from the network, worker ${first.state}`);
+expect('the worker installs and activates on the first visit', first.state === 'activated', `worker ${first.state}`);
+
+// The manifest a home screen reads, and the icons it names.
+const app = await page.evaluate(async () => {
+  const link = document.querySelector('link[rel="manifest"]');
+  const m = await (await fetch(link.href)).json();
+  const icons = [];
+  for (const icon of m.icons) {
+    const img = new Image();
+    img.src = icon.src;
+    await img.decode();
+    icons.push({ want: icon.sizes, got: `${img.naturalWidth}x${img.naturalHeight}` });
+  }
+  return { display: m.display, start: m.start_url, icons };
+});
+expect(
+  `the web app manifest opens ${app.display} at ${app.start}, with ${app.icons.length} generated icons of the sizes it says`,
+  app.display === 'fullscreen' && app.icons.length >= 2 && app.icons.every((i) => i.want === i.got),
+  JSON.stringify(app.icons)
+);
+
+served = [];
+await visit(page);
+const second = served.filter((r) => r.url !== '/sw.js');
+expect(
+  `the second visit takes ${sum(second)} bytes from the network (the worker's own update check aside)`,
+  second.length === 0 && (await settled(page)).controlled,
+  `${second.length} requests: ${second.slice(0, 5).map((r) => r.url).join(', ')}`
+);
+
+await ctx.setOffline(true);
+let offline = 'title';
+try {
+  await visit(page);
+} catch (err) {
+  offline = String(err.message || err).split('\n')[0];
+}
+await ctx.setOffline(false);
+expect('with the network cut, the game reaches its title', offline === 'title', offline);
+
+// A deploy: one texture and the page change, everything else does not.
+const TEX = 'assets/textures/floor_plate.png';
+writeFileSync(path.join(SITE, 'index.html'), readFileSync(path.join(SITE, 'index.html'), 'utf8').replace('<html lang="en">', '<html lang="en" data-build="next">'));
+const swapped = readFileSync(path.join(SITE, 'assets/textures/ceiling_plate.png'));
+writeFileSync(path.join(SITE, TEX), swapped);
+const deploy = writePrecache(SITE);
+served = [];
+await visit(page);
+const stillOld = (await marker(page)) === null;
+await settled(page);
+const fetched = [...new Set(served.map((r) => r.url))];
+await page.close();
+await new Promise((r) => setTimeout(r, 800));
+page = await ctx.newPage();
+page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+await visit(page);
+const nowNew = (await marker(page)) === 'next';
+const texture = await page.evaluate(async (u) => new Uint8Array(await (await fetch(`/${u}`)).arrayBuffer()).length, TEX);
+expect('the visit after a deploy is still the old build, whole', stillOld, 'the new page was served before its worker had finished installing');
+expect(
+  `the visit after that is the new build (${deploy.build}), new texture and all`,
+  nowNew && texture === swapped.length,
+  `marker ${await marker(page)}, texture ${texture} bytes against ${swapped.length}`
+);
+const unexpected = fetched.filter((u) => !['/sw.js', '/index.html', '/', `/${TEX}`].includes(u));
+expect(
+  `the deploy fetched only what changed (${fetched.join(', ')})`,
+  unexpected.length === 0,
+  `also fetched ${unexpected.slice(0, 6).join(', ')}`
+);
+
+// And taking it back: a worker that removes itself.
+writePrecache(SITE, { retire: true });
+await visit(page);
+for (let i = 0; i < 50; i++) {
+  const gone = await page
+    .evaluate(async () => !(await navigator.serviceWorker.getRegistration()) && !(await caches.keys()).some((k) => k.startsWith('derelict-')))
+    .catch(() => false);
+  if (gone) break;
+  await new Promise((r) => setTimeout(r, 200));
+}
+const retired = await page
+  .evaluate(async () => ({
+    registered: Boolean(await navigator.serviceWorker.getRegistration()),
+    caches: (await caches.keys()).filter((k) => k.startsWith('derelict-')).length,
+  }))
+  .catch((e) => ({ error: String(e) }));
+expect(
+  'a retiring worker leaves no worker and no cache behind',
+  retired.registered === false && retired.caches === 0,
+  JSON.stringify(retired)
+);
+await ctx.close();
+server.close();
+rmSync(SITE, { recursive: true, force: true });
 
 await browser.close();
 

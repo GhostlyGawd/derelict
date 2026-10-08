@@ -4,10 +4,11 @@
   "totals": {
     "textures": 8,
     "sky": 6,
+    "icon": 2,
     "models": 10,
     "audio": 17,
     "acoustics": 5,
-    "bytes": 2389210
+    "bytes": 2453117
   },
   "textures": {
     "wall_panel_a": {
@@ -302,6 +303,13 @@
       "ny": "sky/sky_ny.png",
       "pz": "sky/sky_pz.png",
       "nz": "sky/sky_nz.png"
+    }
+  },
+  "icon": {
+    "bytes": 63907,
+    "sizes": {
+      "192": "icon/icon_192.png",
+      "512": "icon/icon_512.png"
     }
   },
   "models": {
