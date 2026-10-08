@@ -4,9 +4,10 @@ import * as THREE from 'three';
 import { Assets } from './core/assets.js';
 import { AudioBus } from './core/audio.js';
 import { Hud } from './core/hud.js';
-import { Input } from './core/input.js';
+import { INPUT_VERSION, Input } from './core/input.js';
 import { MaterialLibrary } from './core/materials.js';
 import { createRenderer } from './core/renderer.js';
+import { TraceRecorder, traceRequested } from './core/trace.js';
 
 import { buildCarryables } from './game/carryables.js';
 import { buildDoors, buildPowerPanel, buildSwitches } from './game/fixtures.js';
@@ -107,6 +108,18 @@ class Derelict {
     /** What is underfoot, for the footstep set. */
     this.surface = 'deck';
 
+    /**
+     * Phase 7. Frames since the run began, and whether the frame loop is
+     * driven by the browser's clock or by `stepForTest`. tools/replay.mjs
+     * turns the browser's clock off and steps each frame with the time step
+     * the recording used, which is what makes a replay the same run.
+     */
+    this.frameIndex = 0;
+    this.manualClock = false;
+    this.manualClockOnStart = false;
+    this.inputVersion = INPUT_VERSION;
+    this.trace = traceRequested() ? new TraceRecorder(this, { inputVersion: INPUT_VERSION }) : null;
+
     this.#bindUi();
   }
 
@@ -194,6 +207,8 @@ class Derelict {
     document.getElementById('start').addEventListener('click', () => this.#start());
     document.getElementById('resume').addEventListener('click', () => this.#resume());
     document.getElementById('restart').addEventListener('click', () => this.#restart());
+    const save = document.getElementById('save-trace');
+    save?.addEventListener('click', () => this.trace?.save());
     this.input.onEscape = () => {
       if (this.phase === 'playing') this.#pause();
     };
@@ -209,6 +224,9 @@ class Derelict {
 
     this.phase = 'playing';
     this.runTime = 0;
+    this.frameIndex = 0;
+    if (this.manualClockOnStart) this.manualClock = true;
+    this.trace?.begin();
     this.hud.setHudVisible(true);
     this.hud.setTouchVisible(this.input.usingTouch);
     this.input.setEnabled(true);
@@ -442,6 +460,8 @@ class Derelict {
       this.audio.fadeIn(0.2, 0.9);
       this.audio.play('end_sting', { volume: 0.85 });
       this.phase = 'ended';
+      this.trace?.end();
+      document.getElementById('save-trace')?.classList.toggle('hidden', !this.trace);
       this.hud.showEnd({
         compartments: this.poweredZones.size,
         spaces: SPACES.length,
@@ -488,6 +508,23 @@ class Derelict {
     requestAnimationFrame((t) => this.#frame(t));
     const dt = Math.min(0.05, (now - this.lastFrame) / 1000);
     this.lastFrame = now;
+    // Under a replay the browser's clock still ticks, and is ignored: the
+    // frames are stepped from the recording instead.
+    if (this.manualClock) return;
+    this.#tick(dt);
+  }
+
+  /**
+   * One frame with a given time step, for tools/replay.mjs. The same body the
+   * browser's clock drives, so a replay cannot exercise different code.
+   */
+  stepForTest(dt, { render = true } = {}) {
+    this.#tick(dt, render);
+  }
+
+  #tick(dt, render = true) {
+    this.trace?.tick(dt);
+    this.frameIndex++;
     this.elapsed += dt;
 
     if (this.view.sample(dt)) this.#resize();
@@ -539,7 +576,15 @@ class Derelict {
     );
     this.viewmodel.update(dt, { look, speed: this.player.speed, powered });
 
-    this.view.render(this.scene, this.camera, this.viewmodel);
+    // A replay can skip drawing, which is most of a frame's cost under a
+    // software rasteriser. What drawing also does — bring every world matrix up
+    // to date, which the next frame's interaction ray reads — still happens, at
+    // the same point, so a run steps identically either way.
+    if (render) this.view.render(this.scene, this.camera, this.viewmodel);
+    else {
+      this.scene.updateMatrixWorld();
+      if (!this.camera.parent) this.camera.updateMatrixWorld();
+    }
   }
 
   #colliders() {

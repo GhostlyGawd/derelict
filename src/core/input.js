@@ -8,6 +8,13 @@
  * `takeInteract()`, so it never has to care which scheme is live.
  */
 
+/**
+ * Phase 7. Goes up whenever the way raw input becomes `move` and `look` changes
+ * on purpose. A trace replays only against the version that recorded it — a
+ * deliberate change is supposed to make old traces diverge (7.3.2).
+ */
+export const INPUT_VERSION = 1;
+
 const LOOK_SENSITIVITY = 0.0022;
 const TOUCH_LOOK_SENSITIVITY = 0.0042;
 const STICK_RADIUS = 52;
