@@ -61,6 +61,22 @@ settled against it, and the harness reports how many of its touches the new
 layer would assign differently. The regression test is a second trace, recorded
 by the owner after the fix. 7.5 and 7.8 say so.
 
+*What the instruments found while being built.* The round trip failed on its
+first run. Record and replay ended in exactly the same place but disagreed at
+the one checkpoint in between: the recorder was writing each checkpoint at the
+top of a frame and labelling it one frame late. The fix is in the recorder. The
+round trips now cover two thumbs on a portrait phone (242 frames, 206 events)
+and keys plus mouse on a desktop, and both agree exactly at every checkpoint.
+The new touch checks reproduced the owner's report on the old layer before the
+fix: a second thumb landing left of centre while moving was dropped.
+
+*The weight, measured.* 3.37 MB to the title, decoded. Models are 32%,
+textures 23%, script 19%, sounds 15% and responses 10%. On a pinned 10 Mbit/s,
+40 ms connection the title takes 2.6 s, nearly all of it transfer. The sky and
+the end sting are 2.6% of the bytes, about 0.07 s, so the deferral 7.3.3
+allowed is not earned and nothing changes. The budget is 3.87 MB, the
+measurement plus 15%.
+
 The owner chose the shape: narrow, per the rhythm 5.2 proposed, built around
 the one thing phase 6's play turned up, plus a second instrument the owner
 asked to add (7.3.3).

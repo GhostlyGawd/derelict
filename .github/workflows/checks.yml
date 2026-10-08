@@ -63,13 +63,14 @@ jobs:
           done
           echo "preview server never came up"; cat /tmp/preview.log; exit 1
 
-      # Ten altitudes. chain drives the interactions directly and proves the
+      # Twelve altitudes. chain drives the interactions directly and proves the
       # six steps refuse to work out of order; deadend reasons over the whole
       # walkable floor rather than playing at all, now across both stances;
       # relief moves a lamp and measures whether the surfaces answer it;
       # consume plays the game and requires every manifest entry to be observed
       # reaching its consumer; clock holds every idle sound to the frame of the
-      # motion it belongs to; framecost weighs the shipped frame against a
+      # motion it belongs to; replay plays recorded runs back; weight counts
+      # what it costs to arrive; framecost weighs the shipped frame against a
       # stripped one; smoke teleports between rooms to reach each system
       # quickly; walkthrough refuses to teleport and so is the only one that can
       # catch the level becoming un-navigable; mobile drives the touch scheme.
@@ -97,6 +98,17 @@ jobs:
       # pairs what is seen with what is heard, frame by frame.
       - name: Playtest — idle sound keeps its motion's clock
         run: node tools/clock.mjs http://127.0.0.1:4173/
+
+      # Phase 7. Recorded runs, replayed through the real input layer: two
+      # round trips the harness records itself, then every committed trace in
+      # tools/traces that was recorded on the current input layer.
+      - name: Playtest — recorded runs replay
+        run: node tools/replay.mjs http://127.0.0.1:4173/
+
+      # Bytes to title, decoded, gated; time to title on a pinned network,
+      # reported. Bytes are a fact about the game; time is partly the runner.
+      - name: Playtest — the weight
+        run: node tools/weight.mjs http://127.0.0.1:4173/
 
       # A ratio, never a frame rate: an absolute number here would be a fact
       # about this runner. One row per drawing feature since phase 6; the
