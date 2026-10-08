@@ -1,10 +1,9 @@
 
 # DERELICT — Spec
 
-**How to read this document.** Phase 7 (v1.6) is the most recent section. It
-is built and signed; merging it ratifies and ships it. Phase 6 is built and signed,
-and ships when its pull requests merge. Phase 5, Phase 4, Phase 3, Phase 2,
-Amendment 1 and the v1.0 sections below them are shipped. Where any two disagree,
+**How to read this document.** Phase 7 (v1.6) is the most recent section and
+is shipped, as are Phase 6, Phase 5, Phase 4, Phase 3, Phase 2, Amendment 1
+and the v1.0 sections below them. There is no draft in flight. Where any two disagree,
 the later section wins. Nothing here is a suggestion — if we change
 something during a build, we change this document first.
 
@@ -40,8 +39,8 @@ to tri budget, crunch textures to 256 px).
 
 # Phase 7 — v1.6
 
-**Status: BUILT, and signed.** Proposed 8 October 2026 in PR #24, approved
-and built the same day in PR #25. Merging the two ratifies and ships it.
+**Status: SHIPPED.** Proposed 8 October 2026 in PR #24, approved and built
+the same day in PR #25, and shipped when both merged that day.
 
 **Signed by the owner, 8 October 2026,** after recording a run on each set of
 controls: *"The after feels way better. The before ran into the same bugs."*
@@ -327,9 +326,9 @@ that need them stay unsigned until then.
 
 # Phase 6 — v1.5
 
-**Status: BUILT, and signed.** Proposed 8 October 2026 in PR #22 and approved
-by the owner the same day; built the same day in PR #23. Merging the two
-ratifies and ships it.
+**Status: SHIPPED.** Proposed 8 October 2026 in PR #22 and approved by the
+owner the same day; built the same day in PR #23, and shipped when both merged
+that day.
 
 **Signed by the owner after playing the build, 8 October 2026:** *"Feels great.
 Everything worked."* That signs the outside, the machinery and power arriving.
