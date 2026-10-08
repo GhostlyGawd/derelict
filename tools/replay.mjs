@@ -31,6 +31,8 @@ import path from 'node:path';
 
 import { chromium } from 'playwright';
 
+import { inStickZone } from '../src/core/touchzones.js';
+
 const BASE = process.argv[2] || 'http://127.0.0.1:4173/';
 const TRACES = path.resolve('tools/traces');
 /** Metres. A replay of the same input on the same layer should land on the same spot. */
@@ -237,6 +239,7 @@ for (const file of committed) {
   const label = `${file} (v${trace.input}, ${trace.touch ? 'touch' : 'desktop'} ${trace.viewport.w}×${trace.viewport.h}, ${trace.frames.length} frames)`;
   if (trace.input !== currentInput) {
     console.log(`  retired ${label} — recorded on input layer v${trace.input}, current is v${currentInput}; kept as evidence, not gated`);
+    if (trace.touch) reassigned(trace);
     continue;
   }
   const result = await replay(trace);
@@ -352,6 +355,59 @@ async function replay(trace) {
 
   await context.close();
   return result;
+}
+
+/**
+ * 7.5: the fix measured against real thumbs. Walks a retired touch trace's
+ * touch-downs and assigns each one twice — by the midline split version 1
+ * used, and by the zone table — and reports where they disagree. Not gated: a
+ * difference here is the change working, and the owner's hand is the judge of
+ * whether it is the right one.
+ */
+function reassigned(trace) {
+  const { w, h } = trace.viewport;
+  const run = (assign) => {
+    const roles = new Map();
+    const held = { stick: null, look: null };
+    const counts = { stick: 0, look: 0, dropped: 0 };
+    for (const e of trace.events) {
+      if (e[0] !== 't' || e[3] !== 'w') continue;
+      const [, , kind, , touches] = e;
+      for (const [id, x, y] of touches) {
+        if (kind === 's') {
+          const role = assign(x, y, held);
+          roles.set(id, role);
+          if (role !== 'dropped') held[role] = id;
+          counts[role]++;
+        } else if (kind === 'e' || kind === 'c') {
+          const role = roles.get(id);
+          if (role && held[role] === id) held[role] = null;
+        }
+      }
+    }
+    return { roles, counts };
+  };
+  const v1 = run((x, y, held) =>
+    x < w / 2 ? (held.stick === null ? 'stick' : 'dropped') : held.look === null ? 'look' : 'dropped'
+  );
+  const v2 = run((x, y, held) =>
+    inStickZone(x, y, w, h) && held.stick === null ? 'stick' : held.look === null ? 'look' : 'dropped'
+  );
+  let changed = 0;
+  const examples = [];
+  for (const [id, before] of v1.roles) {
+    const after = v2.roles.get(id);
+    if (after !== before) {
+      changed++;
+      if (examples.length < 4) examples.push(`${before}→${after}`);
+    }
+  }
+  const total = v1.roles.size;
+  console.log(
+    `          ${total} touch-downs on the view: v1 gave ${v1.counts.stick} stick, ${v1.counts.look} look, ` +
+      `${v1.counts.dropped} dropped; the zone table gives ${v2.counts.stick} stick, ${v2.counts.look} look, ` +
+      `${v2.counts.dropped} dropped — ${changed} assigned differently${examples.length ? ` (${examples.join(', ')}…)` : ''}`
+  );
 }
 
 function judge(label, trace, result) {

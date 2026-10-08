@@ -1,7 +1,9 @@
 /**
  * Mobile control check. Boots the built game in a touch-emulated phone
- * viewport and exercises the three-part scheme from the spec: left virtual
- * joystick, right-side drag look, contextual tap to interact.
+ * viewport and exercises the touch scheme: the movement stick, drag look,
+ * contextual tap to interact, held crouch — and since phase 7, two thumbs at
+ * once, a look drag that starts left of centre, and a sweep of touch-downs
+ * across the whole screen against the zone table.
  *
  *   node tools/mobile.mjs [baseUrl] [--shots]
  */
@@ -143,6 +145,153 @@ if (Math.abs(yawAfter - yawBefore) < 0.3) {
   throw new Error(`drag look barely turned the camera (${yawBefore} → ${yawAfter})`);
 }
 console.log(`  drag look → yaw ${yawBefore} → ${yawAfter}`);
+
+// ---- Phase 7: two thumbs, in portrait ---------------------------------------
+//
+// The owner's report: trying to look moved the player instead, and moving and
+// looking at once was awkward. The old layer split the screen at the midline,
+// so a right thumb that landed just left of it took the stick, and a second
+// thumb anywhere on the left while the stick was held was dropped. Every check
+// here drives touches the way two thumbs do — overlapping in time — which is
+// the one thing this file never did before.
+
+/**
+ * Plays several touch streams at once. Each track is [id, from, to, startStep,
+ * endStep]; every step fires one touchmove per live track, so two thumbs move
+ * in the same frames, as they do on glass.
+ */
+async function thumbs(tracks, steps, stepMs = 30) {
+  await page.evaluate(
+    async ([list, n, ms]) => {
+      const live = new Map();
+      const fire = (type, changed) => {
+        const make = ([id, x, y]) => new Touch({ identifier: id, target: document.body, clientX: x, clientY: y });
+        const all = [...live.entries()].map(([id, [x, y]]) => make([id, x, y]));
+        window.dispatchEvent(
+          new TouchEvent(type, { changedTouches: changed.map(make), touches: all, targetTouches: all, bubbles: true, cancelable: true })
+        );
+      };
+      const at = ([id, a, b, s0, s1], step) => {
+        const t = Math.min(1, Math.max(0, (step - s0) / Math.max(1, s1 - s0)));
+        return [id, a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+      };
+      for (let step = 0; step <= n; step++) {
+        for (const track of list) {
+          if (step === track[3]) {
+            const p = at(track, step);
+            live.set(p[0], [p[1], p[2]]);
+            fire('touchstart', [p]);
+          }
+        }
+        const moving = list.filter((t) => step > t[3] && step <= t[4]).map((t) => at(t, step));
+        for (const p of moving) live.set(p[0], [p[1], p[2]]);
+        if (moving.length) fire('touchmove', moving);
+        for (const track of list) {
+          if (step === track[4]) {
+            const p = at(track, step);
+            live.delete(p[0]);
+            fire('touchend', [p]);
+          }
+        }
+        await new Promise((r) => setTimeout(r, ms));
+      }
+    },
+    [tracks, steps, stepMs]
+  );
+}
+
+const vp = page.viewportSize();
+const W = vp.width;
+const H = vp.height;
+
+// Left thumb walks; right thumb goes down left of centre, mid-screen, while the
+// stick is held, and drags. The camera has to turn and the walking go on.
+{
+  const a = await read();
+  await thumbs(
+    [
+      [1, [W * 0.22, H * 0.9], [W * 0.22, H * 0.78], 0, 60],
+      [2, [W * 0.44, H * 0.62], [W * 0.85, H * 0.6], 12, 48],
+    ],
+    60
+  );
+  const b = await read();
+  const walked = Math.hypot(b.pos[0] - a.pos[0], b.pos[1] - a.pos[1]);
+  if (Math.abs(b.yaw - a.yaw) < 0.3) {
+    throw new Error(`a second thumb left of centre did not look (yaw ${a.yaw} → ${b.yaw}) — it was dropped or taken as movement`);
+  }
+  if (walked < 0.8) throw new Error(`looking with the right thumb stopped the left thumb walking (${walked.toFixed(2)} m)`);
+  console.log(`  two thumbs → walked ${walked.toFixed(2)} m and turned ${(b.yaw - a.yaw).toFixed(2)} rad at once`);
+}
+
+// One thumb, reaching across: a look drag that starts just left of the
+// midline, above the stick's zone, must look and must not walk.
+{
+  const a = await read();
+  await thumbs([[3, [W * 0.45, H * 0.42], [W * 0.1, H * 0.42], 0, 30]], 32);
+  const b = await read();
+  const walked = Math.hypot(b.pos[0] - a.pos[0], b.pos[1] - a.pos[1]);
+  if (walked > 0.15) throw new Error(`a look drag left of centre walked the player ${walked.toFixed(2)} m — the overlap the owner reported`);
+  if (Math.abs(b.yaw - a.yaw) < 0.3) throw new Error(`a look drag left of centre did not turn the camera (yaw ${a.yaw} → ${b.yaw})`);
+  console.log(`  reach-across drag → looked ${(b.yaw - a.yaw).toFixed(2)} rad, walked ${walked.toFixed(2)} m`);
+}
+
+// The sweep: touch-downs across the whole screen, judged against the zone
+// table the game itself reads. Alone, a touch starts the stick only inside the
+// movement zone and is look everywhere else that is not a button. With the
+// stick already held, every touch that is not a button is look.
+{
+  const report = await page.evaluate(() => {
+    const g = window.__derelict;
+    const input = g.input;
+    const zone = input.stickZone?.(window.innerWidth, window.innerHeight);
+    if (!zone) return { missing: true };
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const inZone = (x, y) => x >= zone.x0 && x <= zone.x1 && y >= zone.y0 && y <= zone.y1;
+    const onButton = (x, y) => Boolean(document.elementFromPoint(x, y)?.closest?.('#touch-interact, #touch-crouch'));
+    const down = (id, x, y) => {
+      const t = new Touch({ identifier: id, target: document.body, clientX: x, clientY: y });
+      window.dispatchEvent(new TouchEvent('touchstart', { changedTouches: [t], touches: [t], bubbles: true, cancelable: true }));
+    };
+    const up = (id, x, y) => {
+      const t = new Touch({ identifier: id, target: document.body, clientX: x, clientY: y });
+      window.dispatchEvent(new TouchEvent('touchend', { changedTouches: [t], touches: [], bubbles: true, cancelable: true }));
+    };
+    const wrong = [];
+    let checked = 0;
+    for (let i = 0; i < 14; i++) {
+      for (let j = 0; j < 22; j++) {
+        const x = ((i + 0.5) / 14) * W;
+        const y = ((j + 0.5) / 22) * H;
+        if (onButton(x, y)) continue;
+        checked++;
+        // Alone.
+        down(50, x, y);
+        const stick = input.stick.id === 50;
+        const look = input.lookTouch.id === 50;
+        up(50, x, y);
+        const want = inZone(x, y) ? 'stick' : 'look';
+        const got = stick ? 'stick' : look ? 'look' : 'nothing';
+        if (got !== want) wrong.push(`alone (${x | 0}, ${y | 0}) ${got}, want ${want}`);
+        // Second, with the stick held.
+        down(60, zone.x0 + 20, zone.y1 - 20);
+        down(61, x, y);
+        const second = input.lookTouch.id === 61 ? 'look' : input.stick.id === 61 ? 'stick' : 'nothing';
+        up(61, x, y);
+        up(60, zone.x0 + 20, zone.y1 - 20);
+        if (second !== 'look') wrong.push(`second (${x | 0}, ${y | 0}) ${second}, want look`);
+      }
+    }
+    input.move.x = input.move.y = 0;
+    return { checked, wrong, zone };
+  });
+  if (report.missing) throw new Error('the input layer publishes no stick zone — the zones are not data the harness can read');
+  if (report.wrong.length) {
+    throw new Error(`${report.wrong.length} of ${report.checked * 2} touch-downs assigned wrongly: ${report.wrong.slice(0, 5).join('; ')}`);
+  }
+  console.log(`  zone sweep → ${report.checked * 2} touch-downs, every one assigned as the zone table says`);
+}
 
 // ---- Held crouch button ----------------------------------------------------
 // Held, not toggled, on touch as well as on desktop — so this asserts the state

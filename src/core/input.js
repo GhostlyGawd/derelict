@@ -1,19 +1,22 @@
 /**
  * Unified input for both control schemes described in the spec:
  *   desktop — pointer-lock mouse look, WASD, E to interact, C/Ctrl to crouch
- *   mobile  — left virtual joystick, right-side drag to look, context button,
- *             a held crouch button
+ *   mobile  — a movement stick that starts in the lower-left zone, look from
+ *             any other touch (a second touch while moving is always look),
+ *             a context button and a held crouch button. See touchzones.js.
  *
  * The rest of the game only reads `move`, `look`, `crouchHeld` and
  * `takeInteract()`, so it never has to care which scheme is live.
  */
+
+import { inStickZone, stickZone } from './touchzones.js';
 
 /**
  * Phase 7. Goes up whenever the way raw input becomes `move` and `look` changes
  * on purpose. A trace replays only against the version that recorded it — a
  * deliberate change is supposed to make old traces diverge (7.3.2).
  */
-export const INPUT_VERSION = 1;
+export const INPUT_VERSION = 2;
 
 const LOOK_SENSITIVITY = 0.0022;
 const TOUCH_LOOK_SENSITIVITY = 0.0042;
@@ -39,6 +42,8 @@ export class Input {
     this.touchCrouch = false;
 
     this.stick = { id: null, ox: 0, oy: 0 };
+    /** The stick's zone in pixels, for tools/mobile.mjs to judge against. */
+    this.stickZone = stickZone;
     this.lookTouch = { id: null, x: 0, y: 0 };
 
     this.#bindKeyboard();
@@ -175,18 +180,25 @@ export class Input {
 
   // --------------------------------------------------------------- touch
 
+  /**
+   * Version 2 (phase 7). A touch starts the stick only inside the movement
+   * zone, and only while no stick is held; any other touch that reaches here is
+   * look. The buttons stop their own touches before they get this far. Version
+   * 1 split the screen at the midline, which took a right thumb looking just
+   * left of centre as movement and dropped it outright while the stick was
+   * held.
+   */
   #bindTouch() {
-    const half = () => window.innerWidth * 0.5;
-
     const onStart = (e) => {
       if (!this.enabled) return;
       for (const t of e.changedTouches) {
-        if (t.clientX < half() && this.stick.id === null) {
+        const inZone = inStickZone(t.clientX, t.clientY, window.innerWidth, window.innerHeight);
+        if (inZone && this.stick.id === null) {
           this.stick.id = t.identifier;
           this.stick.ox = t.clientX;
           this.stick.oy = t.clientY;
           this.#placeStick(t.clientX, t.clientY);
-        } else if (t.clientX >= half() && this.lookTouch.id === null) {
+        } else if (this.lookTouch.id === null) {
           this.lookTouch.id = t.identifier;
           this.lookTouch.x = t.clientX;
           this.lookTouch.y = t.clientY;
