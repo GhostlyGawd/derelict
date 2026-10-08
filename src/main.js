@@ -10,7 +10,7 @@ import { createRenderer } from './core/renderer.js';
 import { TraceRecorder, traceRequested } from './core/trace.js';
 
 import { buildCarryables } from './game/carryables.js';
-import { buildDoors, buildPowerPanel, buildSwitches } from './game/fixtures.js';
+import { SWITCH_DEAD, buildDoors, buildPowerPanel, buildSwitches } from './game/fixtures.js';
 import { Interactor } from './game/interact.js';
 import { buildSignage } from './game/signage.js';
 import {
@@ -119,6 +119,7 @@ class Derelict {
     this.manualClockOnStart = false;
     this.inputVersion = INPUT_VERSION;
     this.trace = traceRequested() ? new TraceRecorder(this, { inputVersion: INPUT_VERSION }) : null;
+    if (this.trace) this.input.onPadChange = (raw) => this.trace.pad(raw);
 
     this.#bindUi();
   }
@@ -151,6 +152,30 @@ class Derelict {
     this.phase = 'title';
     this.lastFrame = performance.now();
     requestAnimationFrame((t) => this.#frame(t));
+    this.#registerWorker();
+  }
+
+  /**
+   * Phase 8 (8.3.6): after the title is up — so nothing it fetches is paid for
+   * before the first frame — the service worker takes the build onto the
+   * device, and every later visit and every offline one comes from there.
+   *
+   * A browser driven by automation registers only when asked to with `?sw`.
+   * Every harness measures the game rather than the cache, and only
+   * tools/weight.mjs, which is about the cache, asks.
+   */
+  #registerWorker() {
+    if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return;
+    if (navigator.webdriver && !new URLSearchParams(window.location.search).has('sw')) return;
+    navigator.serviceWorker
+      .register('/sw.js')
+      // Asked for on every visit rather than left to the browser, which may
+      // wait a day: the visit after a deploy fetches the new list, and the
+      // one after that is the new build.
+      .then((reg) => reg.update())
+      .catch(() => {
+        /* no worker, or offline: the game runs from whatever it has */
+      });
   }
 
   #buildWorld() {
@@ -211,6 +236,12 @@ class Derelict {
     save?.addEventListener('click', () => this.trace?.save());
     this.input.onEscape = () => {
       if (this.phase === 'playing') this.#pause();
+    };
+    // A pad has no Escape and no pointer to click Resume with, so Start does
+    // both (8.3.4).
+    this.input.onPadStart = () => {
+      if (this.phase === 'playing') this.#pause();
+      else if (this.phase === 'paused') this.#resume();
     };
   }
 
@@ -274,7 +305,7 @@ class Derelict {
       sw.recoil = 0;
       sw.pivot.rotation.x = -0.75;
       sw.body.position.z = 0;
-      sw.indicator.material.color.setHex(0xff2a18);
+      sw.indicator.material.color.setHex(SWITCH_DEAD);
       sw.highlight(false);
     }
     this.interactor.current = null;
@@ -506,12 +537,13 @@ class Derelict {
 
   #frame(now) {
     requestAnimationFrame((t) => this.#frame(t));
-    const dt = Math.min(0.05, (now - this.lastFrame) / 1000);
+    const raw = now - this.lastFrame;
+    const dt = Math.min(0.05, raw / 1000);
     this.lastFrame = now;
     // Under a replay the browser's clock still ticks, and is ignored: the
     // frames are stepped from the recording instead.
     if (this.manualClock) return;
-    this.#tick(dt);
+    this.#tick(dt, true, raw);
   }
 
   /**
@@ -522,12 +554,20 @@ class Derelict {
     this.#tick(dt, render);
   }
 
-  #tick(dt, render = true) {
-    this.trace?.tick(dt);
+  #tick(dt, render = true, raw = dt * 1000) {
+    // The pad is polled before the trace stamps the frame, so a change it
+    // records belongs to the frame that acts on it — the same rule every
+    // evented input already follows.
+    this.input.pollPad();
+    this.trace?.tick(dt, raw);
+    this.input.applyPad(dt);
     this.frameIndex++;
     this.elapsed += dt;
 
-    if (this.view.sample(dt)) this.#resize();
+    if (this.view.sample(dt)) {
+      this.#resize();
+      this.trace?.scaleChanged(this.view.scale);
+    }
 
     // The clock runs until the player steps off the ship, so the departure is
     // part of the time aboard rather than free.
@@ -552,6 +592,10 @@ class Derelict {
     // After the lighting pass, so the failing lamp rides on top of whatever
     // state its zone is in rather than fighting it for the same value.
     this.mechanism.update(dt, this.camera);
+    // Last of all, so the dust in a shaft follows its lamp through everything
+    // that touched it this frame — the strike, the failing lamp, the
+    // departure (8.3.5).
+    this.lighting.updateDust(this.elapsed);
 
     const space = spaceAt(this.player.position.x, this.player.position.z);
     // The ears go where the head is, and the compartment decides what the room
@@ -569,7 +613,11 @@ class Derelict {
     // chamber was: the threshold is the same deck plate.
     this.audio.setSpace(space ? space.id : null, space ? ROOM_TONE[space.id] : null);
     if (space) this.surface = SURFACES[space.id] || 'deck';
-    const powered = space ? this.poweredZones.has(space.id) : false;
+    // Off the ship there is no compartment to ask. What lights the scanner out
+    // there is the chamber's flood behind you and the sun ahead, so it takes
+    // the powered tint — it used to fall back to emergency red, which put the
+    // last red light in the game in the player's hands, on the threshold.
+    const powered = space ? this.poweredZones.has(space.id) : true;
     this.viewmodel.setTint(
       powered ? POWERED_TINT : EMERGENCY_TINT,
       powered ? 2.4 : 1.5
@@ -600,7 +648,9 @@ class Derelict {
     // cell down — and on touch the context button is lit only when a prompt is
     // showing. Without this the set-down gesture would be invisible on a phone.
     const action = target?.prompt ?? (this.carry.held ? 'Set Down Cell' : null);
-    this.hud.setPrompt(action && (this.input.usingTouch ? action : `[E] ${action}`));
+    // The prompt names the button on whatever the player last used (8.3.4).
+    const key = this.input.promptKey;
+    this.hud.setPrompt(action && (key ? `[${key}] ${action}` : action));
     if (this.input.takeInteract()) this.#press(target);
   }
 
@@ -659,6 +709,70 @@ class Derelict {
       if (pixels[i] > 240 && pixels[i + 1] < 16 && pixels[i + 2] > 240) hits++;
     }
     return hits / (w * h);
+  }
+
+  /**
+   * What a fixture looks like from a viewpoint, for tools/colour.mjs (8.3.1).
+   * The scene is drawn off-screen exactly as it is — the real lights, the fog,
+   * the generated textures — encoded to sRGB as the screen would show it.
+   * With `mask`, it is drawn a second time with that mesh swapped for a flat
+   * marker, and only the pixels the marker covered are averaged. Returns the
+   * mean colour in linear RGB and the share of the frame it covered.
+   */
+  viewForTest(eye, at, mask = null, { w = 320, h = 200 } = {}) {
+    const camera = this.camera.clone();
+    camera.position.set(...eye);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    camera.lookAt(...at);
+    camera.updateMatrixWorld(true);
+    const target = new THREE.WebGLRenderTarget(w, h);
+    target.texture.colorSpace = THREE.SRGBColorSpace;
+    const renderer = this.view.renderer;
+    const draw = () => {
+      const pixels = new Uint8Array(w * h * 4);
+      renderer.setRenderTarget(target);
+      renderer.clear();
+      renderer.render(this.scene, camera);
+      renderer.readRenderTargetPixels(target, 0, 0, w, h, pixels);
+      renderer.setRenderTarget(null);
+      return pixels;
+    };
+    const picture = draw();
+    let covered = null;
+    if (mask) {
+      const marker = new THREE.MeshBasicMaterial({ color: 0xff00ff, fog: false, side: THREE.DoubleSide });
+      const original = mask.material;
+      mask.material = marker;
+      // Anything see-through in front of it — a light shaft under a lamp —
+      // would tint the marker; it is in the picture, but not in the mask.
+      const hidden = [];
+      this.scene.traverse((o) => {
+        if (o.visible && (o.isMesh || o.isPoints) && o.material?.transparent && o !== mask) {
+          o.visible = false;
+          hidden.push(o);
+        }
+      });
+      covered = draw();
+      for (const o of hidden) o.visible = true;
+      mask.material = original;
+      marker.dispose();
+    }
+    target.dispose();
+    const linear = (v) => {
+      const c = v / 255;
+      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    const sum = [0, 0, 0];
+    let n = 0;
+    for (let i = 0; i < picture.length; i += 4) {
+      if (covered && !(covered[i] > 240 && covered[i + 1] < 16 && covered[i + 2] > 240)) continue;
+      sum[0] += linear(picture[i]);
+      sum[1] += linear(picture[i + 1]);
+      sum[2] += linear(picture[i + 2]);
+      n++;
+    }
+    return { rgb: n ? sum.map((v) => v / n) : null, coverage: n / (w * h) };
   }
 
   #inside(box) {

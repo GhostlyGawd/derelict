@@ -178,6 +178,12 @@ await page.evaluate(() => {
   g.scene.traverse((o) => {
     if (o.isMesh && o.material && o.material.specular) o.material.specular.setRGB(0, 0, 0);
   });
+  // The patch is bare bulkhead by definition. Since phase 8 the Bay's conduit
+  // runs along this wall at 2.2 m, through the patch: an unlit strip with hard
+  // edges, whose high-frequency content belongs to neither configuration and
+  // took the flat control from 0.15 to 0.53. It is taken off the wall for the
+  // photograph, the way the specular already is.
+  for (const s of g.lighting.partsIn('bay').strips) s.visible = false;
 });
 await page.waitForTimeout(2200);
 

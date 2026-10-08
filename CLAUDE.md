@@ -1,12 +1,12 @@
 
 # DERELICT — Spec
 
-**How to read this document.** Phase 8 (v1.7) is the most recent section and
-is a **draft** in flight; merging it ratifies it. Phase 7, Phase 6, Phase 5,
-Phase 4, Phase 3, Phase 2, Amendment 1 and the v1.0 sections below them are
-shipped. Where any two disagree, the later section wins. Nothing here is a
-suggestion — if we change something during a build, we change this document
-first.
+**How to read this document.** Phase 8 (v1.7) is the most recent section. It
+is approved and built, and ships when its pull requests merge; its owner bars
+are open. Phase 7, Phase 6, Phase 5, Phase 4, Phase 3, Phase 2, Amendment 1 and
+the v1.0 sections below them are shipped. Where any two disagree, the later
+section wins. Nothing here is a suggestion — if we change something during a
+build, we change this document first.
 
 ---
 
@@ -40,10 +40,99 @@ to tri budget, crunch textures to 256 px).
 
 # Phase 8 — v1.7
 
-**Status: DRAFT.** Proposed 8 October 2026. Merging this section ratifies it,
-and the build follows in its own pull request. On the same terms as everything
-below: nothing here is a suggestion, and if we change something during the
-build we change this document first.
+**Status: APPROVED AND BUILT.** Proposed 8 October 2026 in PR #28 and
+approved by the owner the same day; built the same day in PR #29. It ships
+when both merge. Every bar Claude can verify is green. The owner's bars are
+open: the ship still looking like itself, the pad, the dust, the home screen in
+airplane mode, and a recording on the new build. On the same terms as
+everything below: nothing here is a suggestion, and if we change something
+during the build we change this document first.
+
+**What the build changed in this section, and why.**
+
+*The instruments found two real bugs, and neither was new.* The colour harness
+photographed a corridor's conduit and found nothing there. Six of the twelve
+runs, in both corridors and the Service Passage, had been 12 cm inside their
+walls since the greybox. A wall is centred on its line, so a 2.6 m corridor's
+faces are at ±1.1 m, and the runs were placed at ±1.22. Nobody had ever seen
+them, including the corridor fill phase 6 built. They are in front of the wall
+now, and the harness photographs every run. Building the second visit turned
+up the other: `vercel.json` served the whole of `/assets` immutable for a year,
+including generated assets and `manifest.json`, whose names never change. A
+returning visitor could keep a texture, or a whole manifest, from a build that
+no longer existed. The bundle moved to `/bundle` and is the only thing served
+immutable, and the weight harness checks that every immutable file is named by
+its content.
+
+*The monkey found no bug in the game.* Twelve seeds on four devices, with a
+burst each under the slab, mid-strike, carrying and walking out, broke no
+invariant, and every run was played out. It found two bugs in itself first. Its
+synthetic touches ended on whatever element they had wandered over, which a
+real phone never does. And headless Chromium grants a real pointer lock whose
+change events land on the wall clock, so a replay once lost its lock on a pause
+the recording had kept, and could not turn. Replay now switches the real lock
+off before a desktop run starts. To show the invariants can fail at all, the
+harness breaks the game seven ways and requires each to be caught. The draft's
+mid-run viewport resize was dropped (see 8.3.3).
+
+*The colours, measured.* Every pair now clears 3:1 at its worst. Deuteranopia
+is the worst case for each: switch indicator 3.60, cradle lamp 3.59, conduit
+3.45, lamp lens 3.70, airlock count 3.33. Room light is 7.32 as a plain ratio
+(see 8.3.1), and the airlock pip is 10.53. The changes are small. Dead is a
+darker red and live a brighter green. The live conduit is driven past its
+texture, because the strip's own texture darkens whatever colour it carries.
+The emergency lens is darker than the light it throws.
+
+*The phone, read.* Both owner traces report 17 ms at the median and 18 ms at
+the 95th percentile in every compartment, with one frame over 33 ms in each
+run, in the Bay. They are format 1, so the slow end is a floor (8.3.2).
+
+*The owner's first play, and what changed for it.* The owner played the
+build on 8 October 2026 and recorded it, committed as
+`tools/traces/owner-2026-10-08-v2-phase8.json`. It replays exactly at all 256
+checkpoints. The verdict: the ship still looks like itself, but the dust was
+overdone and its particles too big. The scanner stayed red on the walk out to
+the planet. And the light bars on the walls clipped and did not connect.
+All three were right, and all three are fixed:
+
+- *Dust.* The first motes were 2 cm, about four pixels across on the owner's
+  phone, which read as squares. There were 36 of them per shaft at 0.55. They
+  are now 7 mm, 20 per shaft, at 0.35.
+- *The scanner off the ship.* Its tint came from the compartment underfoot,
+  and on the threshold there is none, so it fell back to emergency red. This
+  predates phase 8. Off the ship it now takes the powered tint, the light of
+  the chamber behind and the sun ahead.
+- *The conduits.* Bringing the buried runs out of their walls exposed how they
+  had been placed. They sat at four heights (1.95, 2.15, 2.55 and 2.7 m), two
+  cut through corridor labels, one crossed the airlock opening, one ran
+  through the debris in Corridor B, and they ended mid-wall at corners. The
+  table was rebuilt from the walls, door trims and wall-mounted things: one
+  height of 2.2 m everywhere, broken only by a door frame, a label or a
+  fixture, and meeting at every room corner. `tools/colour.mjs` now fails any
+  run that is off that height or passes through any of those. Run against the
+  old table it failed on the heights, the airlock opening and the debris.
+
+The owner also said the scanner's motion and placement felt off. The viewmodel
+code has not changed since phase 6. Phase 7 moved the touch buttons into the
+bottom-right corner, which is where the scanner sits on a portrait phone, so
+the two now overlap. That is the likely cause. It is put to the owner rather
+than changed by guesswork.
+
+The same trace is the first with raw frame intervals from real hardware, and it
+shows the first real hitch the project has measured: one 195 ms frame in the
+Annex during its power strike. That is otherwise 17 ms at the median and 18 ms
+at the 95th percentile everywhere. It is reported here and not chased in this
+phase.
+
+*The rest, as built.* Dust, at its first size, cost 1.07× on its own, and the whole frame is
+1.37× against the 1.9× budget. The game asks the browser to check for a new
+worker on every visit. Left to itself, a browser may wait a day, and the
+visit after a deploy has to fetch the new list. A pad's Start resumes as well
+as pausing, since a pad has no Escape and no pointer for the Resume button.
+Starting a run still takes a click or a tap, because browsers do not let a pad
+button unlock audio. The controls card gains a pad line once a pad is
+reported. The pad's action checks live in the systems smoke test rather than
+in a fourth new harness, so the box in 8.7 holds.
 
 The owner chose the shape: wide, per the rhythm 5.2 proposed, with all six of
 the features Claude put forward (8.9). It is the widest phase so far. Phase 4
@@ -124,6 +213,13 @@ shape, but the lamp is what a player reads from across the room.
   both states at the shipped render scale, through the real lighting, fog and
   palette crunch, and simulates the colour vision on the rendered pixels. A hex
   code says nothing about what a lamp looks like after the fog has had it.
+- **A room is compared as a plain ratio.** The WCAG ratio adds 0.05 to both
+  sides, which models the glare of a bright screen around a control. A dark
+  room's average luminance is below 0.05 whether it is lit or not, so the
+  offset would drown the difference, and the only way to pass would be to light
+  the ship like an office. A whole room's brightness, dead against live, is
+  held to 3:1 without the offset. Every fixture keeps the WCAG form. (Added in
+  the build.)
 
 Rejected: a colour-blind mode, which is a settings menu, and the settings-menu
 guardrail stands. Repainting the language in blue and orange, which is the
@@ -181,8 +277,11 @@ would. Nothing drives it the way a careless one does.
   traces in the phase 7 format from a grammar of hostile moves: mashing
   interact through animations, holding and releasing crouch under the slab,
   setting a cell down in every reachable place, pausing and resuming mid-strike,
-  resizing the viewport mid-run, two thumbs and keys and a pad all at once. Each
-  trace replays through the real input layer, exactly as an owner trace does.
+  two thumbs and keys and a pad all at once. Each trace replays through the
+  real input layer, exactly as an owner trace does. (The draft also listed
+  resizing the viewport mid-run. A trace has no record of the viewport
+  changing and replay cannot change it mid-run, so a resize would make a run
+  that cannot be replayed. It was dropped in the build.)
 - **Invariants checked on every frame.** No exception is thrown. The player
   never stands inside geometry and never falls through the floor. Exactly two
   cells exist at all times, each held, lying on the floor, in a cradle or
@@ -334,8 +433,8 @@ guardrail first.
 - **v1 §2, "instant to load."** The first visit is measured, as 7.6 made it.
   Every visit after it is instant by construction and gated at zero bytes.
 - **v1 §4, controls.** Gains a gamepad: left stick move, right stick look, A
-  interact, B held crouch, Start pause. The interact prompt names the device in
-  use.
+  interact, B held crouch, Start pause and resume. The interact prompt names
+  the device in use.
 - **v1 §7, asset manifest.** Gains one icon, generated from the glyph atlas and
   the style bible.
 - **v1 §11, definition of done.** Gains colour-vision contrast as a standing

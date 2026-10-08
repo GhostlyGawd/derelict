@@ -16,8 +16,21 @@ import { CONDUITS, EMERGENCY, ESCAPE_LIGHT, LIGHTS, POWERED, SHAFTS } from './la
 
 const EMERGENCY_COLOR = new THREE.Color(EMERGENCY.color);
 const POWERED_COLOR = new THREE.Color(POWERED.color);
-const CONDUIT_OFF = new THREE.Color(0xd8351c);
-const CONDUIT_ON = new THREE.Color(0x8effae);
+// Phase 8 (8.3.1): dead and live differ by brightness as well as hue, at least
+// 3:1 in luminance under every common colour-vision deficiency as rendered —
+// tools/colour.mjs measures it. Dead went darker and live brighter; the hues
+// are what they always were.
+const CONDUIT_OFF = new THREE.Color(0xc22f18);
+// Over 1 on purpose: the strip's generated texture darkens whatever it is
+// multiplied by, and a live run has to clear its dead red by 3:1 after that.
+// Vertex colours are floats, so a live strip can be driven past its texture.
+const CONDUIT_ON = new THREE.Color(0xa5ffca).multiplyScalar(1.45);
+/**
+ * The lens of a lamp running on emergency power. Darker than the light it
+ * throws, which stays EMERGENCY.color: a lamp's face is what a player reads
+ * the state from, and the room it lights is not an indicator.
+ */
+const EMERGENCY_LENS = new THREE.Color(0xd92d19);
 const DEAD_LENS = new THREE.Color(0x140705);
 const blend = new THREE.Color();
 
@@ -48,6 +61,92 @@ function surge(t) {
   if (t < 0.40) return 1.3;
   if (t < 0.46) return 0.55;
   return 1 + 0.28 * Math.exp(-(t - 0.46) * 9) * Math.sin((t - 0.46) * 34);
+}
+
+/**
+ * Phase 8 — air in the light (8.3.5). Motes per shaft: square points, no
+ * texture, nearest like everything else, lit only by their own lamp.
+ */
+const MOTES = 20;
+/**
+ * World size of a mote: about one backbuffer pixel a metre away. The first
+ * build used 0.02 — four pixels across on the owner's phone, which read as
+ * squares rather than as dust — with 36 motes a shaft at 0.55. "A bit much"
+ * was the verdict; this is a third of the size, fewer and dimmer.
+ */
+const MOTE_SIZE = 0.007;
+/** How bright the dust is in a lamp at full power. Quiet on purpose: found by looking, never announced. */
+const DUST_OPACITY = 0.35;
+
+/** A small deterministic hash: the same mote drifts the same way in every run and every replay. */
+function hash(n) {
+  const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+/**
+ * The motes for one shaft, as a child of its cone so they are shown and hidden
+ * with it. Each mote is a fixed set of numbers — where in the cone, how fast it
+ * turns, how far it bobs — and its position is a function of the game clock,
+ * never a simulation, so a replay draws the same dust (and asserts on none of
+ * it).
+ */
+function buildDust(cone, radius, height, index) {
+  const geo = new THREE.BufferGeometry();
+  const position = new THREE.BufferAttribute(new Float32Array(MOTES * 3), 3);
+  const color = new THREE.BufferAttribute(new Float32Array(MOTES * 3), 3);
+  const seeds = new Float32Array(MOTES * 5);
+  for (let i = 0; i < MOTES; i++) {
+    const n = index * 1000 + i;
+    seeds[i * 5] = Math.sqrt(hash(n)); // radial fraction, area-even
+    seeds[i * 5 + 1] = hash(n + 0.1) * Math.PI * 2; // angle
+    seeds[i * 5 + 2] = 0.08 + hash(n + 0.2) * 0.8; // height fraction
+    seeds[i * 5 + 3] = (hash(n + 0.3) - 0.5) * 0.12; // turn rate, rad/s
+    seeds[i * 5 + 4] = hash(n + 0.4) * Math.PI * 2; // bob phase
+    const b = 0.45 + 0.55 * hash(n + 0.5);
+    color.setXYZ(i, b, b, b);
+  }
+  geo.setAttribute('position', position);
+  geo.setAttribute('color', color);
+  // The cone is the bound: nothing is ever drawn outside it.
+  geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), Math.hypot(radius, height / 2));
+  const material = new THREE.PointsMaterial({
+    color: POWERED.color,
+    size: MOTE_SIZE,
+    sizeAttenuation: true,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    fog: true,
+    toneMapped: false,
+  });
+  const points = new THREE.Points(geo, material);
+  points.name = 'dust';
+  points.renderOrder = 3;
+  cone.add(points);
+  return { points, seeds, radius, height };
+}
+
+/** Moves one shaft's motes to where they are at `time`. Positions are in the cone's frame. */
+function driftDust(dust, time) {
+  const { seeds, radius, height } = dust;
+  const pos = dust.points.geometry.attributes.position;
+  for (let i = 0; i < MOTES; i++) {
+    const s = i * 5;
+    const y = THREE.MathUtils.clamp(
+      seeds[s + 2] * height + 0.18 * Math.sin(time * 0.23 + seeds[s + 4]),
+      0.05,
+      height * 0.9
+    );
+    // The cone narrows to its apex at the lamp; a mote stays inside it at
+    // whatever height it has drifted to.
+    const r = seeds[s] * radius * (1 - y / height) * 0.92;
+    const a = seeds[s + 1] + time * seeds[s + 3];
+    pos.setXYZ(i, Math.cos(a) * r, y - height / 2, Math.sin(a) * r);
+  }
+  pos.needsUpdate = true;
 }
 
 export function buildLighting(materials) {
@@ -95,17 +194,18 @@ export function buildLighting(materials) {
 
     const lens = new THREE.Mesh(
       lensGeo,
-      new THREE.MeshBasicMaterial({ color: EMERGENCY.color, toneMapped: false, fog: true })
+      new THREE.MeshBasicMaterial({ color: EMERGENCY_LENS, toneMapped: false, fog: true })
     );
     lens.rotation.x = Math.PI / 2;
     lens.position.set(def.pos[0], def.pos[1] + 0.088, def.pos[2]);
     if (def.zone === 'chamber') lens.material.color.setHex(0x140705);
     group.add(lens);
     zoneOf(def.zone).lenses.push(lens.material);
-    zoneOf(def.zone).lamps.push({ light, lens: lens.material.color, shaft: null, pos: def.pos, delay: 0 });
+    zoneOf(def.zone).lamps.push({ light, lens: lens.material.color, lensMesh: lens, shaft: null, pos: def.pos, delay: 0 });
   }
 
   // --------------------------------------------------------- light shafts
+  let dustIndex = 0;
   for (const def of SHAFTS) {
     const height = def.pos[1];
     const material = materials.shaft(POWERED.color);
@@ -121,7 +221,10 @@ export function buildLighting(materials) {
     zoneOf(def.zone).shafts.push(cone);
     // Each shaft hangs under one lamp, and comes on when that lamp does.
     const lamp = zoneOf(def.zone).lamps.find((l) => l.pos[0] === def.pos[0] && l.pos[2] === def.pos[2]);
-    if (lamp) lamp.shaft = cone;
+    if (lamp) {
+      lamp.shaft = cone;
+      lamp.dust = buildDust(cone, def.radius, height, dustIndex++);
+    }
   }
 
   // ------------------------------------------------------------ conduits
@@ -160,7 +263,7 @@ export function buildLighting(materials) {
       p.fromBufferAttribute(geo.attributes.position, i).applyMatrix4(strip.matrixWorld);
       world.push([p.x, p.z]);
     }
-    const record = { material, colors, world, delays: new Float32Array(world.length) };
+    const record = { mesh: strip, material, colors, world, delays: new Float32Array(world.length) };
     paint(record, () => CONDUIT_OFF);
     zoneOf(def.zone).conduits.push(material);
     zoneOf(def.zone).strips.push(record);
@@ -245,7 +348,7 @@ export function buildLighting(materials) {
       for (const material of zone.conduits) material.color.setRGB(1, 1, 1);
       for (const strip of zone.strips) paint(strip, () => CONDUIT_OFF);
       for (const material of zone.lenses) {
-        material.color.copy(id === 'chamber' ? DEAD_LENS : EMERGENCY_COLOR);
+        material.color.copy(id === 'chamber' ? DEAD_LENS : EMERGENCY_LENS);
       }
       for (const light of zone.lights) {
         light.color.copy(EMERGENCY_COLOR);
@@ -289,7 +392,7 @@ export function buildLighting(materials) {
           lamp.light.color.copy(EMERGENCY_COLOR).lerp(POWERED_COLOR, mix);
           lamp.light.intensity = POWERED.intensity * k;
           lamp.lens
-            .copy(EMERGENCY_COLOR)
+            .copy(EMERGENCY_LENS)
             .lerp(POWERED_COLOR, mix)
             .multiplyScalar(Math.min(1.35, 0.55 + 0.45 * k));
           if (lamp.shaft) {
@@ -309,7 +412,7 @@ export function buildLighting(materials) {
         for (const lamp of zone.lamps) {
           lamp.light.color.copy(EMERGENCY_COLOR);
           lamp.light.intensity = id === 'chamber' ? 0 : EMERGENCY.intensity;
-          lamp.lens.copy(id === 'chamber' ? DEAD_LENS : EMERGENCY_COLOR);
+          lamp.lens.copy(id === 'chamber' ? DEAD_LENS : EMERGENCY_LENS);
         }
         for (const strip of zone.strips) paint(strip, () => CONDUIT_OFF);
       } else if (!zone.powered && id !== 'chamber' && !escaping.active) {
@@ -342,10 +445,32 @@ export function buildLighting(materials) {
         for (const material of zone.conduits) material.color.setRGB(behind, behind, behind);
         for (const material of zone.lenses) {
           material.color
-            .copy(zone.powered ? POWERED_COLOR : EMERGENCY_COLOR)
+            .copy(zone.powered ? POWERED_COLOR : EMERGENCY_LENS)
             .multiplyScalar(behind);
         }
         for (const shaft of zone.shafts) shaft.material.opacity = 0.06 * behind;
+      }
+    }
+  }
+
+  /**
+   * The dust takes its brightness from its own lamp, on the same frame, after
+   * everything else has decided what the lamp is doing — so the strike's
+   * stutter and the departure's fade both show in the air (8.3.5). It moves
+   * only while it can be seen.
+   */
+  function updateDust(elapsed) {
+    for (const zone of zones.values()) {
+      for (const lamp of zone.lamps) {
+        const dust = lamp.dust;
+        if (!dust) continue;
+        if (!lamp.shaft.visible) {
+          dust.points.material.opacity = 0;
+          continue;
+        }
+        const k = Math.max(0, Math.min(1.6, lamp.light.intensity / POWERED.intensity));
+        dust.points.material.opacity = DUST_OPACITY * k;
+        driftDust(dust, elapsed);
       }
     }
   }
@@ -358,5 +483,23 @@ export function buildLighting(materials) {
     return zones.get(zoneId)?.lights ?? [];
   }
 
-  return { group, setPowered, floodChamber, reset, update, lampsIn };
+  /** The lamp lenses, conduit strips and dust of a zone, for tools/colour.mjs and tools/consume.mjs. */
+  function partsIn(zoneId) {
+    const zone = zones.get(zoneId);
+    return zone
+      ? {
+          lenses: zone.lamps.map((l) => l.lensMesh),
+          strips: zone.strips.map((s) => s.mesh),
+          dust: zone.lamps.filter((l) => l.dust).map((l) => ({ ...l.dust, light: l.light, shaft: l.shaft })),
+        }
+      : null;
+  }
+
+  /** Whether any zone is part-way through its strike, for tools/profile.mjs. */
+  function striking() {
+    for (const zone of zones.values()) if (zone.powered && zone.t < 1) return true;
+    return false;
+  }
+
+  return { group, setPowered, floodChamber, reset, update, updateDust, lampsIn, striking, partsIn };
 }

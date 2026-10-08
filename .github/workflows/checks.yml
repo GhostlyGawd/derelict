@@ -87,6 +87,12 @@ jobs:
       - name: Playtest — signage legibility
         run: node tools/legible.mjs http://127.0.0.1:4173/
 
+      # Phase 8. Every dead/live pair photographed in both states and compared
+      # by luminance under normal vision and three simulated deficiencies; and
+      # every conduit run photographed, so none can be inside its wall again.
+      - name: Playtest — state reads without hue
+        run: node tools/colour.mjs http://127.0.0.1:4173/
+
       # relief.mjs guards one instance of "generated, listed, and never
       # reaching its consumer". This guards the class — every texture, normal
       # map, model, sound and impulse response, observed in use.
@@ -105,6 +111,12 @@ jobs:
       - name: Playtest — recorded runs replay
         run: node tools/replay.mjs http://127.0.0.1:4173/
 
+      # Phase 8. Seeded hostile input on a desktop and two phones, invariants
+      # checked every frame, then an autopilot must finish each run. Anything
+      # it ever found is in tools/traces/monkey and replays first.
+      - name: Playtest — monkey runs
+        run: node tools/monkey.mjs http://127.0.0.1:4173/
+
       # Bytes to title, decoded, gated; time to title on a pinned network,
       # reported. Bytes are a fact about the game; time is partly the runner.
       - name: Playtest — the weight
@@ -115,6 +127,12 @@ jobs:
       # budget, on the whole frame, is in the harness.
       - name: Playtest — the frame budget
         run: node tools/framecost.mjs http://127.0.0.1:4173/
+
+      # Phase 8. The other half of the frame budget: absolute frame times from
+      # the owner's own phone, read out of the committed traces and broken down
+      # by compartment and event. Reported, never gated.
+      - name: Report — frame times on the owner's phone
+        run: node tools/profile.mjs http://127.0.0.1:4173/
 
       - name: Playtest — systems
         run: node tools/smoke.mjs http://127.0.0.1:4173/ --shots

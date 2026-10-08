@@ -1,20 +1,25 @@
 /**
- * Unified input for both control schemes described in the spec:
+ * Unified input for every control scheme described in the spec:
  *   desktop — pointer-lock mouse look, WASD, E to interact, C/Ctrl to crouch
  *   mobile  — a movement stick that starts in the lower-left zone, look from
  *             any other touch (a second touch while moving is always look),
  *             a context button and a held crouch button. See touchzones.js.
+ *   pad     — the standard mapping, on either (phase 8, 8.3.4). See PAD.
  *
  * The rest of the game only reads `move`, `look`, `crouchHeld` and
  * `takeInteract()`, so it never has to care which scheme is live.
  */
 
-import { inStickZone, stickZone } from './touchzones.js';
+import { PAD, deadzone, inStickZone, stickZone } from './touchzones.js';
 
 /**
  * Phase 7. Goes up whenever the way raw input becomes `move` and `look` changes
  * on purpose. A trace replays only against the version that recorded it — a
  * deliberate change is supposed to make old traces diverge (7.3.2).
+ *
+ * Phase 8 added the pad without changing it: a new device changes nothing
+ * about how a recorded touch or key is read, so the owner's traces still
+ * replay (8.3.4).
  */
 export const INPUT_VERSION = 2;
 
@@ -39,7 +44,25 @@ export class Input {
 
     this.keys = new Set();
     this.interactQueued = false;
+
     this.touchCrouch = false;
+    this.padCrouch = false;
+    /**
+     * The pad's raw state as the browser last reported it — `{ axes, buttons }`
+     * or null — and the state it was in at the last frame, for edges. Raw, not
+     * derived, because that is what a trace records (7.3.2).
+     */
+    this.pad = null;
+    this.padBefore = null;
+    this.padMoving = false;
+    /** 'live' reads navigator.getGamepads(); 'replay' takes state only from setPadForTest. */
+    this.padSource = 'live';
+    /** Called with the new raw state whenever it changes, for the trace. */
+    this.onPadChange = null;
+    /** Start, pressed. The game decides whether that pauses or resumes. */
+    this.onPadStart = () => {};
+    /** Which hand last did something: 'keys', 'touch' or 'pad'. Names the prompt. */
+    this.lastDevice = this.touch ? 'touch' : 'keys';
 
     this.stick = { id: null, ox: 0, oy: 0 };
     /** The stick's zone in pixels, for tools/mobile.mjs to judge against. */
@@ -68,7 +91,9 @@ export class Input {
    * the whole reason 4.3.4 rejected a toggle.
    */
   get crouchHeld() {
-    return this.enabled && (this.touchCrouch || this.keys.has('KeyC') || this.keys.has('ControlLeft'));
+    return (
+      this.enabled && (this.touchCrouch || this.padCrouch || this.keys.has('KeyC') || this.keys.has('ControlLeft'))
+    );
   }
 
   /** Consumes the accumulated look delta for this frame. */
@@ -85,6 +110,8 @@ export class Input {
       this.keys.clear();
       this.interactQueued = false;
       this.touchCrouch = false;
+      this.padCrouch = false;
+      this.padMoving = false;
       this.move.x = 0;
       this.move.y = 0;
       this.look.dx = 0;
@@ -113,6 +140,91 @@ export class Input {
     if (document.pointerLockElement) document.exitPointerLock?.();
   }
 
+  // ----------------------------------------------------------------- pad
+
+  /**
+   * Reads the first standard-mapped pad the browser knows about and, if its
+   * state has changed since the last frame, keeps it and reports it. Called at
+   * the top of every frame, before the trace stamps the frame, so a recorded
+   * change lands on the frame that used it.
+   */
+  pollPad() {
+    if (this.padSource !== 'live') return;
+    let raw = null;
+    try {
+      for (const p of navigator.getGamepads?.() || []) {
+        if (p && p.connected && p.mapping === 'standard') {
+          raw = {
+            axes: p.axes.slice(0, 4).map((a) => Math.round(a * 1000) / 1000),
+            buttons: p.buttons.slice(0, 16).map((b) => (b.pressed ? 1 : 0)),
+          };
+          break;
+        }
+      }
+    } catch {
+      /* no pad API: nothing to read */
+    }
+    if (samePad(raw, this.pad)) return;
+    this.pad = raw;
+    this.onPadChange?.(raw);
+  }
+
+  /** The pad's state from a trace, for tools/replay.mjs. From then on the real pad is ignored. */
+  setPadForTest(raw) {
+    this.padSource = 'replay';
+    this.pad = raw;
+  }
+
+  /** Turns the pad's raw state into move, look, crouch and presses, for one frame of `dt`. */
+  applyPad(dt) {
+    const pad = this.pad;
+    const before = this.padBefore;
+    this.padBefore = pad;
+    const pressed = (i) => Boolean(pad?.buttons[i]) && !before?.buttons[i];
+    if (pad && pad !== before) this.lastDevice = 'pad';
+
+    // Start works paused or not: it is how a pad player gets back in.
+    if (pressed(PAD.buttons.pause)) this.onPadStart();
+    if (!this.enabled) return;
+
+    if (!pad) {
+      this.padCrouch = false;
+      if (this.padMoving) {
+        this.padMoving = false;
+        this.#syncKeyboardMove();
+      }
+      return;
+    }
+    const [mx, my] = deadzone(pad.axes[0] || 0, pad.axes[1] || 0, PAD.moveDeadzone);
+    if (mx || my) {
+      // A stick pushed up reads negative, as every pad reports it.
+      this.move.x = mx;
+      this.move.y = -my;
+      this.padMoving = true;
+    } else if (this.padMoving) {
+      this.padMoving = false;
+      this.move.x = 0;
+      this.move.y = 0;
+      this.#syncKeyboardMove();
+    }
+    const [lx, ly] = deadzone(pad.axes[2] || 0, pad.axes[3] || 0, PAD.lookDeadzone);
+    const m = Math.hypot(lx, ly);
+    if (m > 0) {
+      const k = (m ** PAD.lookCurve / m) * PAD.lookSpeed * dt;
+      this.look.dx += lx * k;
+      this.look.dy += ly * k * PAD.pitchScale;
+    }
+    this.padCrouch = Boolean(pad.buttons[PAD.buttons.crouch]);
+    if (pressed(PAD.buttons.interact)) this.interactQueued = true;
+  }
+
+  /** What the interact prompt should name: the key for whichever hand is in use, or nothing on touch. */
+  get promptKey() {
+    if (this.lastDevice === 'pad') return 'A';
+    if (this.lastDevice === 'touch') return null;
+    return 'E';
+  }
+
   // ------------------------------------------------------------ keyboard
 
   #bindKeyboard() {
@@ -124,6 +236,7 @@ export class Input {
 
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
+      this.lastDevice = 'keys';
       if (e.code === 'Escape') {
         this.onEscape();
         return;
@@ -147,6 +260,7 @@ export class Input {
 
   #syncKeyboardMove() {
     if (this.touch && this.stick.id !== null) return;
+    if (this.padMoving) return;
     const k = this.keys;
     const fwd = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0);
     const str = (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0) - (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0);
@@ -165,6 +279,7 @@ export class Input {
 
     document.addEventListener('mousemove', (e) => {
       if (!this.locked || !this.enabled) return;
+      if (e.movementX || e.movementY) this.lastDevice = 'keys';
       this.look.dx += e.movementX * LOOK_SENSITIVITY;
       this.look.dy += e.movementY * LOOK_SENSITIVITY;
     });
@@ -190,6 +305,7 @@ export class Input {
    */
   #bindTouch() {
     const onStart = (e) => {
+      this.lastDevice = 'touch';
       if (!this.enabled) return;
       for (const t of e.changedTouches) {
         const inZone = inStickZone(t.clientX, t.clientY, window.innerWidth, window.innerHeight);
@@ -253,6 +369,7 @@ export class Input {
     window.addEventListener('touchcancel', onEnd, opts);
 
     this.interactBtn.addEventListener('touchstart', (e) => {
+      this.lastDevice = 'touch';
       e.stopPropagation();
       e.preventDefault();
       if (this.enabled) this.interactQueued = true;
@@ -288,6 +405,14 @@ export class Input {
   #drawKnob(x, y) {
     this.knobEl.style.transform = `translate(${x}px, ${y}px)`;
   }
+}
+
+function samePad(a, b) {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  for (let i = 0; i < a.axes.length; i++) if (a.axes[i] !== b.axes[i]) return false;
+  for (let i = 0; i < a.buttons.length; i++) if (a.buttons[i] !== b.buttons[i]) return false;
+  return a.axes.length === b.axes.length && a.buttons.length === b.buttons.length;
 }
 
 const MOVE_CODES = new Set([

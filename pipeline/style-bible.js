@@ -39,6 +39,9 @@ export const GLYPH_BIBLE = [
 export const SKY_SUFFIX =
   'Exterior view of space, seen from the hull. Six seamless cube-map faces, no frame, no lens effects, no text.';
 
+export const ICON_SUFFIX =
+  'An app icon: one square bulkhead plate filling the frame, with a single stencilled letter lit in readout green.';
+
 export const MODEL_SUFFIX =
   'single object centered on a plain dark gray background, three-quarter view, entire object visible, video game prop.';
 
@@ -55,6 +58,10 @@ export function texturePrompt(subject) {
 
 export function skyPrompt(subject) {
   return `${STYLE_BIBLE} ${subject} ${SKY_SUFFIX}`;
+}
+
+export function iconPrompt(subject) {
+  return `${STYLE_BIBLE} ${subject} ${ICON_SUFFIX}`;
 }
 
 export function modelPrompt(subject) {

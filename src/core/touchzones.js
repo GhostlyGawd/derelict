@@ -30,3 +30,30 @@ export function inStickZone(x, y, w, h) {
   const z = stickZone(w, h);
   return x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1;
 }
+
+/**
+ * Phase 8 — the pad (8.3.4), in the same table so the code and the harness
+ * read the same numbers. The standard mapping and only that: left stick moves,
+ * right stick looks, A interacts, B held crouches, Start pauses.
+ */
+export const PAD = {
+  /** Radial, on the left stick. Below it the stick is at rest. */
+  moveDeadzone: 0.18,
+  /** Radial, on the right stick. */
+  lookDeadzone: 0.12,
+  /** Radians per second at full deflection. */
+  lookSpeed: 2.8,
+  /** Above 1, small deflections turn slowly and full ones fast. */
+  lookCurve: 1.7,
+  /** Pitch is slower than yaw, as on every pad shooter. */
+  pitchScale: 0.7,
+  buttons: { interact: 0, crouch: 1, pause: 9 },
+};
+
+/** A stick's (x, y) with a radial dead zone, rescaled so the edge of the zone reads as zero. */
+export function deadzone(x, y, zone) {
+  const m = Math.hypot(x, y);
+  if (m <= zone) return [0, 0];
+  const k = Math.min(1, (m - zone) / (1 - zone)) / m;
+  return [x * k, y * k];
+}

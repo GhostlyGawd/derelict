@@ -24,11 +24,21 @@ interact, `C` or left `Ctrl` held to crouch, `Esc` to pause.
 landscape) is the movement stick; drag anywhere else to look, and a second
 thumb is always look while you are moving. Tap the context button to interact,
 and hold the crouch button to crouch.
+**Pad** — any standard controller, on either: left stick to move, right stick
+to look, `A` to interact, `B` held to crouch, `Start` to pause and resume. The
+prompt names whichever button is in your hand.
+
+**On a phone, the second time** — after the first visit the game is on the
+device: it opens from there, with no network at all, and can be added to the
+home screen to launch full screen. A new deploy is picked up on the visit after
+it lands.
 
 **Recording a run** — open the game with `?trace` on the end of the URL and
 play. The end card offers the file: every raw input event and the time step of
 every frame. Nothing is sent anywhere. Committed to `tools/traces/`, it becomes
-a test that replays your run through the real input layer.
+a test that replays your run through the real input layer. Since phase 8 it
+also carries the real time of every frame, so CI reports how the game ran on
+the phone that recorded it.
 
 ## The route
 
@@ -72,9 +82,10 @@ src/
   core/       renderer, input, audio, asset loading, materials, HUD
   game/       layout data, level and prop builders, player, interaction,
               lighting, fixtures, viewmodel
+  sw/         the service worker, and the build step that lists its files
 pipeline/     asset generation — see pipeline/README.md
 public/assets generated textures, models, sounds and the manifest
-tools/        headless playtest
+tools/        headless playtest; tools/lib holds what the harnesses share
 ```
 
 `src/game/layout.js` is the level. Spaces, wall lines with their door openings,
@@ -98,7 +109,8 @@ npm run pipeline          # textures → models → audio → manifest
 Seven tileable textures plus a glyph atlas, six of them carrying a generated
 normal map; one sky, as six cube faces; ten props (normalised to real-world
 scale and decimated to budget); seventeen sounds; and five impulse responses,
-one per distinct compartment shape. About 2.3 MB in total.
+one per distinct compartment shape; and an icon, for a home screen, drawn from
+the same stencil letterforms as the ship's signage. About 2.3 MB in total.
 
 The sky is drawn by asking, for every texel of every face, what lies in that
 direction: stars, a band of unresolved starlight, the banded limb of a gas giant
@@ -137,12 +149,21 @@ its own stutter. The conduit strips, coloured per vertex, fill green along their
 runs from the same end. The zone counts as powered from the press itself. The
 strike is something to watch, never something to wait for.
 
+Every lit shaft has dust in it: twenty pixel-sized motes with no texture, drawn
+only inside the cone and only as bright as their lamp is on that frame, so the
+strike stutters in the air too and the departure takes it out with the lights.
+
+Dead and live never differ by hue alone. Red is still dead and green is still
+live, but every pair also differs by at least 3:1 in brightness as rendered,
+under normal vision and under protanopia, deuteranopia and tritanopia, so the
+ship reads to a colour-blind player and in a greyscale photograph.
+
 ## Checks
 
 ```bash
 npm run build
 npm run preview     # in another shell
-npm test            # all twelve harnesses
+npm test            # all sixteen harnesses
 ```
 
 Individually, optionally with `--shots` to write screenshots to `tools/shots`:
@@ -153,17 +174,20 @@ npm run test:deadend      # the walkable floor, both stances
 npm run test:acoustics    # the generated impulse responses, off disk
 npm run test:relief       # normal maps are bound, and the lighting reads them
 npm run test:legible      # every space named once, and readable
+npm run test:colour       # state reads by brightness, not hue alone
 npm run test:consume      # every generated asset is observed in use
 npm run test:clock        # every idle sound on its motion's clock
 npm run test:replay       # recorded runs replay to where they ended
-npm run test:weight       # bytes to title, gated; time to title, reported
+npm run test:monkey       # hostile input can break nothing, and every run can be finished
+npm run test:weight       # bytes to title, gated; time to title, reported; the second visit
 npm run test:framecost    # what each feature costs, and the whole frame
+npm run test:profile      # frame times on the owner's phone, from the traces
 npm run test:smoke        # systems
 npm run test:walkthrough  # the route, on foot
 npm run test:mobile       # touch controls
 ```
 
-All twelve run in CI on every pull request, alongside a check that regenerating
+All sixteen run in CI on every pull request, alongside a check that regenerating
 `public/assets` reproduces exactly what is committed — so a generator cannot
 change without its output changing with it, and vice versa.
 
@@ -277,7 +301,38 @@ reports what the new layer would do differently with it.
 so the count is the same whether or not the server compresses. It gates the
 total at the phase 7 measurement, 3.37 MB, plus 15%. Time to title on a pinned
 10 Mbit/s connection is reported and not gated, because part of it is the
-runner's CPU.
+runner's CPU. Since phase 8 it also serves a copy of the build itself, with
+`vercel.json`'s own headers, and checks the service worker: nothing from the
+network on the second visit, the title with the network cut, the old build
+whole on the visit after a deploy and the new one on the visit after that,
+with only the changed files fetched, and a retiring worker leaving nothing
+behind. To retire a broken worker, build with `DERELICT_RETIRE_WORKER=1` and
+deploy.
+
+**profile** reads the frame times every owner trace carries and reports them by
+compartment, during a power strike and during the departure. It takes the
+player's position from replaying the trace, frame by frame. It is reported and
+never gated: it is a fact about one phone on one day, and it sits beside the
+frame budget, which is relative.
+
+**monkey** plays twelve seeded runs on a desktop, two phones and a desktop with
+a pad. An autopilot heads for the next step of the chain and is interrupted by
+bursts of hostile input: mashing interact, flickering crouch, every key at
+once, pausing mid-strike, dropping a cell somewhere awkward, storms of taps,
+four thumbs, the OS cancelling every touch, a pad pulled out mid-stride. One
+burst each lands under the slab, mid-strike, while carrying and while walking
+out. Every frame it checks that nothing threw, the player is on the deck and
+in no wall, both cells exist in exactly one place each, and nothing has gone
+backwards. Then the autopilot has to finish the run. Every input is a real
+event, so each run is a trace. A failing seed is shrunk and kept in
+`tools/traces/monkey/`, and those replay first.
+
+**colour** photographs every dead/live pair in both states, through the real
+lights and textures, and simulates three colour-vision deficiencies on the
+pixels. It also photographs every conduit run, because its first run found six
+of them inside their walls, where they had been since the greybox, and it
+checks that every run sits at the one conduit height and passes through no
+door, label, fixture or prop.
 
 Every assertion is written against a condition, never against a stopwatch, and
 where a stall has to be detected it is measured against the game clock rather

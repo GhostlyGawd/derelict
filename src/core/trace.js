@@ -27,6 +27,17 @@
  *                                             w (the view), i (interact), c (crouch)
  *   ['l', frame, locked]                      pointer lock gained or lost
  *   ['u', frame, id]                          an overlay button: resume, restart
+ *   ['p', frame, axes, buttons]               a pad's state when it changed: four
+ *                                             axes, sixteen buttons as 0/1; or
+ *                                             ['p', frame, null] when it went away
+ *   ['r', frame, scale]                       the render scale changed (not input;
+ *                                             replay skips it, the profiler reads it)
+ *
+ * Format version 2 (phase 8, 8.3.2) adds what a frame-time report needs to be
+ * read honestly: `intervals`, the raw time between frames in milliseconds
+ * before the game clamps its step at 50 ms, and `device`, the GPU and the
+ * render scale the run started at. Version 1 traces have neither, and replay
+ * reads both.
  */
 
 export const TRACE_FORMAT = 'derelict-trace';
@@ -49,6 +60,7 @@ export class TraceRecorder {
     this.recording = false;
     this.frame = 0;
     this.frames = [];
+    this.intervals = [];
     this.events = [];
     this.checkpoints = [];
     this.final = null;
@@ -60,9 +72,11 @@ export class TraceRecorder {
     this.recording = true;
     this.frame = 0;
     this.frames = [];
+    this.intervals = [];
     this.events = [];
     this.checkpoints = [];
     this.final = null;
+    this.device = { renderer: rendererName(this.game), scale: this.game.view?.scale ?? null };
     this.viewport = {
       w: window.innerWidth,
       h: window.innerHeight,
@@ -70,8 +84,11 @@ export class TraceRecorder {
     };
   }
 
-  /** Called by the frame loop with the time step it is about to use. */
-  tick(dt) {
+  /**
+   * Called by the frame loop with the time step it is about to use, and the
+   * raw interval it was clamped from, in milliseconds.
+   */
+  tick(dt, raw = dt * 1000) {
     if (!this.recording) return;
     // Called at the top of a frame, so what the game holds right now is the
     // state after `frame` updates. The checkpoint is taken here, before this
@@ -81,10 +98,21 @@ export class TraceRecorder {
       this.checkpoints.push(snapshot(this.game, this.frame));
     }
     this.frames.push(Math.round(dt * 1e6) / 1e6);
+    this.intervals.push(Math.round(raw * 10) / 10);
     this.frame++;
   }
 
   /** Called when the end card goes up. */
+  /** The pad's raw state changed. Polled, not evented, so the input layer calls this. */
+  pad(raw) {
+    if (this.recording) this.events.push(raw ? ['p', this.frame, raw.axes, raw.buttons] : ['p', this.frame, null]);
+  }
+
+  /** The render scale changed under the watchdog. */
+  scaleChanged(scale) {
+    if (this.recording) this.events.push(['r', this.frame, scale]);
+  }
+
   end() {
     if (!this.recording) return;
     this.recording = false;
@@ -94,12 +122,14 @@ export class TraceRecorder {
   export() {
     return {
       format: TRACE_FORMAT,
-      version: 1,
+      version: 2,
       input: this.inputVersion,
       recorded: new Date().toISOString(),
       viewport: this.viewport,
+      device: this.device,
       touch: this.game.input.usingTouch,
       frames: this.frames,
+      intervals: this.intervals,
       events: this.events,
       checkpoints: this.checkpoints,
       final: this.final,
@@ -176,6 +206,17 @@ export class TraceRecorder {
     for (const id of ['resume', 'restart']) {
       document.getElementById(id)?.addEventListener('click', () => push(['u', this.frame, id]), true);
     }
+  }
+}
+
+/** The GPU, as the browser will name it. Some browsers only say the vendor. */
+function rendererName(game) {
+  try {
+    const gl = game.view.renderer.getContext();
+    const info = gl.getExtension('WEBGL_debug_renderer_info');
+    return String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
+  } catch {
+    return null;
   }
 }
 
