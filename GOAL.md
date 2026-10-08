@@ -124,6 +124,13 @@ shape, but the lamp is what a player reads from across the room.
   both states at the shipped render scale, through the real lighting, fog and
   palette crunch, and simulates the colour vision on the rendered pixels. A hex
   code says nothing about what a lamp looks like after the fog has had it.
+- **A room is compared as a plain ratio.** The WCAG ratio adds 0.05 to both
+  sides, which models the glare of a bright screen around a control. A dark
+  room's average luminance is below 0.05 whether it is lit or not, so the
+  offset would drown the difference, and the only way to pass would be to light
+  the ship like an office. A whole room's brightness, dead against live, is
+  held to 3:1 without the offset. Every fixture keeps the WCAG form. (Added in
+  the build.)
 
 Rejected: a colour-blind mode, which is a settings menu, and the settings-menu
 guardrail stands. Repainting the language in blue and orange, which is the

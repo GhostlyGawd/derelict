@@ -16,8 +16,21 @@ import { CONDUITS, EMERGENCY, ESCAPE_LIGHT, LIGHTS, POWERED, SHAFTS } from './la
 
 const EMERGENCY_COLOR = new THREE.Color(EMERGENCY.color);
 const POWERED_COLOR = new THREE.Color(POWERED.color);
-const CONDUIT_OFF = new THREE.Color(0xd8351c);
-const CONDUIT_ON = new THREE.Color(0x8effae);
+// Phase 8 (8.3.1): dead and live differ by brightness as well as hue, at least
+// 3:1 in luminance under every common colour-vision deficiency as rendered —
+// tools/colour.mjs measures it. Dead went darker and live brighter; the hues
+// are what they always were.
+const CONDUIT_OFF = new THREE.Color(0xc22f18);
+// Over 1 on purpose: the strip's generated texture darkens whatever it is
+// multiplied by, and a live run has to clear its dead red by 3:1 after that.
+// Vertex colours are floats, so a live strip can be driven past its texture.
+const CONDUIT_ON = new THREE.Color(0xa5ffca).multiplyScalar(1.45);
+/**
+ * The lens of a lamp running on emergency power. Darker than the light it
+ * throws, which stays EMERGENCY.color: a lamp's face is what a player reads
+ * the state from, and the room it lights is not an indicator.
+ */
+const EMERGENCY_LENS = new THREE.Color(0xd92d19);
 const DEAD_LENS = new THREE.Color(0x140705);
 const blend = new THREE.Color();
 
@@ -95,14 +108,14 @@ export function buildLighting(materials) {
 
     const lens = new THREE.Mesh(
       lensGeo,
-      new THREE.MeshBasicMaterial({ color: EMERGENCY.color, toneMapped: false, fog: true })
+      new THREE.MeshBasicMaterial({ color: EMERGENCY_LENS, toneMapped: false, fog: true })
     );
     lens.rotation.x = Math.PI / 2;
     lens.position.set(def.pos[0], def.pos[1] + 0.088, def.pos[2]);
     if (def.zone === 'chamber') lens.material.color.setHex(0x140705);
     group.add(lens);
     zoneOf(def.zone).lenses.push(lens.material);
-    zoneOf(def.zone).lamps.push({ light, lens: lens.material.color, shaft: null, pos: def.pos, delay: 0 });
+    zoneOf(def.zone).lamps.push({ light, lens: lens.material.color, lensMesh: lens, shaft: null, pos: def.pos, delay: 0 });
   }
 
   // --------------------------------------------------------- light shafts
@@ -160,7 +173,7 @@ export function buildLighting(materials) {
       p.fromBufferAttribute(geo.attributes.position, i).applyMatrix4(strip.matrixWorld);
       world.push([p.x, p.z]);
     }
-    const record = { material, colors, world, delays: new Float32Array(world.length) };
+    const record = { mesh: strip, material, colors, world, delays: new Float32Array(world.length) };
     paint(record, () => CONDUIT_OFF);
     zoneOf(def.zone).conduits.push(material);
     zoneOf(def.zone).strips.push(record);
@@ -245,7 +258,7 @@ export function buildLighting(materials) {
       for (const material of zone.conduits) material.color.setRGB(1, 1, 1);
       for (const strip of zone.strips) paint(strip, () => CONDUIT_OFF);
       for (const material of zone.lenses) {
-        material.color.copy(id === 'chamber' ? DEAD_LENS : EMERGENCY_COLOR);
+        material.color.copy(id === 'chamber' ? DEAD_LENS : EMERGENCY_LENS);
       }
       for (const light of zone.lights) {
         light.color.copy(EMERGENCY_COLOR);
@@ -289,7 +302,7 @@ export function buildLighting(materials) {
           lamp.light.color.copy(EMERGENCY_COLOR).lerp(POWERED_COLOR, mix);
           lamp.light.intensity = POWERED.intensity * k;
           lamp.lens
-            .copy(EMERGENCY_COLOR)
+            .copy(EMERGENCY_LENS)
             .lerp(POWERED_COLOR, mix)
             .multiplyScalar(Math.min(1.35, 0.55 + 0.45 * k));
           if (lamp.shaft) {
@@ -309,7 +322,7 @@ export function buildLighting(materials) {
         for (const lamp of zone.lamps) {
           lamp.light.color.copy(EMERGENCY_COLOR);
           lamp.light.intensity = id === 'chamber' ? 0 : EMERGENCY.intensity;
-          lamp.lens.copy(id === 'chamber' ? DEAD_LENS : EMERGENCY_COLOR);
+          lamp.lens.copy(id === 'chamber' ? DEAD_LENS : EMERGENCY_LENS);
         }
         for (const strip of zone.strips) paint(strip, () => CONDUIT_OFF);
       } else if (!zone.powered && id !== 'chamber' && !escaping.active) {
@@ -342,7 +355,7 @@ export function buildLighting(materials) {
         for (const material of zone.conduits) material.color.setRGB(behind, behind, behind);
         for (const material of zone.lenses) {
           material.color
-            .copy(zone.powered ? POWERED_COLOR : EMERGENCY_COLOR)
+            .copy(zone.powered ? POWERED_COLOR : EMERGENCY_LENS)
             .multiplyScalar(behind);
         }
         for (const shaft of zone.shafts) shaft.material.opacity = 0.06 * behind;
@@ -358,11 +371,17 @@ export function buildLighting(materials) {
     return zones.get(zoneId)?.lights ?? [];
   }
 
+  /** The lamp lenses and conduit strips of a zone, for tools/colour.mjs. */
+  function partsIn(zoneId) {
+    const zone = zones.get(zoneId);
+    return zone ? { lenses: zone.lamps.map((l) => l.lensMesh), strips: zone.strips.map((s) => s.mesh) } : null;
+  }
+
   /** Whether any zone is part-way through its strike, for tools/profile.mjs. */
   function striking() {
     for (const zone of zones.values()) if (zone.powered && zone.t < 1) return true;
     return false;
   }
 
-  return { group, setPowered, floodChamber, reset, update, lampsIn, striking };
+  return { group, setPowered, floodChamber, reset, update, lampsIn, striking, partsIn };
 }

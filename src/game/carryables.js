@@ -25,8 +25,12 @@ const OFF = new THREE.Color(0x000000);
 // — so the cradle's own lamp is the only thing that tells a player why. It uses
 // the same red-until-done vocabulary as the wall switches, and it has to be
 // bright enough to read across a room lit only by emergency light.
-const LOCKED_CLAMP = new THREE.Color(0xd8261a);
-const OPEN_CLAMP = new THREE.Color(0x3fbf63);
+//
+// Phase 8 (8.3.1): it was also the worst pair on the ship for a colour-blind
+// player — 1.65:1 in luminance under deuteranopia, olive against tan. Clamped is
+// darker and released brighter now, so the lamp reads by brightness alone.
+const LOCKED_CLAMP = new THREE.Color(0xb81d12);
+const OPEN_CLAMP = new THREE.Color(0x6cf08e);
 const CELL_GLOW = 0x3aa957;
 
 function instantiate(parts) {
@@ -126,6 +130,8 @@ export function buildCarryables(assets, cache, carry, materials) {
       id: def.id,
       cellId: def.cell,
       needs: def.needs,
+      /** The status lamp, for tools/colour.mjs. */
+      lamp,
       released: false,
       /** 0 closed, 1 fully parted. Cosmetic — the flag above is the state. */
       clampT: 0,

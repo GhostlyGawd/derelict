@@ -10,7 +10,7 @@ import { createRenderer } from './core/renderer.js';
 import { TraceRecorder, traceRequested } from './core/trace.js';
 
 import { buildCarryables } from './game/carryables.js';
-import { buildDoors, buildPowerPanel, buildSwitches } from './game/fixtures.js';
+import { SWITCH_DEAD, buildDoors, buildPowerPanel, buildSwitches } from './game/fixtures.js';
 import { Interactor } from './game/interact.js';
 import { buildSignage } from './game/signage.js';
 import {
@@ -274,7 +274,7 @@ class Derelict {
       sw.recoil = 0;
       sw.pivot.rotation.x = -0.75;
       sw.body.position.z = 0;
-      sw.indicator.material.color.setHex(0xff2a18);
+      sw.indicator.material.color.setHex(SWITCH_DEAD);
       sw.highlight(false);
     }
     this.interactor.current = null;
@@ -663,6 +663,70 @@ class Derelict {
       if (pixels[i] > 240 && pixels[i + 1] < 16 && pixels[i + 2] > 240) hits++;
     }
     return hits / (w * h);
+  }
+
+  /**
+   * What a fixture looks like from a viewpoint, for tools/colour.mjs (8.3.1).
+   * The scene is drawn off-screen exactly as it is — the real lights, the fog,
+   * the generated textures — encoded to sRGB as the screen would show it.
+   * With `mask`, it is drawn a second time with that mesh swapped for a flat
+   * marker, and only the pixels the marker covered are averaged. Returns the
+   * mean colour in linear RGB and the share of the frame it covered.
+   */
+  viewForTest(eye, at, mask = null, { w = 320, h = 200 } = {}) {
+    const camera = this.camera.clone();
+    camera.position.set(...eye);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    camera.lookAt(...at);
+    camera.updateMatrixWorld(true);
+    const target = new THREE.WebGLRenderTarget(w, h);
+    target.texture.colorSpace = THREE.SRGBColorSpace;
+    const renderer = this.view.renderer;
+    const draw = () => {
+      const pixels = new Uint8Array(w * h * 4);
+      renderer.setRenderTarget(target);
+      renderer.clear();
+      renderer.render(this.scene, camera);
+      renderer.readRenderTargetPixels(target, 0, 0, w, h, pixels);
+      renderer.setRenderTarget(null);
+      return pixels;
+    };
+    const picture = draw();
+    let covered = null;
+    if (mask) {
+      const marker = new THREE.MeshBasicMaterial({ color: 0xff00ff, fog: false, side: THREE.DoubleSide });
+      const original = mask.material;
+      mask.material = marker;
+      // Anything see-through in front of it — a light shaft under a lamp —
+      // would tint the marker; it is in the picture, but not in the mask.
+      const hidden = [];
+      this.scene.traverse((o) => {
+        if (o.visible && o.isMesh && o.material?.transparent && o !== mask) {
+          o.visible = false;
+          hidden.push(o);
+        }
+      });
+      covered = draw();
+      for (const o of hidden) o.visible = true;
+      mask.material = original;
+      marker.dispose();
+    }
+    target.dispose();
+    const linear = (v) => {
+      const c = v / 255;
+      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    const sum = [0, 0, 0];
+    let n = 0;
+    for (let i = 0; i < picture.length; i += 4) {
+      if (covered && !(covered[i] > 240 && covered[i + 1] < 16 && covered[i + 2] > 240)) continue;
+      sum[0] += linear(picture[i]);
+      sum[1] += linear(picture[i + 1]);
+      sum[2] += linear(picture[i + 2]);
+      n++;
+    }
+    return { rgb: n ? sum.map((v) => v / n) : null, coverage: n / (w * h) };
   }
 
   #inside(box) {

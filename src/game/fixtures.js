@@ -59,6 +59,14 @@ function boundsOf(objects) {
 
 // ------------------------------------------------------------- switches ---
 
+/**
+ * The switch's indicator. Dead is a darker red than it was before phase 8, so
+ * the pair differs by brightness under every common colour-vision deficiency
+ * and not by hue alone (8.3.1, tools/colour.mjs).
+ */
+export const SWITCH_DEAD = 0xc81e10;
+const SWITCH_LIVE = 0x7bff9a;
+
 export function buildSwitches(assets, cache) {
   return SWITCHES.map((def) => {
     const group = new THREE.Group();
@@ -96,7 +104,7 @@ export function buildSwitches(assets, cache) {
 
     const indicator = new THREE.Mesh(
       new THREE.PlaneGeometry(0.11, 0.11),
-      new THREE.MeshBasicMaterial({ color: 0xff2a18, toneMapped: false, fog: true })
+      new THREE.MeshBasicMaterial({ color: SWITCH_DEAD, toneMapped: false, fog: true })
     );
     indicator.position.set(0, size.y * 0.86, 0.16);
     body.add(indicator);
@@ -128,7 +136,7 @@ export function buildSwitches(assets, cache) {
         if (state.used) return false;
         state.used = true;
         state.recoil = 1;
-        indicator.material.color.setHex(0x7bff9a);
+        indicator.material.color.setHex(SWITCH_LIVE);
         state.highlight(false);
         return true;
       },
@@ -274,7 +282,9 @@ export function buildPowerPanel(materials) {
     // colour that means "not yet" on the one thing the player had just
     // finished, which is the single place the ship's colour language
     // contradicted itself. Phase 3, spec 3.3.
-    const lit = count >= 2 ? PIP_LIVE : '#ff5a3c';
+    // Darker than it was before phase 8, so the count reads by brightness and
+    // not only by hue to a colour-blind player (8.3.1).
+    const lit = count >= 2 ? PIP_LIVE : '#c0422b';
     ctx.strokeStyle = 'rgba(120,160,132,0.35)';
     ctx.lineWidth = 3;
     ctx.strokeRect(8, 8, 304, 184);
@@ -306,5 +316,5 @@ export function buildPowerPanel(materials) {
   }
 
   setCount(0);
-  return { group, setCount };
+  return { group, setCount, canvas };
 }
