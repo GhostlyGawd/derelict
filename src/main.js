@@ -137,6 +137,10 @@ class Derelict {
     this.materials = new MaterialLibrary(this.assets);
     this.#buildWorld();
 
+    this.hud.setLoading(0.97, 'Warming up…');
+    await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+    this.#warmUp();
+
     this.hud.setLoading(1, this.assets.generated ? 'Ready' : 'Ready — placeholder assets');
     this.hud.hide('loading');
     this.hud.show('title');
@@ -226,6 +230,48 @@ class Derelict {
 
     this.player.reset(SPAWN.pos, SPAWN.yaw);
     this.lighting.reset();
+  }
+
+  /**
+   * Phase 9 (9.4.7): everything the run will ever draw is drawn once, now,
+   * off-screen, so no shader program compiles, no texture uploads and no
+   * buffer uploads after the title. On a phone each first-use compile is a
+   * stall, and the owner's profiled run found one: 195 ms in the Annex as its
+   * lamps struck. Every object is made visible and unculled for one draw, with
+   * the cell and the scanner both in hand, and then put back exactly as it
+   * was. tools/warm.mjs gates that nothing compiles after this.
+   */
+  #warmUp() {
+    const renderer = this.view.renderer;
+    const touched = [];
+    const expose = (root) =>
+      root.traverse((o) => {
+        touched.push([o, o.visible, o.frustumCulled]);
+        o.visible = true;
+        o.frustumCulled = false;
+      });
+    expose(this.scene);
+    expose(this.viewmodel.scene);
+    // Drawn to the canvas itself, behind the loading screen: a program built
+    // for an off-screen target is a different variant (it skips the sRGB
+    // conversion), so warming one leaves the other to compile in play.
+    for (const carrying of [false, true]) {
+      this.viewmodel.setCarrying(carrying);
+      expose(this.viewmodel.scene);
+      renderer.compile(this.scene, this.camera);
+      renderer.compile(this.viewmodel.scene, this.viewmodel.camera);
+      renderer.clear();
+      renderer.render(this.scene, this.camera);
+      renderer.clearDepth();
+      renderer.render(this.viewmodel.scene, this.viewmodel.camera);
+    }
+    renderer.clear();
+    for (let i = touched.length - 1; i >= 0; i--) {
+      const [o, visible, culled] = touched[i];
+      o.visible = visible;
+      o.frustumCulled = culled;
+    }
+    this.viewmodel.setCarrying(false);
   }
 
   #bindUi() {
