@@ -298,7 +298,8 @@ class Derelict {
 
     for (const [zone, source] of Object.entries(ZONE_POWER)) {
       if (source === sw.id) {
-        this.lighting.setPowered(zone, true);
+        // From the switch outward: the lamps nearest the lever strike first.
+        this.lighting.setPowered(zone, true, sw.point.toArray());
         this.poweredZones.add(zone);
       }
     }
@@ -341,7 +342,7 @@ class Derelict {
 
     // Seating the first cell brings the Bay up on its own power.
     if (this.cells >= 1 && !this.poweredZones.has('bay')) {
-      this.lighting.setPowered('bay', true);
+      this.lighting.setPowered('bay', true, socket.point.toArray());
       this.poweredZones.add('bay');
     }
 
