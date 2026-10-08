@@ -2,7 +2,7 @@
 # DERELICT — Spec
 
 **How to read this document.** Phase 7 (v1.6) is the most recent section. It
-is approved and in build; merging it ratifies it. Phase 6 is built and signed,
+is built and signed; merging it ratifies and ships it. Phase 6 is built and signed,
 and ships when its pull requests merge. Phase 5, Phase 4, Phase 3, Phase 2,
 Amendment 1 and the v1.0 sections below them are shipped. Where any two disagree,
 the later section wins. Nothing here is a suggestion — if we change
@@ -40,8 +40,12 @@ to tri budget, crunch textures to 256 px).
 
 # Phase 7 — v1.6
 
-**Status: APPROVED, in build.** Proposed 8 October 2026 in PR #24 and
-approved by the owner the same day. Merging ratifies it. It holds on the same
+**Status: BUILT, and signed.** Proposed 8 October 2026 in PR #24, approved
+and built the same day in PR #25. Merging the two ratifies and ships it.
+
+**Signed by the owner, 8 October 2026,** after recording a run on each set of
+controls: *"The after feels way better. The before ran into the same bugs."*
+Every bar in 7.5 is met. It holds on the same
 terms as everything below: nothing here is a suggestion, and if we change
 something during the build we change this document first.
 
@@ -86,9 +90,17 @@ bar "the owner's run replays in CI" is met. What it shows about real thumbs:
 73 look touches, 65 of them started while the stick was held, and every one of
 them landed in the lower half of the screen. That is the region the old button
 column crowded, which is the case for tucking the buttons into the corner. None
-started left of centre, so this run did not exercise the reach-across case. The
-owner has not yet recorded a before-trace on the old controls, so the bar that
-needs one is still open.
+started left of centre, so this run did not exercise the reach-across case.
+
+*The owner's before-run, measured.* Recorded on the old controls the same day
+and committed as `tools/traces/owner-2026-10-08-v1-before.json`: 98 s, both
+cells, ending on the threshold. Built from the v1 branch, it replays exactly at
+all 196 checkpoints, so the recording holds the bug as the owner met it. Run
+through the zone table, its 64 touch-downs on the view show what changed. Version
+1 gave 15 stick, 45 look and 4 dropped. The zone table gives 13 stick, 51 look
+and none dropped. That is six touches assigned differently: two look touches
+version 1 took as movement, and four it threw away. Those six are the owner's
+report, counted.
 
 The owner chose the shape: narrow, per the rhythm 5.2 proposed, built around
 the one thing phase 6's play turned up, plus a second instrument the owner
