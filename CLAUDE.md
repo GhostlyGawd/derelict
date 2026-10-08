@@ -1,11 +1,12 @@
 
 # DERELICT — Spec
 
-**How to read this document.** Phase 7 (v1.6) is the most recent section and
-is shipped, as are Phase 6, Phase 5, Phase 4, Phase 3, Phase 2, Amendment 1
-and the v1.0 sections below them. There is no draft in flight. Where any two disagree,
-the later section wins. Nothing here is a suggestion — if we change
-something during a build, we change this document first.
+**How to read this document.** Phase 8 (v1.7) is the most recent section and
+is a **draft** in flight; merging it ratifies it. Phase 7, Phase 6, Phase 5,
+Phase 4, Phase 3, Phase 2, Amendment 1 and the v1.0 sections below them are
+shipped. Where any two disagree, the later section wins. Nothing here is a
+suggestion — if we change something during a build, we change this document
+first.
 
 ---
 
@@ -34,6 +35,367 @@ instead of depending on generated files staying in sync in git.
 scale with chamfered edges and baked edge wear, generate its metal surface,
 then the same post-process as before (origin to floor-centre, scale, decimate
 to tri budget, crunch textures to 256 px).
+
+---
+
+# Phase 8 — v1.7
+
+**Status: DRAFT.** Proposed 8 October 2026. Merging this section ratifies it,
+and the build follows in its own pull request. On the same terms as everything
+below: nothing here is a suggestion, and if we change something during the
+build we change this document first.
+
+The owner chose the shape: wide, per the rhythm 5.2 proposed, with all six of
+the features Claude put forward (8.9). It is the widest phase so far. Phase 4
+carried four features and phase 6 carried three. That breadth is the test, and
+8.2 says what it is testing.
+
+Supersedes part of v1 §2, §4, §7 and §11, and part of 7.3.2. See 8.6.
+Everything in v1 and phases 2–7 not named here still stands, including
+Amendment 1.
+
+## 8.1 The one-liner
+
+The ship reads without red and green, arrives without the network, answers a
+controller, and shows the air in its light, and every one of those comes with
+an instrument that would notice if it stopped being true.
+
+## 8.2 What phase 8 demonstrates
+
+**That the instruments can carry six features at once.** Phase 6 went wide with
+the gate and the frame budget already watching, and they held: one real bug
+found by machine and none by ear. This phase doubles the width. Three of its six
+features are themselves instruments. They are built first, so they are watching
+while the other three land.
+
+**That the project can test for players who are not its owner.** Every bar
+signed so far was judged by one person on one phone. Two of the failures this
+phase targets are ones the owner may never meet: a state the owner sees as red
+and green that a colour-blind player sees as two olives, and a stuck state that
+only a sequence nobody would play reaches. Those can only be caught by a
+machine, so each one gets a harness.
+
+**That the owner's phone is a measuring device.** Phase 7 built the trace so the
+owner's input could become a test. The same file has carried the owner's real
+frame times since the first recording, and nothing has read them. This phase
+reads them.
+
+Every tradeoff during the build is settled against those three sentences.
+
+## 8.3 What gets built
+
+Six features. Each is judged on its own, and each can ship without the others.
+
+### 8.3.1 Colour you don't need to see — accessibility
+
+**What is wrong now.** The ship's whole state language is hue: emergency red
+for dead and green-white for live, on the room lights, the conduit strips, the
+switch indicators and the cradle lamps. Red against green is the pair that
+red-green colour blindness merges, and that is about one man in twelve. Measured
+from the shipped colours, through the standard simulations of the two common
+forms:
+
+| State pair | Luminance ratio | Seen with deuteranopia |
+|---|---|---|
+| Cradle lamp, clamped / released | 2.10 | olive / tan |
+| Switch indicator, off / on | 2.97 | mustard / cream |
+| Room light, emergency / powered | 3.29 | ochre / off-white |
+| Conduit strip, dead / live | 3.84 | olive / pale yellow |
+
+The cradle lamp is the worst of the four, and it is the one that says whether
+the cell can be taken. The jaws parting (4.3.3) already carry that state by
+shape, but the lamp is what a player reads from across the room.
+
+**What gets built.**
+
+- **Every state pair separates by brightness, not only by hue.** Under normal
+  vision and under simulated protanopia, deuteranopia and tritanopia, the dead
+  and live versions of each indicator differ by at least **3:1** in luminance.
+  That is the WCAG floor for non-text contrast. The hues stay what they are.
+  Red still means dead, and the fix makes dead darker and live brighter rather
+  than repainting the ship.
+- **Every state pair also has a cue that is not colour.** A dead indicator
+  never looks like a live one in a still photograph with the colour taken
+  out. The lever's throw, the jaws and the seated shutter already do this.
+  Where an indicator has no such cue, it gets one inside the existing language:
+  a dead lamp is a lens with nothing behind it, and a live lamp has the lit
+  core it already has.
+- **Measured on pixels, not on hex codes.** The harness renders each fixture in
+  both states at the shipped render scale, through the real lighting, fog and
+  palette crunch, and simulates the colour vision on the rendered pixels. A hex
+  code says nothing about what a lamp looks like after the fog has had it.
+
+Rejected: a colour-blind mode, which is a settings menu, and the settings-menu
+guardrail stands. Repainting the language in blue and orange, which is the
+textbook safe pair and would take away the emergency red that the opening
+minute is built on. An icon on every indicator, which is HUD placed on props
+and which v1 §4 does not allow.
+
+### 8.3.2 Your phone as the profiler — performance
+
+**What is wrong now.** The frame budget (5.3.2) measures relative cost on a
+software rasteriser, because CI has no real GPU. That was the right call, and
+it means the project has never had a single absolute number from real
+hardware. Meanwhile both of the owner's committed traces record the time step
+of every frame on the owner's own phone. Read for the first time while drafting
+this: 6,588 and 5,903 frames at 440 × 760, 3× pixel density, median 17 ms, 95th
+percentile 18 ms, 99th 21–23 ms, and one frame over 33 ms in each run. That is a
+steady 60 fps, and it has sat unread in the repository since it was recorded.
+
+**What gets built.**
+
+- **`tools/profile.mjs` reads a trace's frame times** and reports the median,
+  95th and 99th percentiles, and the long frames. It reports them for the whole
+  run and broken down by where the player was standing and what was happening
+  at the time: each compartment, each power strike, the departure. The
+  position comes from replaying the trace rather than from the file, because
+  replay already reproduces every frame exactly and the file only holds a
+  checkpoint every 30.
+- **The trace records what it needs to be read honestly.** The game clamps its
+  time step at 50 ms, so the recorded step cannot show a frame longer than
+  that. The trace format gains the raw interval beside the clamped step, plus
+  the renderer string and the render scale, so a report says which GPU it
+  measured. That is a format change (8.6), and replay reads both versions.
+- **Reported, never gated.** It is a fact about one phone on one day. The
+  report runs in CI over every committed owner trace and is printed next to the
+  frame budget table, so the relative numbers and the absolute ones sit side by
+  side.
+
+Rejected: telemetry sent from players' phones, which needs a server and a
+privacy story this project does not have (7.3.2 rejected the same thing).
+Gating on the owner's numbers, which would turn a phone's bad day into a red
+build.
+
+### 8.3.3 Monkey runs — robustness
+
+**What is wrong now.** The dead-end proof (P6, 4.3.4) is a static argument over
+the floor. It is strong, and it is about where the player can stand. Nothing
+tests what the player can *do*: interact in the middle of an animation, crouch
+under the debris with a cell in hand, pause during a strike, rotate the phone
+during the departure. Every harness drives the game the way a careful player
+would. Nothing drives it the way a careless one does.
+
+**What gets built.**
+
+- **`tools/monkey.mjs` generates hostile traces.** A seeded generator writes
+  traces in the phase 7 format from a grammar of hostile moves: mashing
+  interact through animations, holding and releasing crouch under the slab,
+  setting a cell down in every reachable place, pausing and resuming mid-strike,
+  resizing the viewport mid-run, two thumbs and keys and a pad all at once. Each
+  trace replays through the real input layer, exactly as an owner trace does.
+- **Invariants checked on every frame.** No exception is thrown. The player
+  never stands inside geometry and never falls through the floor. Exactly two
+  cells exist at all times, each held, lying on the floor, in a cradle or
+  seated. The chain only moves forward. The phase only moves forward.
+- **Every monkey run can still be finished.** When the hostile trace ends, an
+  autopilot takes over from wherever the run was left. It paths across the
+  dead-end grid and must complete the run. This is the moving-player version of
+  P6: the floor proof says every place can be walked back from, and this says
+  every *state* can be played out from.
+- **Seeded, fixed and shrunk.** CI runs a fixed set of seeds, so a red run is
+  reproducible rather than flaky. A seed that fails is shrunk to the shortest
+  trace that still fails and committed to `tools/traces/` as a regression trace,
+  the same way an owner trace is.
+
+Rejected: unseeded random runs in CI, which turn every failure into a
+flake. An evolutionary search that hunts for failures, which is the right tool
+for a much larger game and much more machinery than this one needs.
+
+### 8.3.4 Gamepad — input
+
+**What is wrong now.** The game takes keys and mouse on a desktop and touch on
+a phone. A controller does nothing, on a desktop or on a phone with one paired.
+
+**What gets built.**
+
+- **The standard mapping, and only that.** Left stick moves and right stick
+  looks. **A** interacts. **B** held crouches, matching the held crouch on every
+  other device (4.3.4). **Start** pauses. Dead zones and look speed live in one
+  table beside the touch zones, so the code and the harness read the same
+  numbers.
+- **The prompt names the device you are holding.** "[E] Interact" becomes
+  "[A] Interact" while the pad is the last thing touched. That is a change of
+  wording on the existing prompt, not a new HUD element.
+- **Traced like every other input.** The Gamepad API is polled rather than
+  evented, so the recorder writes the pad's state on each frame it changes. The
+  pad is raw input in the 7.3.2 sense: the stick's position as the browser
+  reported it, not the move the game made of it.
+- **The input layer's version does not go up for this.** Phase 7 bound a trace
+  to the input layer that recorded it, so that a deliberate change retires old
+  traces from the gate. Adding a device changes nothing about how a recorded
+  touch or key is read. The version goes up only when a recorded event would be
+  interpreted differently, and the owner's two traces stay where they are.
+
+Rejected: remapping, which is a settings menu. Rumble, which is haptics, and
+7.9 already declined haptics on the grounds that iOS Safari cannot do them.
+Aim assist, which would make the pad and the mouse play different games.
+
+### 8.3.5 Air in the light — rendering
+
+**What is wrong now.** The light shafts are additive cones (v1 §6). They read as
+light from a distance and as plastic up close, because there is nothing in
+them. Since phase 6 a lamp strikes, stutters and holds, and its shaft simply
+switches on with it.
+
+**What gets built.**
+
+- **Dust in every shaft.** Slow, drifting motes that exist only inside the cone
+  and are lit by its lamp. They are square points at the shipped render scale,
+  nearest-sampled like everything else, with no texture. There is no new asset.
+- **They strike with the lamp.** A mote takes its brightness from its lamp's
+  intensity on the same frame, so the stutter in 6.3.3 shows in the dust as well.
+  In a dead room the shafts are off, so the dust is invisible.
+- **Deterministic.** Each mote's drift is a seeded function of time, not a
+  simulation. Replay is unaffected, and no harness has to tolerate noise.
+- **Weighed.** Dust gets its own row in the frame budget, and the whole frame
+  stays inside 1.9× (6.4).
+
+Rejected: a volumetric fog shader, which is real, expensive and modern, and is
+the wrong century for the reason 4.4 gives for PBR. Sprites from a generated
+texture, which would be a new asset for an effect that reads at four pixels
+across.
+
+### 8.3.6 Instant the second time — platform
+
+**What is wrong now.** Every visit pays the full 3.37 MB (7.3.3), because
+nothing persists between visits except whatever the browser's HTTP cache
+happens to keep. The game cannot be played offline. It cannot be put on a home
+screen as anything better than a bookmark.
+
+**What gets built.**
+
+- **A service worker caches the build.** After the first visit, the game, its
+  script and every generated asset are served from the device. The precache
+  list is the build's own file list, and every entry carries a content hash.
+  The pipeline is byte-reproducible, so an unchanged asset keeps its hash and
+  is never fetched twice.
+- **A new build replaces the old one.** This is the part most likely to go
+  wrong. A broken service worker can pin a player to an old build indefinitely.
+  The rule is that the next visit after a deploy fetches the new list and
+  serves the new build on the visit after that, and that a build can be retired
+  by deploying a worker that removes itself.
+- **A web app manifest and an icon.** The game can be added to a home screen and
+  opens full screen. The icon is generated by the pipeline from the glyph atlas
+  and the style bible, like everything else. It is this phase's one new asset
+  class.
+- **The weight harness gains a second visit.** Bytes on the second load are
+  gated at zero from the network, apart from the worker's own update check. A
+  load with the network cut must reach the title. A load after a simulated
+  deploy must serve the new build.
+
+Rejected: an install prompt or banner, which nags and is UI before the title.
+Background sync and push, which need a server. Caching only the assets, which
+saves most of the bytes and still leaves offline play broken.
+
+**Unchanged:** the five spaces, the six-step chain, the route, crouch, the HUD
+(the prompt changes its wording only), the viewmodel, the signage, the outside,
+the machinery, the lighting sequence, the ending, the retro rendering
+treatment, the asset budgets, and the touch controls.
+
+## 8.4 Scope guardrails
+
+Still permanently out, unchanged: **combat, enemies, saving, settings menus,
+procedural generation, additional levels or rooms**, **narrative** (phase 3),
+**physically-based rendering** (phase 4), **cutscenes** (phase 5), and **views
+out before the end** (phase 6).
+
+**Three of those, read narrowly.** A service worker is not saving. It caches the
+game, never the state of a run, and a reload is a fresh run exactly as it is
+today. Monkey runs are not procedural generation. They generate *input* for the
+harness and never anything the player sees. The gamepad has no settings. It has
+one mapping, and the dead zones are data, not a menu. If any of these ever
+becomes the thing it is distinguished from here, that is a change to this
+document first.
+
+**Accessibility without a mode.** The colour fix is the only colour scheme
+there is. A future phase that wants a toggle needs to lift the settings-menu
+guardrail first.
+
+## 8.5 Definition of done
+
+| | Verified by |
+|---|---|
+| **State reads without hue.** Every dead/live pair separates by at least 3:1 in luminance on rendered pixels, under normal vision and simulated protanopia, deuteranopia and tritanopia, and has a cue that survives the colour being removed. | Claude — `tools/colour.mjs`, in CI |
+| **The ship still looks like itself.** The emergency red still reads as emergency, and powering a room still reads as the room coming up. | **The owner** |
+| **The owner's phone is a profiler.** Every committed owner trace gets a frame-time report by compartment and by event, in CI, next to the frame budget. | Claude — `tools/profile.mjs`, reported and not gated |
+| **No monkey can break it.** A fixed set of seeded hostile traces holds every invariant on every frame, and each is then finished by the autopilot. Any failure found during the build is committed as a regression trace. | Claude — `tools/monkey.mjs`, in CI |
+| **The pad plays the game.** Every action reachable from a pad, the prompt naming it, and a pad run recorded and replayed exactly. | Claude — a synthetic pad in the harness, and a pad round trip in `tools/replay.mjs` |
+| **The pad feels right.** | **The owner**, with a controller. If there is no controller to hand, this bar stays unsigned and the phase ships without it, as 7.8 allowed |
+| **Dust is in the light and inside the budget.** Motes drawn only inside lit shafts, brightness following the lamp, and their own row in the frame budget with the whole frame inside 1.9×. | Claude — the consumption gate and `tools/framecost.mjs` |
+| **The dust reads as air.** Not snow, not noise, not a screensaver. | **The owner** |
+| **The second visit is free, and offline works.** Zero network bytes to title on a second load, the title reached with the network cut, and a new deploy served after it lands. | Claude — `tools/weight.mjs`, extended |
+| **It opens from the home screen, offline.** | **The owner**, on their phone, in airplane mode |
+| **Still generated end to end.** The icon comes from the pipeline, and a clean checkout reproduces it byte-for-byte. | The existing determinism gate |
+| **Nothing regresses.** All harnesses green, the owner's traces still replaying exactly, the six-step chain still solvable, the pipeline still byte-reproducible, the deployment still live. | CI |
+| **The owner's run on the new build.** One recording on the phase 8 build, committed and replayed, and profiled against the phase 7 run. | **The owner** records it; Claude commits and runs it |
+
+## 8.6 Amendments to earlier sections
+
+- **v1 §2, "instant to load."** The first visit is measured, as 7.6 made it.
+  Every visit after it is instant by construction and gated at zero bytes.
+- **v1 §4, controls.** Gains a gamepad: left stick move, right stick look, A
+  interact, B held crouch, Start pause. The interact prompt names the device in
+  use.
+- **v1 §7, asset manifest.** Gains one icon, generated from the glyph atlas and
+  the style bible.
+- **v1 §11, definition of done.** Gains colour-vision contrast as a standing
+  bar.
+- **7.3.2, the trace.** The format gains the raw frame interval, the renderer
+  string, the render scale and pad state. Replay reads both formats. The input
+  layer's version goes up only when a recorded event would be read differently,
+  not when a device is added.
+
+## 8.7 The box
+
+One new asset class (the icon). One new input device. Three new harnesses
+(colour, profile, monkey), one extended (weight). **Zero new sounds, models,
+rooms, interactive types or movement verbs.** Dust is drawn with no asset.
+
+If the phase wants a second new asset class or a new sound, change this
+document first instead of adding it.
+
+## 8.8 Build order
+
+Instruments first, so that they are watching while the features land.
+
+1. **The profiler.** The cheapest feature, and it needs no production change
+   beyond the trace format. It sets the real-phone baseline before dust adds
+   any drawing.
+2. **Monkey runs.** Red before green, and before anything else changes the
+   input layer or the frame loop, so that the gamepad and the service worker
+   land under it.
+3. **Colour.** The harness first, red against the shipped colours as the table
+   in 8.3.1 predicts, then the fix.
+4. **Gamepad.** Added to the monkey's grammar as soon as it exists.
+5. **Dust.** Weighed by the frame budget.
+6. **Instant the second time.** Last, because a service worker changes how
+   every harness loads the game. Every harness except the weight check runs
+   with the worker blocked, so it keeps measuring the game rather than the
+   cache.
+7. **Integration and ship.**
+
+**What the build asks of the owner.** One recording on the phase 8 build, as
+in phase 7. A try with a controller, if there is one to hand. One launch from
+the home screen in airplane mode.
+
+## 8.9 Decisions taken in the draft
+
+Claude proposed six candidates after phase 7 shipped and recommended four of
+them: colour, the profiler, monkey runs and dust. The owner took all six.
+
+- **Wide, and wider than before.** Rejected: the four-feature recommendation,
+  which left out the gamepad because it needs a controller to sign and left out
+  the service worker as a better fit for a narrow phase. The owner chose
+  breadth. The cost is stated here instead: one owner bar that may stay
+  unsigned, and a service worker built last under every other instrument.
+- **Instruments before features.** Three of the six are harnesses, and the
+  build order puts them first. That is the phase 6 lesson made into order.
+- **Contrast, not a palette.** The fix brightens and darkens the existing hues
+  rather than replacing them, because red for dead is the game's opening
+  image.
+- **Read the traces before adding to them.** The profiler needs no new
+  recording to start. The owner's two runs already hold real frame times, which
+  is how this draft could state 60 fps rather than guess it.
 
 ---
 
