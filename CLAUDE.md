@@ -1,10 +1,11 @@
 
 # DERELICT — Spec
 
-**How to read this document.** Phase 6 (v1.5) is the most recent section. It
-is approved and built, and ships when its pull requests merge. Phase 5, Phase 4,
-Phase 3, Phase 2, Amendment 1 and the v1.0 sections below it are shipped. Where any two
-disagree, the later section wins. Nothing here is a suggestion — if we change
+**How to read this document.** Phase 7 (v1.6) is the most recent section and
+is a **draft** in flight; merging it ratifies it. Phase 6 is built and signed,
+and ships when its pull requests merge. Phase 5, Phase 4, Phase 3, Phase 2,
+Amendment 1 and the v1.0 sections below them are shipped. Where any two disagree,
+the later section wins. Nothing here is a suggestion — if we change
 something during a build, we change this document first.
 
 ---
@@ -37,11 +38,239 @@ to tri budget, crunch textures to 256 px).
 
 ---
 
+# Phase 7 — v1.6
+
+**Status: DRAFT.** Proposed 8 October 2026. Merging the pull request that
+carries it ratifies it, as with phases 4, 5 and 6. Once merged it holds on the
+same terms as everything below: nothing here is a suggestion, and if we change
+something during the build we change this document first.
+
+The owner chose the shape: narrow, per the rhythm 5.2 proposed, built around
+the one thing phase 6's play turned up, plus a second instrument the owner
+asked to add (7.3.3).
+
+Supersedes part of v1 §4, P5 and the v1 §11 definition of done. See 7.6.
+Everything in v1 and phases 2–6 not named here still stands, including
+Amendment 1.
+
+## 7.1 The one-liner
+
+Your thumbs go where you put them, your own play becomes a test, and the game
+knows how heavy it is.
+
+## 7.2 What phase 7 demonstrates
+
+**That a person's report can become a machine's test.** The footstep ring, "a
+touch less responsive", the dry footsteps and now the touch overlap were all
+found by the owner playing, and none of them could be reproduced here until
+after it was fixed. Phase 5 built instruments for the failures Claude can
+imagine. This phase builds one for the failures only the owner meets: their own
+input, recorded on their own phone, replayed in CI.
+
+**That narrow still pays.** Phase 6 was wide and its instruments held: three
+features, one real bug found by machine and none by ear. The owner's one note
+was about the controls. A narrow phase is the right size for it.
+
+## 7.3 What gets built
+
+### 7.3.1 Two thumbs — the touch layout
+
+**What is wrong now.** The owner's report after phase 6: *"the movement
+controls kinda overlap where I want the look to be on vertical phone so I would
+try to look and then it would move instead. Also would like to be able to look
+with my right thumb while still moving with my left easier."*
+
+The cause is in `Input.#bindTouch`. Every touch is assigned by which half of the
+screen it lands in: left of `innerWidth / 2` is the stick, right of it is look.
+On a phone in portrait the right half is about 195 px wide, and the interact and
+crouch buttons fill its lower part, exactly where a right thumb rests. So a look
+drag either starts above the buttons or lands just left of the midline. If it
+lands left of the midline it takes the stick and the player walks. If the stick
+is already held, a second touch on the left half is ignored outright. The touch
+harness never saw this, because it drives one thumb at a time.
+
+**What gets built.**
+
+- **The stick claims a zone, not a half.** A touch starts the stick only if it
+  lands in the lower-left movement zone. In portrait that zone is the lower part
+  of the left side. In landscape it is the left third. Every other touch that is
+  not on a button is look.
+- **A second touch is always look.** While the stick is held, any further touch
+  that is not on a button becomes the look touch, wherever it lands. The thumb
+  that is already moving keeps moving.
+- **The buttons stop crowding the look area.** Interact and crouch move so the
+  right thumb has open screen where it naturally rests. The exact placement is
+  settled against the owner's trace (7.3.2), not by guessing.
+- **The zones are data.** They live in one table, the way `layout.js` holds the
+  level, so the harness and the code read the same numbers.
+
+Rejected: a draggable or configurable layout, which is a settings menu by
+another name. A visible look pad, which spends screen on a control the right
+thumb finds anyway. Gyro aiming, which is a new input verb and needs a
+permission prompt on iOS.
+
+### 7.3.2 The trace — your play, bottled
+
+**What is wrong now.** Every report that has mattered in this project was a
+feeling about a run that only the owner played. By the time a harness could
+reproduce it, the fix was already written against a guess.
+
+**What gets built.**
+
+- **`?trace` records a run.** Opening the game with that URL flag records every
+  raw input event (touches, keys, mouse deltas) and the frame clock, against the
+  viewport size. It records raw touches, not the move and look values derived
+  from them, so a bug in how touches are assigned is inside the recording. The
+  end card offers a download. Nothing is sent anywhere, and without the flag
+  nothing is recorded.
+- **`tools/replay.mjs` plays a trace back.** It boots the built game at the
+  recorded viewport, feeds each frame its recorded time step, and dispatches the
+  recorded events through the real input layer. It then asserts the run ends
+  where it ended for the player: the same phase, the same cells seated, and the
+  player within tolerance of where they stood.
+- **Traces are committed and run in CI.** `tools/traces/` holds them. One is
+  generated by the harness itself, as a round-trip check that record and replay
+  agree. One or more come from the owner's phone.
+
+**The cost, stated plainly.** Replay is only as good as the game is
+deterministic. Movement, collision and the chain are driven by the time step
+and input, and the time step is recorded. The randomness in the game today
+(spark timing, footstep variants) touches nothing a replay asserts on. Making
+the frame loop accept an injected time step is the one production change, and
+it is the part most likely to be subtly wrong. That is why it is built first.
+
+Rejected: recording the derived move and look values. That is cheaper, and it
+would have replayed the touch bug as correct input. Uploading traces
+automatically, which needs a server and a privacy story this project does not
+have. A video capture, which a harness cannot assert against.
+
+### 7.3.3 The weight — what it costs to arrive
+
+**What is wrong now.** The build ships about 2.4 MB of generated assets and
+0.65 MB of script (170 kB gzipped), and the asset total has grown in every
+phase: 1.8 MB in v1, 2.15 MB after phase 4, 2.39 MB after phase 6. Nothing
+measures it and nothing would notice if a phase doubled it. Everything loads
+before the title appears, so every byte is paid for before the first frame.
+
+**What gets built.**
+
+- **A payload budget, in bytes.** `tools/weight.mjs` boots the built game and
+  counts every byte transferred before the title is shown, by kind: script,
+  textures, sky, models, sounds, responses. It fails over budget. Bytes are a
+  fact about the game, not about the runner, so they gate the way the frame
+  ratio does. The budget is set at the build's measured figure plus a stated
+  headroom. A phase that wants more changes this document first.
+- **Time to title, under a pinned network.** It is measured with a throttled
+  connection profile fixed in the harness, reported in CI, and not gated. The
+  transfer part depends on the throttle and the decode part depends on the
+  runner's CPU. 5.3.2's reasoning holds: a number that is partly a fact about the
+  runner is a report, not a budget.
+- **One honest optimisation, if the measurement earns it.** If the breakdown
+  shows that assets nobody needs until the end (the sky and the end sting) are a
+  real share of time to title, they load after the title instead. If it does
+  not, nothing changes and the report says so.
+
+Rejected: a frames-to-interactive or Lighthouse score, which is a different
+runner's opinion of a different page. A CDN or compression change on Vercel,
+which is deployment rather than the game, and whose PNG and MP3 payload is
+already compressed.
+
+**Unchanged:** the five spaces, the six-step chain, the route, crouch, the HUD,
+the viewmodel, the signage, the outside, the machinery, the lighting, the
+ending, the retro rendering treatment, and the asset budgets.
+
+## 7.4 Scope guardrails
+
+Still permanently out, unchanged: **combat, enemies, saving, settings menus,
+procedural generation, additional levels or rooms**, **narrative** (phase 3),
+**physically-based rendering** (phase 4), **cutscenes** (phase 5), and **views
+out before the end** (phase 6).
+
+**Two of those, read narrowly, for 7.3.2.** `?trace` is not a settings menu. It
+has no UI before the end card, is not discoverable in play, and changes nothing
+about how the game behaves. A trace is not saving. It cannot be loaded back into
+the game to resume a run. It exists only to be replayed by the harness. If
+either ever becomes the thing it is distinguished from here, that is a change to
+this document first.
+
+**Zero new asset classes, sounds, models, rooms, interactive types or movement
+verbs.**
+
+## 7.5 Definition of done
+
+| | Verified by |
+|---|---|
+| **Move and look at once, in portrait.** The left thumb holds the stick while the right thumb turns the camera, including a right thumb that starts left of centre. | Claude — the touch harness, extended to two simultaneous thumbs on a portrait phone |
+| **A look touch is never taken as movement.** No touch outside the movement zone starts the stick, and a second touch is never ignored. | Claude — a sweep of touch-down points across the screen against the zone table |
+| **Record and replay agree.** A run the harness records itself replays to the same phase, cells and position. | Claude — `tools/replay.mjs`, round trip |
+| **The owner's run replays in CI.** At least one trace from the owner's phone is committed and green. | **The owner** records it; Claude commits and runs it |
+| **The weight is a number, and inside its budget.** Bytes to title by kind, gated; time to title reported. | Claude — `tools/weight.mjs`, in CI |
+| **Nothing regresses.** All harnesses green, the six-step chain still solvable, the pipeline still byte-reproducible, the deployment still live. | CI |
+| **The controls feel right on a phone.** Looking goes where the right thumb is, and moving does not happen by accident. | **The owner** |
+
+## 7.6 Amendments to earlier sections
+
+- **v1 §4, controls (mobile).** "Left virtual joystick = move, right side drag =
+  look" becomes: a stick that starts only in the lower-left movement zone, and
+  look from any other touch, including a second touch while moving.
+- **P5 and the saving guardrail.** Read narrowly, as 7.4 states: a replay trace
+  is not a save.
+- **v1 §11, definition of done.** Gains a byte budget. "Instant to load" in v1
+  §2 becomes a measured claim rather than an adjective.
+
+## 7.7 The box
+
+Zero new assets of any kind. One production change to the frame loop (an
+injectable time step), one to the input layer (zones), and one URL flag. Two new
+harnesses.
+
+## 7.8 Build order
+
+1. **The trace.** The injectable time step, the recorder, the replayer, and the
+   self-recorded round trip, red before green. Once it ships to the preview, the
+   owner records a run on the current controls, so the overlap they reported
+   exists as a failing replay before anything is changed.
+2. **The weight.** Measured before the touch changes, so the controls work lands
+   inside a known budget.
+3. **Two thumbs.** The zone table, the reassignment rules, button placement, and
+   the two-thumb harness, checked against the owner's trace.
+4. **Integration and ship.**
+
+**The one thing the build asks of the owner.** Step 1 asks the owner for one thing mid-build: open the preview with `?trace`
+on their phone, play, and send the file from the end card. If that is not
+convenient, the build goes ahead on the harness's own two-thumb recordings and
+the owner's trace is added when it arrives. The bar in 7.5 stays unsigned until
+then.
+
+## 7.9 Decisions taken in the draft
+
+- **Narrow, with two instruments and one fix.** The owner chose this, from three
+  options, and asked for 7.3.3 alongside. Rejected: going wide and folding the
+  controls in, which would have broken the rhythm the moment it got its first
+  real test.
+- **Raw input over derived input.** The whole value of the trace is that it
+  captures the layer that was wrong. A recording of move and look values would
+  have replayed the bug as a correct run.
+- **Bytes gate, time reports.** The same split as the frame budget: what is a
+  fact about the game is a budget, and what is partly a fact about the runner is
+  a report.
+- **No haptics.** Proposed in passing and not taken up. It would need knowing
+  the owner's phone, and vibration is not supported on iOS Safari.
+
+---
+
 # Phase 6 — v1.5
 
-**Status: BUILT.** Proposed 8 October 2026 in PR #22 and approved by the owner
-the same day; built the same day on the branch that follows it. Merging the two
-ratifies and ships it. It holds on the same terms as everything below: nothing
+**Status: BUILT, and signed.** Proposed 8 October 2026 in PR #22 and approved
+by the owner the same day; built the same day in PR #23. Merging the two
+ratifies and ships it.
+
+**Signed by the owner after playing the build, 8 October 2026:** *"Feels great.
+Everything worked."* That signs the outside, the machinery and power arriving.
+The phone bar is signed with one finding. In portrait, the movement stick takes
+touches meant for looking, and moving and looking at once is awkward. The owner
+asked for that to go into the next phase rather than hold this one, and it is
+7.3.1. It holds on the same terms as everything below: nothing
 here is a suggestion, and if we change something during the build we change
 this document first.
 
