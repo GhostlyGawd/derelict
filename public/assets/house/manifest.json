@@ -10,7 +10,7 @@
       "file": "/assets/house/textures/floor.png",
       "normal": "/assets/house/textures/floor_n.png",
       "size": 512,
-      "bytes": 188616
+      "bytes": 192351
     },
     "ceiling": {
       "file": "/assets/house/textures/ceiling.png",
@@ -71,6 +71,44 @@
     "file": "/assets/house/grade.png",
     "size": 16,
     "bytes": 12094
+  },
+  "baked": {
+    "hall-z0-p": {
+      "file": "/assets/house/baked/hall-z0-p.png",
+      "width": 221,
+      "height": 179,
+      "bytes": 41963
+    },
+    "hall-z4.6-n": {
+      "file": "/assets/house/baked/hall-z4.6-n.png",
+      "width": 294,
+      "height": 179,
+      "bytes": 52799
+    },
+    "hall-x-2.4-p": {
+      "file": "/assets/house/baked/hall-x-2.4-p.png",
+      "width": 282,
+      "height": 179,
+      "bytes": 38573
+    },
+    "hall-x2.4-n": {
+      "file": "/assets/house/baked/hall-x2.4-n.png",
+      "width": 282,
+      "height": 179,
+      "bytes": 48964
+    },
+    "hall-floor": {
+      "file": "/assets/house/baked/hall-floor.png",
+      "width": 307,
+      "height": 294,
+      "bytes": 97371
+    },
+    "hall-ceiling": {
+      "file": "/assets/house/baked/hall-ceiling.png",
+      "width": 307,
+      "height": 294,
+      "bytes": 20273
+    }
   },
   "target": {
     "meanSrgb": [

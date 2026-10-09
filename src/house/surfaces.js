@@ -25,6 +25,15 @@ export async function loadSurfaces(base = '/assets/house/manifest.json') {
       tex[`${id}_n`] = point(await loader.loadAsync(entry.normal), false);
     })
   );
+  // Baked surfaces (9.4.4): one texture per chart, clamped, never repeated.
+  await Promise.all(
+    Object.entries(manifest.baked || {}).map(async ([id, entry]) => {
+      const t = point(await loader.loadAsync(entry.file), true);
+      t.wrapS = THREE.ClampToEdgeWrapping;
+      t.wrapT = THREE.ClampToEdgeWrapping;
+      tex[`baked:${id}`] = t;
+    })
+  );
   // The grade is a lookup table, read between its cells, so it alone is
   // filtered linearly. It is data, not a picture: no colour-space decode.
   const grade = await loader.loadAsync(manifest.grade.file);

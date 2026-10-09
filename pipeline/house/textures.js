@@ -61,14 +61,16 @@ function floor(s, seed) {
   r.fill(P.floorBase);
   brushStrokes(r, { palette: P.floor, count: (s * s) / 300, length: s / 22, width: s / 36, flow: 1.2, alpha: 0.24, seed: seed + 1 });
   r.mottle({ frequency: 5, amount: 0.16 });
+  // Soft damp, and not much of it: hard blots repeated every two metres and
+  // read as a pattern. Where the damp really is, the bake puts it (bake.js).
   damp(r, {
-    source: (u, v) => (fbm(u, v, 3, 4, seed + 6) > 0.64 ? 1 : 0),
+    source: (u, v) => Math.max(0, Math.min(1, (fbm(u, v, 3, 4, seed + 6) - 0.6) / 0.15)),
     spread: 4,
     radius: Math.max(2, s / 128),
     stain: [34, 42, 28],
     tideColour: [22, 28, 16],
-    strength: 0.6,
-    tides: 2,
+    strength: 0.3,
+    tides: 1,
     seed: seed + 2,
   });
   // Flags: faint joints a metre apart.

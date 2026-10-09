@@ -162,10 +162,27 @@ function windows(box, group, mat) {
   }
 }
 
+/**
+ * The hall's one lamp, a white shade on a cord over the middle of the rug.
+ * Its lights are data here because the pipeline bakes the hall's walls, floor
+ * and ceiling from the same lamp the game lights the furniture with.
+ */
+export const HALL_LAMP = {
+  at: [0.1, 2.5, 2.3],
+  colour: 0xe6f0c4,
+  // The shade sends the light down: a cone onto the rug and the walls, and
+  // only a little glow up, so the ceiling stays dark as in the reference.
+  down: { intensity: 54, distance: 12, angle: 1.38, penumbra: 0.8, decay: 2, drop: 0.08 },
+  glow: { intensity: 3.5, distance: 7, decay: 2, drop: 0.05 },
+};
+
+/** The little night that comes in everywhere: a cool fill in the shadows. */
+export const NIGHT_FILL = { sky: 0x4a5a78, ground: 0x0a0c08, intensity: 0.32 };
+
 /** The entry hall, to the reference. */
 function hall(box, group, mat, colliders, lights) {
-  // ---- The one lamp: a white shade on a cord, over the middle of the rug ----
-  const LAMP = [0.1, 2.5, 2.3];
+  // ---- The one lamp ----
+  const LAMP = HALL_LAMP.at;
   {
     const cord = new THREE.Mesh(new THREE.BoxGeometry(0.015, 2.8 - LAMP[1] - 0.08, 0.015), mat.wood);
     cord.position.set(LAMP[0], (2.8 + LAMP[1] + 0.08) / 2, LAMP[2]);
@@ -181,14 +198,13 @@ function hall(box, group, mat, colliders, lights) {
     const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 6), mat.shade);
     bulb.position.set(LAMP[0], LAMP[1] - 0.05, LAMP[2]);
     group.add(bulb);
-    // The shade sends the light down: a cone onto the rug and the walls, and
-    // only a little glow up, so the ceiling stays dark as in the reference.
-    const down = new THREE.SpotLight(0xe6f0c4, 54, 12, 1.38, 0.8, 2);
-    down.position.set(LAMP[0], LAMP[1] - 0.08, LAMP[2]);
+    const { down: d, glow: gl, colour } = HALL_LAMP;
+    const down = new THREE.SpotLight(colour, d.intensity, d.distance, d.angle, d.penumbra, d.decay);
+    down.position.set(LAMP[0], LAMP[1] - d.drop, LAMP[2]);
     down.target.position.set(LAMP[0], 0, LAMP[2]);
     lights.push(down, down.target);
-    const glow = new THREE.PointLight(0xe6f0c4, 3.5, 7, 2);
-    glow.position.set(LAMP[0], LAMP[1] - 0.05, LAMP[2]);
+    const glow = new THREE.PointLight(colour, gl.intensity, gl.distance, gl.decay);
+    glow.position.set(LAMP[0], LAMP[1] - gl.drop, LAMP[2]);
     lights.push(glow);
   }
 

@@ -12,9 +12,10 @@ import { fovFor } from '../game/viewmodel.js';
 
 import { buildHouse } from './level.js';
 import { loadSurfaces } from './surfaces.js';
-import { dressHouse } from './dress.js';
+import { NIGHT_FILL, dressHouse } from './dress.js';
 import { createGrade } from './grade.js';
 import { buildHandheld } from './handheld.js';
+import { bakedSkins } from './baked.js';
 import { ITEMS, LOOP, PLAYER_HEIGHT, PLAYER_RADIUS, RING_SIZE, SPACES, SPAWN, floorAt, isOut, spaceAt } from './layout.js';
 import * as LAYOUT from './layout.js';
 import { buildThings } from './things.js';
@@ -94,6 +95,7 @@ class House {
     this.scene.add(house.group);
     this.dressing = dressHouse(this.surfaces.materials);
     this.scene.add(this.dressing.group);
+    this.scene.add(bakedSkins(this.surfaces));
     for (const light of this.dressing.lights) this.scene.add(light);
     this.things = buildThings(this.surfaces.materials);
     this.scene.add(this.things.group);
@@ -113,7 +115,7 @@ class House {
 
     // The light: one lamp a room at most, each in something that can be seen
     // (dress.js and rooms.js), and a little night that comes in everywhere.
-    this.scene.add(new THREE.HemisphereLight(0x4a5a78, 0x0a0c08, 0.32));
+    this.scene.add(new THREE.HemisphereLight(NIGHT_FILL.sky, NIGHT_FILL.ground, NIGHT_FILL.intensity));
     this.grade = createGrade(this.view, this.surfaces.grade);
     this.handheld = buildHandheld(this.surfaces);
 

@@ -7,6 +7,7 @@ import { ASSETS, bytes, rel, write, writeJson } from '../lib/io.js';
 import { log } from '../lib/log.js';
 import { normalMapFrom } from '../lib/normal.js';
 import { STYLE_BIBLE_HOUSE, TARGET } from './style.js';
+import { BAKED_ROOMS, bakeRooms } from './bake.js';
 import { HOUSE_TEXTURES, gradeLut } from './textures.js';
 
 /**
@@ -29,7 +30,7 @@ function seedOf(id) {
 async function main() {
   log.stage('house — style bible');
   log.note(STYLE_BIBLE_HOUSE);
-  const manifest = { textures: {}, grade: null, target: TARGET };
+  const manifest = { textures: {}, grade: null, baked: {}, target: TARGET };
 
   log.stage('house — textures');
   for (const spec of HOUSE_TEXTURES) {
@@ -59,6 +60,14 @@ async function main() {
   await write(lutFile, lutPng);
   manifest.grade = { file: '/assets/house/grade.png', size: 16, bytes: lutPng.length };
   log.done(`grade — 16³ lookup table, ${bytes(lutPng.length)} → ${rel(lutFile)}`);
+
+  log.stage(`house — baked surfaces (${BAKED_ROOMS.join(', ')})`);
+  const baked = await bakeRooms(path.join(OUT, 'textures'), (c, w, h, n) => log.done(`${c.id} — ${w}×${h}, ${bytes(n)}`));
+  for (const b of baked) {
+    const file = path.join(OUT, 'baked', `${b.id}.png`);
+    await write(file, b.png);
+    manifest.baked[b.id] = { file: `/assets/house/baked/${b.id}.png`, width: b.w, height: b.h, bytes: b.png.length };
+  }
 
   await writeJson(path.join(OUT, 'manifest.json'), manifest);
   log.done(`manifest → ${rel(path.join(OUT, 'manifest.json'))}`);

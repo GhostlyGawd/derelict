@@ -230,6 +230,30 @@ owner's to choose. A paint filter over the whole frame (a Kuwahara filter, in
 the grade pass) was tried and is left off: at a strength a phone can afford it
 barely changes the frame.
 
+*Baked surfaces, chosen by the owner on 9 October 2026.* Asked how to come
+closer to the reference without an image model, the owner chose to bake light
+and grime into each surface, after a look at prior art: games of the
+reference's era carried their light, shadow and dirt in every surface, where a
+tiled texture lit live carries none of it. Each wall, floor and ceiling of a
+room gets its own texture, drawn by the pipeline from the surface generators
+and then lit by a ray tracer (three-mesh-bvh, MIT, a build-time dependency
+only) from the room's own lamp, with ambient occlusion in its corners. Grime
+is placed by the house's own geometry: damp rising from the floor, streaks
+under sills and from the ceiling, dirt along the skirting, hand marks round
+door handles and boards worn pale along the paths between doors. Each texture
+is then painted over at build time, with a Kuwahara filter and brush strokes
+laid along its contours, which costs nothing at run time. It is proved on the
+entry hall first, as the look was.
+
+The first bake looked like nothing had changed, and for a while it seemed the
+grime was too faint. It was the photograph: the style harness only rewrites
+its pictures when it is asked to (`--shots`), and the picture being judged was
+from before the bake. Its numbers had been taken from the new frame all along.
+Once the frame was looked at, the grime was faint as well. The bake now gives
+every surface a mid-sized mottle of lighter and darker paint and wood, larger
+stains with harder edges on the walls, and wet patches on the boards off the
+paths people walk. All thirteen views stay inside the target.
+
 For now, doors open and stay open, and a key is spent at its door. On a
 phone the key ring sits at the top left, because the stick holds the bottom
 left.
@@ -402,6 +426,11 @@ still holds.
 - **Night outside.** The windows look out on a generated night: dark sky,
   rain, the black shapes of trees. You see it from inside before you ever go
   out, which is why the views-out rule is lifted for the house (9.5).
+- **Baked surfaces.** Each wall, floor and ceiling of a room carries its own
+  texture with the room's light, shadow and grime baked in and painted over,
+  drawn by the pipeline from the surface generators. Built and lit at build
+  time, deterministic, and shown unlit at run time, as the era's games did.
+  The furniture and doors stay lit live by the same lamp.
 - **The handheld.** The bottom-right device in the reference becomes the
   house's viewmodel, an old battery lantern. That settles backlog item 1
   (9.4.7) in a new form: it is placed against the touch buttons and the
@@ -567,8 +596,10 @@ traced, sampled or imported.
 ## 9.7 The box
 
 One new level, a separate demo of about ten spaces on two floors. At most ten
-new surface textures, fourteen new models and twelve new sounds. Two new asset
-classes: the colour grade and the night outside. The style engine is
+new surface textures, fourteen new models and twelve new sounds. Three new
+asset classes: the colour grade, the night outside, and baked surfaces, one
+per wall, floor and ceiling of a dressed room, drawn from those ten surfaces
+(added in the build, 9 October 2026). The style engine is
 generator code, not an asset, and the style harness is one new instrument. One new movement capability,
 stairs, and no new movement verb. One new piece of interface, the note reader,
 and one new HUD element, the key ring.
