@@ -287,7 +287,7 @@ on offer. Two things close it, and the owner took both:
   light maps are committed as sources beside the pipeline, with a hash of
   everything that went into them. The pipeline composes them with the
   generated surfaces and grime, deterministically, and fails if a light map
-  is stale against the house it was baked from. Neither CI nor the deploy
+  is stale against the source files it was baked from. Neither CI nor the deploy
   runs Blender. Each source is baked as its own layer (the lamp's cone, its
   glow, and the night through the windows), so the look can weigh them
   afterwards without baking again: light adds. If the light and the tuner
@@ -345,6 +345,18 @@ occlusion traced for the grime. Three things changed to get there:
 Two things read wrong in the rooms and are left for the owner's look. The
 kitchen's and bathroom's tiled floors carry the same wet blotches as the
 boards, and the walls' mottle reads heavy in places.
+
+*The deploy that would not build, 9 October 2026.* Every Vercel preview from
+the Blender commit on failed in about twenty seconds, while CI passed. The
+owner fetched the log: the pipeline had called the light stale. The staleness
+check hashed the exported scene, the house's triangles and colours as
+numbers, and Vercel's build machines computed those numbers a hair
+differently from every other machine tried (three Node versions here, and
+CI). The check now hashes the committed source files the light is baked from
+(`LIGHT_SOURCES` in `pipeline/house/blender/export.js`), which are the same
+bytes everywhere. The committed light was confirmed to belong to the same
+scene under the old hash before it was stamped with the new one, and the
+check is shown to fail again when one of those files changes.
 - **A tuner.** The knobs that make the look (exposure, grime, damp, wear,
   paint and the grade) live in one table, and a tool turns them to bring
   fixed views of the hall closer to the reference. It scores regions of the

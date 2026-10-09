@@ -500,7 +500,7 @@ export async function encode(f, bytes) {
 }
 
 export async function bakeRooms(textureDir, log = () => {}) {
-  await checkLight(textureDir);
+  checkLight();
   const look = readLook();
   const fields = await chartFields(textureDir);
   const out = [];

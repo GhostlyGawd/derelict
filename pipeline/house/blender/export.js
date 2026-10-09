@@ -152,7 +152,27 @@ export async function exportScene(textureDir) {
   const scene = { units: 'metres, y up', materials, parts, charts, lamps: lamps(dressing.lights), layers: LAYERS };
   const json = JSON.stringify(scene);
   const bin = Buffer.from(new Float32Array(floats).buffer);
-  const script = readFileSync(new URL('./bake.py', import.meta.url));
-  const hash = createHash('sha256').update(json).update(bin).update(script).digest('hex');
-  return { scene, json, bin, hash };
+  return { scene, json, bin, hash: sourceHash() };
+}
+
+/**
+ * The source files the light is baked from: the house's shape, its lamps, its
+ * surfaces' colours, and the bake itself. A light map is stale when any of
+ * them changes. Hashed as committed bytes, never as the numbers they compute:
+ * Vercel's build machines computed the house's floats a hair differently from
+ * every other machine, so a hash of the exported scene called a fresh light
+ * map stale there and nowhere else.
+ */
+export const LIGHT_SOURCES = [
+  'src/house/layout.js', 'src/house/level.js', 'src/house/dress.js', 'src/house/rooms.js',
+  'src/house/things.js', 'src/house/furniture.js', 'src/house/charts.js', 'src/house/surfaces.js',
+  'pipeline/house/textures.js', 'pipeline/house/style.js', 'pipeline/lib/paint.js', 'pipeline/lib/raster.js',
+  'pipeline/house/blender/export.js', 'pipeline/house/blender/bake.py',
+];
+
+export function sourceHash() {
+  const root = new URL('../../../', import.meta.url);
+  const h = createHash('sha256');
+  for (const file of LIGHT_SOURCES) h.update(file).update('\0').update(readFileSync(new URL(file, root))).update('\0');
+  return h.digest('hex');
 }

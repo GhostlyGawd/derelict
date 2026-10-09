@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
-import { LAYERS, exportScene } from './export.js';
+import { LAYERS, exportScene, sourceHash } from './export.js';
 
 /**
  * `npm run bake:light`: Blender lights the house's charts (9.4.4).
@@ -28,16 +28,16 @@ export const LIGHT_DIR = path.resolve(HERE, '../light');
 const TEXTURES = path.resolve(HERE, '../../../public/assets/house/textures');
 
 /** Fails, naming the remedy, if the committed light no longer belongs to the house. */
-export async function checkLight(textureDir = TEXTURES) {
-  const { hash, scene } = await exportScene(textureDir);
+export function checkLight() {
+  const hash = sourceHash();
   const file = path.join(LIGHT_DIR, 'inputs.json');
   const committed = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null;
   if (!committed || committed.hash !== hash) {
     throw new Error(
-      `the baked light in pipeline/house/light is stale: the house, its lamps or bake.py changed since it was baked (${committed?.hash?.slice(0, 12) ?? 'none'} → ${hash.slice(0, 12)}). Run npm run bake:light and commit the result.`
+      `the baked light in pipeline/house/light is stale: a file it was baked from changed since (LIGHT_SOURCES in export.js) (${committed?.hash?.slice(0, 12) ?? 'none'} → ${hash.slice(0, 12)}). Run npm run bake:light and commit the result.`
     );
   }
-  return { scene, committed };
+  return committed;
 }
 
 /** A chart's light, one Float32Array of RGB per layer, rows top first, from its committed PNGs. */
