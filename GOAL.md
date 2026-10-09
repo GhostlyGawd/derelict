@@ -270,6 +270,62 @@ every owner trace of the house and requires exactly that. They have their own
 folder, because the ship's replay and profiler read every trace beside
 them.
 
+*Blender and a tuner, chosen by the owner on 9 October 2026.* The baked hall
+lit better and still did not look like the picture. The owner asked whether
+the look could be optimised mathematically, and whether a real tool such as
+Blender could do the work. The gap is detail more than colour, and the
+reference is a painted picture from one fixed camera, so exact parity is not
+on offer. Two things close it, and the owner took both:
+
+- **Blender, pinned, at build time only.** Blender 4.2 LTS, free, scripted
+  and run without a window, bakes each surface's light with a path tracer:
+  light that bounces, soft shadows and moonlight from the windows, where the
+  first bake had direct light and an occlusion guess. It is still all code:
+  the house is built by our generators and exported to Blender, and Blender
+  is told by a script what to light and how. No image model is involved.
+  Blender's output is not promised byte for byte across machines, so its
+  light maps are committed as sources beside the pipeline, with a hash of
+  everything that went into them. The pipeline composes them with the
+  generated surfaces and grime, deterministically, and fails if a light map
+  is stale against the house it was baked from. Neither CI nor the deploy
+  runs Blender. Each source is baked as its own layer (the lamp's cone, its
+  glow, and the night through the windows), so the look can weigh them
+  afterwards without baking again: light adds. If the light and the tuner
+  leave the shell reading flat, Blender's scripted modelling, wear and
+  bevels on the shell, is the next step, and it comes back to the owner
+  first.
+
+As built, the same day. Blender bakes the hall in about 90 s at 1024
+samples. The light maps are kept as RGBE in ordinary PNGs (three 8-bit
+mantissas and a shared exponent), because 16-bit PNGs did not survive the
+image library round trip. The stale check is shown to fail: touching
+`bake.py` without baking again stops the pipeline with the remedy. The tuner
+ran three passes and taught three things:
+
+- **The tuner will remove the look if it is allowed to.** On numbers alone
+  it turned the brush strokes and the mottle to nothing and the damp up to
+  hard-edged camouflage. The statistics were closer and the picture was
+  worse. The paint knobs now have a floor: the tuner may weaken the painted
+  look the owner asked for, and never remove it. The damp's edges were
+  softened by hand.
+- **The grade is not the hall's to turn.** Tuned on the hall, it took four
+  other rooms out of their palette. It is no longer a knob.
+- **Neither is every rug.** The rug knob darkened every rug in the house,
+  so the hall's runner has its own material.
+
+The score fell from 96 to 41. Every one of the thirteen views stays inside
+9.4.5's target, and the hall's reference view is inside its regions as
+well. The regions are still the farthest numbers. The reference's front-door
+wall is lit far brighter than ours, and its rug far darker. Those come from
+how the picture was painted, not from a knob, and are the owner's to judge.
+- **A tuner.** The knobs that make the look (exposure, grime, damp, wear,
+  paint and the grade) live in one table, and a tool turns them to bring
+  fixed views of the hall closer to the reference. It scores regions of the
+  frame, a grid over the view, by the same statistics 9.4.5 already uses,
+  and never by pixels: the target stays numbers measured from the picture,
+  and nothing of the picture is committed. The style harness gains the
+  regional target and judges it on the hall's reference view.
+
 For now, doors open and stay open, and a key is spent at its door. On a
 phone the key ring sits at the top left, because the stick holds the bottom
 left.
@@ -446,7 +502,10 @@ still holds.
   texture with the room's light, shadow and grime baked in and painted over,
   drawn by the pipeline from the surface generators. Built and lit at build
   time, deterministic, and shown unlit at run time, as the era's games did.
-  The furniture and doors stay lit live by the same lamp.
+  The furniture and doors stay lit live by the same lamp. The light is baked by
+  Blender, pinned at 4.2 LTS and run only by `npm run bake:light`, and its
+  maps are committed with a hash of their inputs; everything after the light
+  is composed by the pipeline, byte for byte.
 - **The handheld.** The bottom-right device in the reference becomes the
   house's viewmodel, an old battery lantern. That settles backlog item 1
   (9.4.7) in a new form: it is placed against the touch buttons and the
@@ -519,6 +578,8 @@ views in all (`tools/house/style.mjs`):
 | Mean saturation | ±0.15 | in |
 | Fine detail | ×0.5 to ×2 | in |
 | Distinct 15-bit colours | ×0.4 to ×2.5 | in |
+| Each region's mean luminance, a 4 × 3 grid on the reference view (added with the tuner) | ×0.25 to ×4 | in |
+| Each region's mean saturation, the same grid | ±0.2 | in |
 
 The reference view's mean colour is 43, 48, 27 against the reference's
 35, 46, 27. A tolerance is not loosened to let a change through. The numbers describe a look.
@@ -601,7 +662,7 @@ traced, sampled or imported.
 | **Every note can be reached and read.** Each note is on the critical path or reachable from it, and at the reader's size its type clears the pixel floor on a phone in portrait. | Claude — the chain harness and `tools/legible.mjs` |
 | **Every asset is consumed.** Every generated texture, model, sound and the colour grade is observed in use during a full run of the house. | Claude — the consumption gate, on the house |
 | **It fits its budgets.** The house's frame against its own stripped frame inside 1.9×, its bytes to title gated at its own measured figure plus 15%, and no shader compiles after the title. | Claude — `tools/framecost.mjs`, `tools/weight.mjs`, and the new compile check |
-| **Still generated end to end.** A clean checkout reproduces every house asset byte-for-byte. | The existing determinism gate |
+| **Still generated end to end.** A clean checkout reproduces every house asset byte-for-byte from the committed sources, Blender's light maps among them, and no light map is stale against the house it was baked from. | The existing determinism gate, and the pipeline's staleness check |
 | **The house holds its style.** Fixed views of every room score within the stated tolerance of the style target in 9.4.5: value, cast, saturation, detail and palette. | Claude — the style harness, in CI |
 | **The entry hall reads as the reference.** From where the player starts: the layout, the damp, the wood, the green and the one lamp, recreated. | **The owner**, at the first milestone |
 | **The house is frightening without a monster.** | **The owner** |

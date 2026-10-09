@@ -16,6 +16,8 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 import sharp from 'sharp';
 
+import { regions, stats } from '../lib/stylestats.js';
+
 const ROOT = process.argv.find((a) => /^https?:/.test(a)) || 'http://127.0.0.1:4173/';
 const SHOTS = process.argv.includes('--shots');
 const { TARGET } = await import(new URL('../../pipeline/house/style.js', import.meta.url).href);
@@ -26,7 +28,7 @@ const { TARGET } = await import(new URL('../../pipeline/house/style.js', import.
  * seen.
  */
 const VIEWS = [
-  { name: 'hall, from the door (the reference view)', pos: [0.05, 4.1], yaw: 0, pitch: -0.06 },
+  { name: 'hall, from the door (the reference view)', pos: [0.05, 4.1], yaw: 0, pitch: -0.06, regions: true },
   { name: 'hall, toward the stairs', pos: [-1.2, 3.2], yaw: -0.55, pitch: 0.05 },
   { name: 'hall, back toward the window', pos: [0.6, 0.9], yaw: 2.4, pitch: -0.05 },
   // Every other room, from its doorway, as a player first sees it (9.6).
@@ -53,54 +55,11 @@ export const TOLERANCE = {
   saturation: 0.15,
   detail: [0.5, 2.0],
   colours15: [0.4, 2.5],
+  // By region, on the reference view only (TARGET.regions): set on 9 October
+  // 2026 after the first tuning, recorded in the spec, and not to be loosened.
+  regionMean: [0.25, 4],
+  regionSaturation: 0.2,
 };
-
-function stats(rgb, w, h) {
-  const n = w * h;
-  const lum = new Float32Array(n);
-  let green = 0;
-  let sat = 0;
-  let mean = [0, 0, 0];
-  const colours = new Set();
-  const lin = (c) => ((c /= 255) <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-  for (let i = 0; i < n; i++) {
-    const r = rgb[i * 3];
-    const g = rgb[i * 3 + 1];
-    const b = rgb[i * 3 + 2];
-    mean[0] += r;
-    mean[1] += g;
-    mean[2] += b;
-    lum[i] = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-    if (g >= r && g >= b) green++;
-    const mx = Math.max(r, g, b);
-    const mn = Math.min(r, g, b);
-    sat += mx ? (mx - mn) / mx : 0;
-    colours.add(((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3));
-  }
-  const sorted = Float32Array.from(lum).sort();
-  const pct = (p) => sorted[Math.min(n - 1, Math.floor(p * n))];
-  // Fine detail: mean absolute Laplacian of the grey image, 0–255.
-  let detail = 0;
-  const grey = (x, y) => {
-    const i = (y * w + x) * 3;
-    return 0.299 * rgb[i] + 0.587 * rgb[i + 1] + 0.114 * rgb[i + 2];
-  };
-  for (let y = 1; y < h - 1; y++) {
-    for (let x = 1; x < w - 1; x++) {
-      detail += Math.abs(4 * grey(x, y) - grey(x - 1, y) - grey(x + 1, y) - grey(x, y - 1) - grey(x, y + 1));
-    }
-  }
-  return {
-    meanSrgb: mean.map((v) => Math.round(v / n)),
-    p5: pct(0.05),
-    p50: pct(0.5),
-    p95: pct(0.95),
-    greenDominant: green / n,
-    saturation: sat / n,
-    detail: detail / ((w - 2) * (h - 2)),
-    colours15: colours.size,
-  };
-}
 
 function judge(s) {
   const t = TARGET;
@@ -155,6 +114,19 @@ for (const view of VIEWS) {
   for (const r of judge(s)) {
     console.log(`    ${r.ok ? 'ok  ' : 'FAIL'}  ${r.name}: ${r.text}`);
     if (!r.ok) failures++;
+  }
+  if (view.regions) {
+    // The frame by region, four across and three down, against the picture's own regions.
+    const [lo, hi] = TOLERANCE.regionMean;
+    regions(data, info.width, info.height).forEach((c, i) => {
+      const t = TARGET.regions[i];
+      const ok = c.mean >= t.mean * lo && c.mean <= t.mean * hi && Math.abs(c.saturation - t.saturation) <= TOLERANCE.regionSaturation;
+      const where = `${['top', 'middle', 'bottom'][Math.floor(i / 4)]} ${['left', 'centre-left', 'centre-right', 'right'][i % 4]}`;
+      console.log(
+        `    ${ok ? 'ok  ' : 'FAIL'}  region ${where}: luminance ${c.mean.toFixed(4)} (target ${t.mean}, ×${lo}–×${hi}), saturation ${c.saturation.toFixed(3)} (target ${t.saturation} ± ${TOLERANCE.regionSaturation})`
+      );
+      if (!ok) failures++;
+    });
   }
   if (SHOTS) await sharp(png).toFile(path.resolve(`tools/shots/style-${VIEWS.indexOf(view)}.png`));
 }

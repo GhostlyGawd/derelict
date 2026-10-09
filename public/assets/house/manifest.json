@@ -77,37 +77,37 @@
       "file": "/assets/house/baked/hall-z0-p.png",
       "width": 221,
       "height": 179,
-      "bytes": 41963
+      "bytes": 48429
     },
     "hall-z4.6-n": {
       "file": "/assets/house/baked/hall-z4.6-n.png",
       "width": 294,
       "height": 179,
-      "bytes": 52799
+      "bytes": 76493
     },
     "hall-x-2.4-p": {
       "file": "/assets/house/baked/hall-x-2.4-p.png",
       "width": 282,
       "height": 179,
-      "bytes": 38573
+      "bytes": 63409
     },
     "hall-x2.4-n": {
       "file": "/assets/house/baked/hall-x2.4-n.png",
       "width": 282,
       "height": 179,
-      "bytes": 48964
+      "bytes": 67254
     },
     "hall-floor": {
       "file": "/assets/house/baked/hall-floor.png",
       "width": 307,
       "height": 294,
-      "bytes": 97371
+      "bytes": 130084
     },
     "hall-ceiling": {
       "file": "/assets/house/baked/hall-ceiling.png",
       "width": 307,
       "height": 294,
-      "bytes": 20273
+      "bytes": 22825
     }
   },
   "target": {
@@ -124,6 +124,80 @@
     "greenDominant": 0.96,
     "saturation": 0.45,
     "detail": 10,
-    "colours15": 763
+    "colours15": 763,
+    "regions": [
+      {
+        "mean": 0.016,
+        "p50": 0.0104,
+        "saturation": 0.427,
+        "detail": 6.1
+      },
+      {
+        "mean": 0.0318,
+        "p50": 0.0084,
+        "saturation": 0.437,
+        "detail": 7.2
+      },
+      {
+        "mean": 0.0225,
+        "p50": 0.0072,
+        "saturation": 0.446,
+        "detail": 4.7
+      },
+      {
+        "mean": 0.0294,
+        "p50": 0.0129,
+        "saturation": 0.388,
+        "detail": 8
+      },
+      {
+        "mean": 0.0177,
+        "p50": 0.0131,
+        "saturation": 0.453,
+        "detail": 8.1
+      },
+      {
+        "mean": 0.02,
+        "p50": 0.0153,
+        "saturation": 0.431,
+        "detail": 6
+      },
+      {
+        "mean": 0.0127,
+        "p50": 0.0091,
+        "saturation": 0.456,
+        "detail": 5.3
+      },
+      {
+        "mean": 0.0567,
+        "p50": 0.0222,
+        "saturation": 0.423,
+        "detail": 11.1
+      },
+      {
+        "mean": 0.0884,
+        "p50": 0.0542,
+        "saturation": 0.424,
+        "detail": 7.9
+      },
+      {
+        "mean": 0.0385,
+        "p50": 0.023,
+        "saturation": 0.491,
+        "detail": 10.5
+      },
+      {
+        "mean": 0.0456,
+        "p50": 0.0272,
+        "saturation": 0.489,
+        "detail": 11.1
+      },
+      {
+        "mean": 0.1403,
+        "p50": 0.0888,
+        "saturation": 0.419,
+        "detail": 11.5
+      }
+    ]
   }
 }

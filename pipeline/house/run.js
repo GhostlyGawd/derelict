@@ -7,7 +7,7 @@ import { ASSETS, bytes, rel, write, writeJson } from '../lib/io.js';
 import { log } from '../lib/log.js';
 import { normalMapFrom } from '../lib/normal.js';
 import { STYLE_BIBLE_HOUSE, TARGET } from './style.js';
-import { BAKED_ROOMS, bakeRooms } from './bake.js';
+import { BAKED_ROOMS, bakeRooms, readLook } from './bake.js';
 import { HOUSE_TEXTURES, gradeLut } from './textures.js';
 
 /**
@@ -52,7 +52,7 @@ async function main() {
   }
 
   log.stage('house — colour grade');
-  const lut = gradeLut();
+  const lut = gradeLut(readLook().grade);
   const lutPng = await sharp(Buffer.from(lut.data.buffer), { raw: { width: lut.width, height: lut.height, channels: 3 } })
     .png({ compressionLevel: 9, effort: 10, palette: false, adaptiveFiltering: false })
     .toBuffer();

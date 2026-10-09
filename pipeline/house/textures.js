@@ -295,7 +295,7 @@ function picture(s, seed) {
  * The colour grade as a 2D lookup table: 16 × 16 × 16, laid out as sixteen
  * 16 × 16 tiles side by side, blue choosing the tile. sRGB in, sRGB out.
  */
-export function gradeLut() {
+export function gradeLut(look = { keep: GRADE.keep, lift: GRADE.lift, ramp: 1 }) {
   const N = 16;
   const data = new Uint8ClampedArray(N * N * N * 3);
   const ramp = (L) => {
@@ -304,18 +304,23 @@ export function gradeLut() {
       if (L <= stops[i][0]) {
         const [l0, c0] = stops[i - 1];
         const [l1, c1] = stops[i];
-        return mixRgb(c0, c1, (L - l0) / (l1 - l0));
+        const c = mixRgb(c0, c1, (L - l0) / (l1 - l0));
+        // The ramp's own colour, toward its grey by the look's `ramp`.
+        const grey = 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
+        return c.map((v) => grey + (v - grey) * look.ramp);
       }
     }
-    return stops[stops.length - 1][1];
+    const c = stops[stops.length - 1][1];
+    const grey = 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
+    return c.map((v) => grey + (v - grey) * look.ramp);
   };
   const lin = (c) => ((c /= 255) <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
   for (let b = 0; b < N; b++) {
     for (let g = 0; g < N; g++) {
       for (let rr = 0; rr < N; rr++) {
         const rgb = [rr, g, b].map((v) => (v / (N - 1)) * 255);
-        const L = Math.min(1, (0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2])) ** (1 / 2.2) * GRADE.lift);
-        const out = mixRgb(ramp(L), rgb, GRADE.keep);
+        const L = Math.min(1, (0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2])) ** (1 / 2.2) * look.lift);
+        const out = mixRgb(ramp(L), rgb, look.keep);
         const i = (g * N * N + b * N + rr) * 3;
         data[i] = out[0];
         data[i + 1] = out[1];

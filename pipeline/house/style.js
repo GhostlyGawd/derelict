@@ -21,6 +21,27 @@ export const TARGET = {
   saturation: 0.45,
   detail: 10.0,
   colours15: 763,
+  /**
+   * The same picture by region, a grid four across and three down
+   * (tools/lib/stylestats.js), leaving out the corners its interface covers:
+   * mean and median linear luminance, mean saturation and fine detail. What
+   * the tuner aims at, and the style harness holds the hall's reference view
+   * to. Measured on 9 October 2026; numbers only, as above.
+   */
+  regions: [
+    { mean: 0.016, p50: 0.0104, saturation: 0.427, detail: 6.1 },
+    { mean: 0.0318, p50: 0.0084, saturation: 0.437, detail: 7.2 },
+    { mean: 0.0225, p50: 0.0072, saturation: 0.446, detail: 4.7 },
+    { mean: 0.0294, p50: 0.0129, saturation: 0.388, detail: 8.0 },
+    { mean: 0.0177, p50: 0.0131, saturation: 0.453, detail: 8.1 },
+    { mean: 0.02, p50: 0.0153, saturation: 0.431, detail: 6.0 },
+    { mean: 0.0127, p50: 0.0091, saturation: 0.456, detail: 5.3 },
+    { mean: 0.0567, p50: 0.0222, saturation: 0.423, detail: 11.1 },
+    { mean: 0.0884, p50: 0.0542, saturation: 0.424, detail: 7.9 },
+    { mean: 0.0385, p50: 0.023, saturation: 0.491, detail: 10.5 },
+    { mean: 0.0456, p50: 0.0272, saturation: 0.489, detail: 11.1 },
+    { mean: 0.1403, p50: 0.0888, saturation: 0.419, detail: 11.5 },
+  ],
 };
 
 /** The surface palette every house generator draws from. sRGB, 0–255. */

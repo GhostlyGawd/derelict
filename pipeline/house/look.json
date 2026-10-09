@@ -1,0 +1,49 @@
+{
+  "exposure": 3,
+  "light": {
+    "cone": 0.84,
+    "glow": 1.691,
+    "night": 20
+  },
+  "fill": 11.2,
+  "grime": {
+    "mottle": 0.5,
+    "dirt": 0,
+    "dirtColour": [
+      0.012,
+      0.016,
+      0.008
+    ],
+    "damp": 1.2,
+    "dampColour": [
+      0.01,
+      0.015,
+      0.006
+    ],
+    "tide": 1,
+    "tideColour": [
+      0.006,
+      0.008,
+      0.004
+    ],
+    "soot": 1,
+    "sootColour": [
+      0.004,
+      0.004,
+      0.003
+    ],
+    "wear": 1
+  },
+  "paint": {
+    "kuwahara": 2,
+    "strokes": 0.6
+  },
+  "grade": {
+    "keep": 0.55,
+    "lift": 1.2,
+    "ramp": 1
+  },
+  "live": {
+    "rug": 0.35
+  }
+}

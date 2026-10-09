@@ -232,7 +232,7 @@ function hall(box, group, mat, colliders, lights) {
     // One repeat of the pattern per 1.9 m along it, the whole width across.
     const uv = geo.attributes.uv;
     for (let i = 0; i < uv.count; i++) uv.setY(i, uv.getY(i) * (len / 1.9));
-    const rug = new THREE.Mesh(geo, mat.rug);
+    const rug = new THREE.Mesh(geo, mat.hallRug ?? mat.rug);
     rug.position.set(0.1, 0.006, (from + to) / 2);
     group.add(rug);
   }

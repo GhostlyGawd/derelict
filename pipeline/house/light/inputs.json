@@ -1,0 +1,18 @@
+{
+  "hash": "8219615791df196134d53d1da766398af3069800cb804299228f3964402d393d",
+  "blender": "4.2.3",
+  "samples": 1024,
+  "layers": [
+    "cone",
+    "glow",
+    "night"
+  ],
+  "charts": [
+    "hall-z0-p",
+    "hall-z4.6-n",
+    "hall-x-2.4-p",
+    "hall-x2.4-n",
+    "hall-floor",
+    "hall-ceiling"
+  ]
+}

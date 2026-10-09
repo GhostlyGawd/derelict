@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+import LOOK from '../../pipeline/house/look.json' with { type: 'json' };
+
 /**
  * The house's generated surfaces (phase 9, 9.4.4), loaded from the house's
  * own manifest and turned into materials. Point-sampled and unmipmapped, like
@@ -63,6 +65,9 @@ function materials(tex) {
     wood: phong('wood', { shininess: 12 }),
     door: phong('door', { shininess: 10 }),
     rug: phong('rug', { shininess: 2, normalScale: 0.4 }),
+    // The hall's runner, under the hall's lamp: how bright it reads is the
+    // tuner's, like the rest of the hall's look (9.4.4). Every other rug keeps `rug`.
+    hallRug: phong('rug', { shininess: 2, normalScale: 0.4, color: new THREE.Color().setScalar(LOOK.live.rug) }),
     tile: phong('tile', { shininess: 24, specular: 0x161812, normalScale: 0.6 }),
     curtain: new THREE.MeshLambertMaterial({ map: tex.curtain, side: THREE.DoubleSide }),
     paper: new THREE.MeshLambertMaterial({ map: tex.paper, side: THREE.DoubleSide }),
