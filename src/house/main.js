@@ -46,6 +46,7 @@ class House {
     this.camera = new THREE.PerspectiveCamera(BASE_FOV, 1, 0.05, 60);
     this.player = new Player(this.camera);
     this.player.floorAt = floorAt;
+    this.player.touch = 1e-6;
 
     this.phase = 'loading';
     this.spaces = SPACES;

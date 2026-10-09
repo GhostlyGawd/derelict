@@ -60,6 +60,8 @@ export class Player {
      * storey, and the stairs between.
      */
     this.floorAt = null;
+    /** See resolve(): zero on the ship, a rounding error in the house. */
+    this.touch = 0;
   }
 
   /** The collision box height for the current stance. */
@@ -105,9 +107,9 @@ export class Player {
 
     const height = this.height;
     this.position.x += this.velocity.x * dt;
-    resolve(this.position, colliders, 'x', height);
+    resolve(this.position, colliders, 'x', height, this.touch);
     this.position.z += this.velocity.z * dt;
-    resolve(this.position, colliders, 'z', height);
+    resolve(this.position, colliders, 'z', height, this.touch);
     if (this.floorAt) {
       // Up a step or down a stair. A point with no floor at all leaves the
       // player where they were, which the walls already make unreachable.
@@ -211,7 +213,18 @@ function approach(current, target, maxDelta) {
  * it is simply not there — which is how the low structure in Corridor B blocks a
  * standing player and passes a crouched one.
  */
-function resolve(position, colliders, axis, height = PLAYER_HEIGHT) {
+/**
+ * Phase 9: how far two boxes may overlap and still only be touching.
+ *
+ * A box pushed out to a face can come back a rounding error inside it, and
+ * the other axis then "resolves" that by the shorter way out of a box it was
+ * never really in. At the top of the house's stairs that was through the
+ * gate, 78 cm in one frame. The house passes a rounding error's worth and is
+ * rid of it. The ship passes zero and keeps the old behaviour exactly: the
+ * owner's recorded runs go through Corridor B's squeeze with these pushes in
+ * them, and a ship that resolved differently would no longer replay them.
+ */
+function resolve(position, colliders, axis, height = PLAYER_HEIGHT, touch = 0) {
   // Measured from the feet, wherever they are: a wall on the floor below is
   // not in the way of someone standing on the floor above it.
   const feet = position.y;
@@ -224,8 +237,8 @@ function resolve(position, colliders, axis, height = PLAYER_HEIGHT) {
 
     for (const c of colliders) {
       if (c.minY >= feet + height || c.maxY <= feet + 0.05) continue;
-      if (maxX <= c.minX || minX >= c.maxX) continue;
-      if (maxZ <= c.minZ || minZ >= c.maxZ) continue;
+      if (maxX <= c.minX + touch || minX >= c.maxX - touch) continue;
+      if (maxZ <= c.minZ + touch || minZ >= c.maxZ - touch) continue;
 
       if (axis === 'x') {
         const pushOut = c.maxX - minX;

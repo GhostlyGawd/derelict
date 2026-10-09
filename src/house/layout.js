@@ -153,9 +153,13 @@ function inside(r, x, z) {
   return x >= r.x[0] && x <= r.x[1] && z >= r.z[0] && z <= r.z[1];
 }
 
-export const PLAYER_RADIUS = 0.3;
-export const PLAYER_HEIGHT = 1.72;
-export const PLAYER_EYE = 1.62;
+/**
+ * The player's body is the one the movement code has: the ship's. The house
+ * once kept its own radius of 0.30 m here while the player moved at 0.34 m,
+ * so every proof in tools/house/ proved a thinner player than the one that
+ * plays, and the gap let the owner past the gate at the top of the stairs.
+ */
+export { PLAYER_RADIUS, PLAYER_HEIGHT, PLAYER_EYE } from '../game/layout.js';
 
 // =============================================================================
 // Milestone 2 — the loop as data (9.3, 9.4.2)

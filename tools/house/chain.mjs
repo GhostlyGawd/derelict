@@ -30,6 +30,86 @@ const ok = (name, pass, detail = '') => {
   if (!pass) failures.push(`${name}${detail ? ` — ${detail}` : ''}`);
 };
 
+// No barrier can be walked through. The reach model above is about where the
+// player can stand; this is about how the real movement code gets there. Each
+// thing that bars the way while it is shut — the gate, and every locked door —
+// is walked at from its near side, in a fresh run, with seeded random keys,
+// turns and long phone frames, and the player must never end up on the far
+// side. The owner got past the gate this way (9.4.1 build notes). To show the
+// check can fail, it is run once more with the house's fix for that turned off,
+// and must then catch an escape.
+{
+  const fuzz = (touch) =>
+    driver.page.evaluate(
+      async ({ touch }) => {
+        const g = window.__house;
+        g.player.touch = touch;
+        let seed = 9001;
+        const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+        const keys = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyC'];
+        const up = () => keys.forEach((k) => window.dispatchEvent(new KeyboardEvent('keyup', { code: k })));
+        // Each barrier: where to start, which way is "at it", and what counts as through.
+        const barriers = [
+          { id: 'gate', start: () => [1.1 + rnd() * 0.7, 0, 4.85], yaw: 0, climb: 120, through: (p) => p.y > 2.99 && p.z < 0.32 },
+          { id: 'dining-door', start: () => [-0.8 - rnd() * 0.6, 0, -2.5 + (rnd() - 0.5) * 0.8], yaw: Math.PI / 2, climb: 0, through: (p) => p.x < -2.0 },
+          { id: 'study-door', start: () => [4 + (rnd() - 0.5) * 0.8, 0, -0.2 - rnd() * 0.6], yaw: Math.PI, climb: 0, through: (p) => p.z > 1.0 },
+          { id: 'front-door', start: () => [(rnd() - 0.5) * 0.8, 0, 4.0 + rnd() * 0.4], yaw: Math.PI, climb: 0, through: (p) => p.z > 5.0 },
+        ];
+        const out = {};
+        for (const b of barriers) {
+          let escapes = 0;
+          for (let trial = 0; trial < 120; trial++) {
+            const [x, y, z] = b.start();
+            g.player.position.set(x, y, z);
+            g.player.velocity.set(0, 0, 0);
+            g.player.yaw = b.yaw + (rnd() - 0.5) * 0.6;
+            window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW' }));
+            for (let i = 0; i < b.climb; i++) g.stepForTest(0.03, { render: false });
+            for (let i = 0; i < 300; i++) {
+              if (rnd() < 0.1) window.dispatchEvent(new KeyboardEvent(rnd() < 0.6 ? 'keydown' : 'keyup', { code: keys[(rnd() * keys.length) | 0] }));
+              if (rnd() < 0.2) g.player.yaw += (rnd() - 0.5) * 1.2;
+              g.stepForTest(rnd() < 0.3 ? 0.05 : 1 / 60, { render: false });
+              if (b.through(g.player.position)) {
+                escapes++;
+                break;
+              }
+            }
+            up();
+          }
+          out[b.id] = escapes;
+        }
+        g.player.touch = 1e-6;
+        return out;
+      },
+      { touch }
+    );
+  // A fresh house, with everything shut.
+  await driver.page.reload();
+  await driver.page.waitForFunction(() => window.__house?.phase === 'title');
+  await driver.page.evaluate(() => {
+    const g = window.__house;
+    g.canvas.requestPointerLock = () => Promise.resolve();
+    g.manualClockOnStart = true;
+    document.getElementById('start').click();
+  });
+  await driver.page.waitForFunction(() => window.__house.phase === 'playing');
+  await driver.page.evaluate(() => (window.__house.input.locked = true));
+  const held = await fuzz(1e-6);
+  for (const [id, n] of Object.entries(held)) ok(`${id} cannot be walked through (120 hostile tries)`, n === 0, `${n} got through`);
+  const broken = await fuzz(0);
+  ok('the barrier check can fail: with the fix off, something gets through', Object.values(broken).some((n) => n > 0), JSON.stringify(broken));
+}
+
+// Back to a fresh run for the loop itself.
+await driver.page.reload();
+await driver.page.waitForFunction(() => window.__house?.phase === 'title');
+await driver.page.evaluate(() => {
+  const g = window.__house;
+  g.manualClockOnStart = true;
+  document.getElementById('start').click();
+});
+await driver.page.waitForFunction(() => window.__house.phase === 'playing');
+
 const thingOf = (row) => row.container ?? row.door ?? 'clock';
 const notesSeen = new Set();
 let hourNoteBeforeClock = false;

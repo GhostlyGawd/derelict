@@ -99,6 +99,27 @@ which it would have, and the house is not in the ship's precache.
   switches, and the house has its own (`tools/lib/monkey-house.js`). This is
   the kind of finding 9.2 asks to be recorded.
 
+*The owner's first look at milestone 2, 9 October 2026.* It went badly, and
+two of the reasons are bugs the instruments should have caught:
+
+- **The owner walked past the gate.** The house kept its own player radius,
+  0.30 m, while the player moves at the ship's 0.34 m. Every proof in
+  `tools/house/` proved a thinner player than the one that plays. At the top
+  of the stairs the real one rests against the gate and the banister at once.
+  The collision code found a rounding error's overlap with the banister, and
+  "resolved" it by the shorter way out, which was north through the gate, 78
+  cm in one frame. That put the owner upstairs before the clock, and then
+  stranded them there behind a gate that only opens from the other side.
+  The house now takes the player's body from the ship, and in the house
+  touching is not overlapping. `tools/house/chain.mjs` walks the gate and
+  every locked door with 120 hostile tries each and requires nothing to get
+  through. It is shown to fail with the fix turned off.
+- **The ship has the same latent push.** Removing it on the ship as well made
+  both of the owner's recorded ship runs diverge in Corridor B's squeeze,
+  where those runs went through with it happening. It is left as it is on the
+  ship, because the ship is not to change in this phase, and recorded here
+  as a finding for a later one.
+
 For now, doors open and stay open, and a key is spent at its door. On a
 phone the key ring sits at the top left, because the stick holds the bottom
 left.
