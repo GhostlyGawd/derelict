@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 
-import { CLOCK, CONTAINERS, DOORS, GATE, ITEMS, NOTES, WALL_THICKNESS, openingFor } from './layout.js';
+import { CLOCK, CONTAINERS, DOORS, ITEMS, NOTES, WALL_THICKNESS, openingFor } from './layout.js';
 
 /**
  * The house's interactives in greybox (phase 9, milestone 2): doors on hinges,
- * drawers and boxes that hold an item, the dining-room clock, the gate it
+ * drawers and boxes that hold an item, the dining-room clock, the door it
  * opens, and the notes. Built from layout.js the way the shell is, flat
  * colours only. Each is an interact target in the ship's sense — `meshes`,
  * `point`, `prompt`, `canUse()`, `highlight()` — so the ship's Interactor
@@ -99,6 +99,7 @@ function makeDoor(def, group) {
     kind: 'door',
     id: def.id,
     lock: def.lock || [],
+    heldBy: def.heldBy || null,
     open: false,
     t: 0,
     meshes: [leaf, knob],
@@ -205,6 +206,8 @@ function makeClock(group) {
     kind: 'clock',
     id: 'clock',
     hour: CLOCK.stopped,
+    /** Set once the hands have reached the hour. It never unsets. */
+    set: false,
     shown: CLOCK.stopped,
     meshes: [face, caseMesh],
     point: new THREE.Vector3(x, y, z),
@@ -225,31 +228,6 @@ function makeClock(group) {
     },
   };
   state.update(0);
-  return state;
-}
-
-function makeGate(group) {
-  const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(GATE.x[1] - GATE.x[0], GATE.y[1] - GATE.y[0], GATE.z[1] - GATE.z[0]),
-    new THREE.MeshLambertMaterial({ color: 0x2c2c28 })
-  );
-  mesh.position.set((GATE.x[0] + GATE.x[1]) / 2, (GATE.y[0] + GATE.y[1]) / 2, (GATE.z[0] + GATE.z[1]) / 2);
-  group.add(mesh);
-  const state = {
-    kind: 'gate',
-    id: GATE.id,
-    open: false,
-    t: 0,
-    colliders: () =>
-      state.open ? [] : [{ minX: GATE.x[0], maxX: GATE.x[1], minY: GATE.y[0], maxY: GATE.y[1], minZ: GATE.z[0], maxZ: GATE.z[1] }],
-    update(dt) {
-      if (!state.open || state.t >= 1) return;
-      state.t = Math.min(1, state.t + dt / 0.8);
-      // It folds back against the stairwell wall, clear of the stairs' head.
-      mesh.scale.x = 1 - 0.92 * state.t;
-      mesh.position.x = GATE.x[1] - ((GATE.x[1] - GATE.x[0]) * mesh.scale.x) / 2;
-    },
-  };
   return state;
 }
 
@@ -300,16 +278,14 @@ export function buildThings() {
   const doors = DOORS.map((d) => makeDoor(d, group));
   const containers = CONTAINERS.map((c) => makeContainer(c, group));
   const clock = makeClock(group);
-  const gate = makeGate(group);
   const notes = NOTES.map((n) => makeNote(n, group));
   const furniture = tables(group);
-  const all = [...doors, ...containers, clock, gate, ...notes];
+  const all = [...doors, ...containers, clock, ...notes];
   return {
     group,
     doors,
     containers,
     clock,
-    gate,
     notes,
     all,
     targets: [...doors, ...containers, clock, ...notes],

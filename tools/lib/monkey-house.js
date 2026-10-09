@@ -210,7 +210,7 @@
 
   /** The state of everything that moves a collider. */
   const signature = () =>
-    g.things.doors.map((d) => (d.open ? 1 : 0)).join('') + (g.things.gate.open ? 'g' : '');
+    g.things.doors.map((d) => (d.open ? 1 : 0)).join('') + (g.things.clock.set ? 'c' : '');
 
   let cache = { sig: null, flood: null };
   /** Every node reachable from where the player stands, with the way back to it. */
@@ -377,6 +377,7 @@
     for (const d of g.things.doors) {
       if (d.open || (d.lock.length && !d.lock.every((k) => g.ring.includes(k)))) continue;
       if (d.lock.length) continue; // locked doors are steps of the loop, taken in order below
+      if (d.heldBy === 'clock' && !g.things.clock.set) continue; // latched until the clock is set
       if (usable(d)) return { key: `door:${d.id}`, target: d, at: d.point };
     }
     const prog = g.progress();
@@ -565,7 +566,7 @@
 
   // ------------------------------------------------------------- invariants
   const ORDER = { title: 0, playing: 1, paused: 1, ended: 2 };
-  const memory = { phase: 'playing', progress: null, doors: new Set(), opened: new Set(), gate: false };
+  const memory = { phase: 'playing', progress: null, doors: new Set(), opened: new Set(), clockSet: false };
 
   function check(frame) {
     void frame;
@@ -620,8 +621,10 @@
       if (memory.opened.has(c.id) && !c.opened) return `${c.id} shut again`;
       if (c.opened) memory.opened.add(c.id);
     }
-    if (memory.gate && !g.things.gate.open) return 'the gate closed again';
-    memory.gate = g.things.gate.open;
+    if (memory.clockSet && !g.things.clock.set) return 'the clock came unset';
+    memory.clockSet = g.things.clock.set;
+    const stair = g.doorsById.get('stair-door');
+    if (stair.open && !g.things.clock.set) return 'the stair door opened before the clock was set';
     const prog = g.progress();
     if (memory.progress && prog.some((d, i) => memory.progress[i] && !d)) return `the loop went backwards: ${JSON.stringify(prog)}`;
     // And never ahead of itself: no step done before what it needs.

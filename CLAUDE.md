@@ -52,8 +52,12 @@ resident evil style level matching this architecture and look … a model of
 this house and the rooms and second story … a 10 minute tech demo with
 interactivity and lore."* The reference is one image the owner supplied: a
 damp entry hall at night, described in 9.3. It is not committed to the
-repository, and the house is our own, built in its manner. It is not a copy
-of the house in the picture.
+repository. The entry hall is recreated from it as closely as code-made art
+allows: its layout, proportions, props, palette and light, as seen from where
+the player starts. The rest of the house is our own, built in the same manner.
+Every surface is still drawn by code. Nothing in the image is traced, sampled
+or imported. (The owner asked for the hall to be a 1:1 recreation on seeing
+milestone 2; the draft had said the house would not copy the picture.)
 
 **What the build changed in this section, and why.** Written as each
 milestone lands, ahead of or with the code, as every phase has.
@@ -114,6 +118,15 @@ two of the reasons are bugs the instruments should have caught:
   touching is not overlapping. `tools/house/chain.mjs` walks the gate and
   every locked door with 120 hostile tries each and requires nothing to get
   through. It is shown to fail with the fix turned off.
+- **The gate at the top of the stairs made no sense.** It was a black slab
+  in greybox. The owner chose to keep the stairs open, as they are in the
+  picture, and to have the clock unlatch a door at the head of the stairs
+  instead. 9.3 says so.
+- **Grey was not what the owner expected to see.** The build order put the
+  look at milestone 3. The owner's reading of milestone 2 was that "none of
+  this looks anything like the concept art", and that they wanted the hall to
+  be a 1:1 recreation of it. That is now the brief for milestone 3, and the
+  header of this section says so.
 - **The ship has the same latent push.** Removing it on the ship as well made
   both of the owner's recorded ship runs diverge in Corridor B's squeeze,
   where those runs went through with it happening. It is left as it is on the
@@ -201,8 +214,9 @@ proved ordered. Here the machines are locks and the state is keys:
 2. **Downstairs, open.** The parlour and the kitchen. A drawer gives the first
    key, which opens the dining room.
 3. **The clock.** In the dining room a clock is stopped. A note elsewhere gives
-   the hour, and setting it opens the way upstairs, past a gate on the
-   landing.
+   the hour, and setting it unlatches the door at the head of the stairs. The
+   stairs themselves are open, as in the picture. You can climb them early
+   and find that door shut, and that is the point of the climb.
 4. **Upstairs.** The bedroom holds the study key. The child's room holds what
    the study's lock asks for.
 5. **The study.** The last of the story, and the front door's key.
@@ -433,7 +447,7 @@ traced, sampled or imported.
 | **It fits its budgets.** The house's frame against its own stripped frame inside 1.9×, its bytes to title gated at its own measured figure plus 15%, and no shader compiles after the title. | Claude — `tools/framecost.mjs`, `tools/weight.mjs`, and the new compile check |
 | **Still generated end to end.** A clean checkout reproduces every house asset byte-for-byte. | The existing determinism gate |
 | **The house holds its style.** Fixed views of every room score within the stated tolerance of the style target in 9.4.5: value, cast, saturation, detail and palette. | Claude — the style harness, in CI |
-| **The entry hall reads as the reference.** The damp, the wood, the green and the one lamp, in our own house. | **The owner**, at the first milestone |
+| **The entry hall reads as the reference.** From where the player starts: the layout, the damp, the wood, the green and the one lamp, recreated. | **The owner**, at the first milestone |
 | **The house is frightening without a monster.** | **The owner** |
 | **The story lands.** | **The owner** |
 | **About ten minutes, cold.** A first play without knowing the house runs eight to twelve minutes. | **The owner**, with a trace, which the profiler times |

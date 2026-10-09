@@ -204,7 +204,7 @@ class House {
     }
   }
 
-  /** Every collider the player meets now: the shell, furniture, and every door and gate as it stands. */
+  /** Every collider the player meets now: the shell, furniture, and every door as it stands. */
   colliders() {
     return this.staticColliders.concat(this.things.colliders());
   }
@@ -220,6 +220,7 @@ class House {
   #promptFor(target) {
     if (target.kind === 'door') {
       if (this.refusal > 0 && this.lastRefused === target) return 'Locked';
+      if (this.#latched(target)) return 'Locked';
       if (!target.lock.length) return 'Open';
       return target.lock.every((k) => this.ring.includes(k)) ? 'Unlock' : 'Locked';
     }
@@ -241,7 +242,7 @@ class House {
 
   #tryDoor(door) {
     if (door.open) return false;
-    if (!door.lock.every((k) => this.ring.includes(k))) {
+    if (this.#latched(door) || !door.lock.every((k) => this.ring.includes(k))) {
       this.refusal = 1.2;
       this.lastRefused = door;
       return false;
@@ -251,6 +252,11 @@ class House {
     door.open = true;
     this.#drawRing();
     return true;
+  }
+
+  /** A door held shut by something other than a key: the clock, for the door at the head of the stairs. */
+  #latched(door) {
+    return door.heldBy === 'clock' && !this.things.clock.set;
   }
 
   #openContainer(c) {
@@ -263,7 +269,7 @@ class House {
   }
 
   #turnClock(clock) {
-    if (clock.turn() && !this.things.gate.open) this.things.gate.open = true;
+    if (clock.turn()) clock.set = true;
   }
 
   #openNote(note) {
@@ -291,7 +297,7 @@ class House {
     return LOOP.map((row) => {
       if (row.container) return this.thingsById.get(row.container).opened;
       if (row.door) return this.thingsById.get(row.door).open;
-      if (row.clock) return this.things.gate.open;
+      if (row.clock) return this.things.clock.set;
       return false;
     });
   }
@@ -332,7 +338,7 @@ class House {
       ring: [...this.ring],
       progress: this.progress(),
       clock: this.things.clock.hour,
-      gate: this.things.gate.open,
+      clockSet: this.things.clock.set,
       doors: Object.fromEntries(this.things.doors.map((d) => [d.id, d.open])),
       opened: Object.fromEntries(this.things.containers.map((c) => [c.id, c.opened])),
       read: this.things.notes.filter((n) => n.read).map((n) => n.id),

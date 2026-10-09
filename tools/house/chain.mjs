@@ -32,10 +32,10 @@ const ok = (name, pass, detail = '') => {
 
 // No barrier can be walked through. The reach model above is about where the
 // player can stand; this is about how the real movement code gets there. Each
-// thing that bars the way while it is shut — the gate, and every locked door —
+// thing that bars the way while it is shut — every locked or latched door —
 // is walked at from its near side, in a fresh run, with seeded random keys,
 // turns and long phone frames, and the player must never end up on the far
-// side. The owner got past the gate this way (9.4.1 build notes). To show the
+// side. The owner got past the old stair gate this way (9.4.1 build notes). To show the
 // check can fail, it is run once more with the house's fix for that turned off,
 // and must then catch an escape.
 {
@@ -49,8 +49,9 @@ const ok = (name, pass, detail = '') => {
         const keys = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyC'];
         const up = () => keys.forEach((k) => window.dispatchEvent(new KeyboardEvent('keyup', { code: k })));
         // Each barrier: where to start, which way is "at it", and what counts as through.
+        // The stair door is climbed to first: it waits at the head of the stairs.
         const barriers = [
-          { id: 'gate', start: () => [1.1 + rnd() * 0.7, 0, 4.85], yaw: 0, climb: 120, through: (p) => p.y > 2.99 && p.z < 0.32 },
+          { id: 'stair-door', start: () => [1.1 + rnd() * 0.7, 0, 4.85], yaw: 0, climb: 120, through: (p) => p.y > 2.99 && p.z < 0.2 },
           { id: 'dining-door', start: () => [-0.8 - rnd() * 0.6, 0, -2.5 + (rnd() - 0.5) * 0.8], yaw: Math.PI / 2, climb: 0, through: (p) => p.x < -2.0 },
           { id: 'study-door', start: () => [4 + (rnd() - 0.5) * 0.8, 0, -0.2 - rnd() * 0.6], yaw: Math.PI, climb: 0, through: (p) => p.z > 1.0 },
           { id: 'front-door', start: () => [(rnd() - 0.5) * 0.8, 0, 4.0 + rnd() * 0.4], yaw: Math.PI, climb: 0, through: (p) => p.z > 5.0 },

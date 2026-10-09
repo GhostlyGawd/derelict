@@ -178,7 +178,7 @@ export async function openHouse(base) {
         return {
           colliders: g.colliders(),
           spawn: [g.player.position.x, g.player.position.y, g.player.position.z],
-          targets: g.things.targets.map((t) => ({ id: t.id, kind: t.kind, point: t.point.toArray(), lock: t.lock || null, open: t.open ?? null })),
+          targets: g.things.targets.map((t) => ({ id: t.id, kind: t.kind, point: t.point.toArray(), lock: t.lock || null, heldBy: t.heldBy || null, open: t.open ?? null })),
           state: g.state(),
         };
       }),
@@ -190,7 +190,7 @@ export async function openHouse(base) {
         g.stepForTest(1 / 60, { render: false });
         return g.state();
       }, id),
-    /** Run the clock until the motion has caught up, so leaves and gates sit where their colliders are. */
+    /** Run the clock until the motion has caught up, so every leaf sits where its collider is. */
     settle: () =>
       page.evaluate(() => {
         const g = window.__house;
@@ -210,7 +210,12 @@ export async function openFreeDoors(driver) {
     const snap = await driver.snapshot();
     const seen = fill(snap.colliders, snap.spawn);
     const next = snap.targets.find(
-      (t) => t.kind === 'door' && !t.open && (!t.lock || !t.lock.length) && reachable(seen, snap.colliders, t.point)
+      (t) =>
+        t.kind === 'door' &&
+        !t.open &&
+        (!t.lock || !t.lock.length) &&
+        !(t.heldBy === 'clock' && !snap.state.clockSet) &&
+        reachable(seen, snap.colliders, t.point)
     );
     if (!next) return { snap, seen };
     await driver.press(next.id);
@@ -226,7 +231,7 @@ export async function takeStep(driver, row) {
     let state;
     for (let i = 0; i < 12; i++) {
       state = await driver.press('clock');
-      if (state.gate) break;
+      if (state.clockSet) break;
     }
     return state;
   }

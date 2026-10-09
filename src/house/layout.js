@@ -99,6 +99,10 @@ export const WALLS = [
   { y: UPPER, h: 2.6, axis: 'x', at: 2, from: -4, to: 5, openings: [{ center: -1.5, width: 1.0, height: 2.1, id: 'bathroom-door', kind: 'door' }] },
   { y: UPPER, h: 2.6, axis: 'z', at: 1, from: -6, to: -2, openings: [] },
   { y: UPPER, h: 2.6, axis: 'z', at: 1, from: 2, to: 6, openings: [] },
+  // The head of the stairs: a short partition across the top of the flight,
+  // from the banister to the hall's east wall, with a door in it. The stairs
+  // below are open; this door is what the clock unlatches (9.3, step 3).
+  { y: UPPER, h: 2.6, axis: 'z', at: 0.3, from: 0.75, to: 1.9, openings: [{ center: 1.38, width: 1.0, height: 2.1, id: 'stair-door', kind: 'door' }] },
 ];
 
 /**
@@ -201,6 +205,8 @@ export const DOORS = [
   { id: 'bedroom-door', hinge: 1, swing: -1 },
   { id: 'child-door', hinge: -1, swing: -1 },
   { id: 'bathroom-door', hinge: -1, swing: 1 },
+  // No key: the clock holds it. Opens away from the stairs, onto the landing.
+  { id: 'stair-door', hinge: 1, swing: -1, heldBy: 'clock' },
 ];
 
 /**
@@ -217,17 +223,10 @@ export const CONTAINERS = [
 
 /**
  * The dining-room clock. It stopped at `stopped`, and turning the hands moves
- * it an hour. When it reads `hour` it opens the gate at the top of the stairs,
- * and the gate stays open whatever the clock does after.
+ * it an hour. When it reads `hour` it unlatches the door at the head of the
+ * stairs, and that stays unlatched whatever the clock does after.
  */
-export const CLOCK = { at: [-4, 1.7, -3.85], face: 0, stopped: 7, hour: 3, opens: 'gate' };
-
-/**
- * The gate across the top of the stairs. No handle: only the clock opens it.
- * It closes off the stairs' head from the landing, so the whole upper floor
- * waits on the clock.
- */
-export const GATE = { id: 'gate', x: [0.75, 2], z: [0.22, 0.32], y: [UPPER, UPPER + 1.0] };
+export const CLOCK = { at: [-4, 1.7, -3.85], face: 0, stopped: 7, hour: 3, opens: 'stair-door' };
 
 /**
  * Notes, as placeholders. The text is written in milestone 5 and shown to the

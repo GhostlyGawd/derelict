@@ -7,7 +7,7 @@
  * (tools/lib/monkey-house.js) in place of the ship's. Its invariants are the
  * ship's with keys in place of cells: never inside geometry, always on the
  * floor under you, the ring holding exactly what was found and not yet used,
- * and the loop, every door, drawer and the gate only ever moving forward.
+ * and the loop, every door, drawer and the clock only ever moving forward.
  * Every run is then finished by the autopilot, out of the front door.
  *
  *   node tools/house/monkey.mjs [baseUrl] [--seeds=N]   (four by default: one per device)
