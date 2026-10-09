@@ -512,6 +512,16 @@
       return null;
     }
 
+    // At the front door with it open: out, and no turning back for the
+    // waypoint just walked past. Without this the pilot stepped through,
+    // found the waypoint behind it, turned round, and did it again.
+    if (goal.walk && p.z > 4.4 && Math.abs(p.x) < 0.5 && g.doorsById.get('front-door').open) {
+      setCrouch(false);
+      face(0, 8, g.camera.position.y);
+      setForward(true);
+      return null;
+    }
+
     if (!pilot.path) {
       if (pilot.frame < pilot.retryAt) return null;
       if (!plan(goal)) {
@@ -782,7 +792,10 @@
     let frame = 0;
     const seen = new Set();
     for (; frame < cap; frame++) {
-      let dt = (1 / 60) * (0.85 + rand() * 0.3);
+      // Rounded the way the trace writes it down, so the run and its replay
+      // step by the same numbers. Unrounded, a replay drifted under a
+      // millimetre and crossed the front step one frame later.
+      let dt = Math.round((1 / 60) * (0.85 + rand() * 0.3) * 1e6) / 1e6;
       if (burst && frame >= burst.end) {
         endHostile();
         burst = null;
