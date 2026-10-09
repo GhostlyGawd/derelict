@@ -156,3 +156,113 @@ function inside(r, x, z) {
 export const PLAYER_RADIUS = 0.3;
 export const PLAYER_HEIGHT = 1.72;
 export const PLAYER_EYE = 1.62;
+
+// =============================================================================
+// Milestone 2 — the loop as data (9.3, 9.4.2)
+// =============================================================================
+
+/**
+ * What the key ring can hold. Names are placeholders until the story is
+ * written (milestone 5); the ids are what the tables below refer to.
+ */
+export const ITEMS = {
+  'dining-key': { name: 'DINING KEY' },
+  'study-key': { name: 'STUDY KEY' },
+  'tin-key': { name: 'TIN KEY' },
+  'front-key': { name: 'FRONT KEY' },
+};
+
+/** The ring never holds more than this (9.5). */
+export const RING_SIZE = 4;
+
+/**
+ * Doors, one per door opening in WALLS. Each hangs on a hinge at one end of
+ * its opening and swings through a quarter turn to one side of its wall:
+ *
+ *   hinge  -1 or +1 — which end of the opening, along the wall's run
+ *   swing  -1 or +1 — which side it opens to, along the wall's normal (+x for
+ *          a wall at constant x, +z for one at constant z)
+ *   lock   the items it takes to open, all at once. They come off the ring
+ *          when the door opens: a key is used at its door and is then spent.
+ *
+ * A door opens and stays open. Closing one is the house's to do (9.4.3), not
+ * the player's, and arrives with the dread in milestone 6.
+ */
+export const DOORS = [
+  { id: 'front-door', hinge: -1, swing: 1, lock: ['front-key'] },
+  { id: 'parlour-door', hinge: 1, swing: -1 },
+  { id: 'dining-door', hinge: -1, swing: -1, lock: ['dining-key'] },
+  { id: 'kitchen-door', hinge: -1, swing: 1 },
+  { id: 'study-door', hinge: 1, swing: 1, lock: ['study-key', 'tin-key'] },
+  { id: 'bedroom-door', hinge: 1, swing: -1 },
+  { id: 'child-door', hinge: -1, swing: -1 },
+  { id: 'bathroom-door', hinge: -1, swing: 1 },
+];
+
+/**
+ * Things that hold an item: a drawer, a box, a desk. Opened once, and the
+ * item goes on the ring. `at` is the front face's centre; `face` is the way
+ * it faces, as a yaw (0 faces +z).
+ */
+export const CONTAINERS = [
+  { id: 'kitchen-drawer', name: 'Drawer', at: [5.65, 0.8, -2.6], face: -Math.PI / 2, holds: 'dining-key' },
+  { id: 'bedroom-drawer', name: 'Drawer', at: [-5.65, UPPER + 0.8, 3.6], face: Math.PI / 2, holds: 'study-key' },
+  { id: 'child-box', name: 'Box', at: [-4.6, UPPER + 0.6, -3.65], face: 0, holds: 'tin-key' },
+  { id: 'study-desk', name: 'Desk Drawer', at: [3.4, 0.8, 4.65], face: Math.PI, holds: 'front-key' },
+];
+
+/**
+ * The dining-room clock. It stopped at `stopped`, and turning the hands moves
+ * it an hour. When it reads `hour` it opens the gate at the top of the stairs,
+ * and the gate stays open whatever the clock does after.
+ */
+export const CLOCK = { at: [-4, 1.7, -3.85], face: 0, stopped: 7, hour: 3, opens: 'gate' };
+
+/**
+ * The gate across the top of the stairs. No handle: only the clock opens it.
+ * It closes off the stairs' head from the landing, so the whole upper floor
+ * waits on the clock.
+ */
+export const GATE = { id: 'gate', x: [0.75, 2], z: [0.22, 0.32], y: [UPPER, UPPER + 1.0] };
+
+/**
+ * Notes, as placeholders. The text is written in milestone 5 and shown to the
+ * owner before it is placed; these say only what the loop needs a note to
+ * say, so the loop can be played and proved now.
+ */
+export const NOTES = [
+  { id: 'notice', at: [-1.88, 1.5, 4.2], face: Math.PI / 2, title: 'NOTICE', text: '[Placeholder] A notice pinned by the door. Why someone left.' },
+  { id: 'hour', at: [-4, 0.78, 3.2], face: 0, flat: true, title: 'A NOTE', text: '[Placeholder] Every clock in the house stopped at three.' },
+  { id: 'bath-note', at: [5.88, UPPER + 1.5, -1.5], face: -Math.PI / 2, title: 'A NOTE', text: '[Placeholder] Written on the mirror, or near it.' },
+  { id: 'study-note', at: [4.6, 0.78, 4.4], face: 0, flat: true, title: 'A NOTE', text: '[Placeholder] The last of the story, in the study.' },
+];
+
+/**
+ * The loop (9.3). Each row is one step the player has to take, names the
+ * thing that takes it, and names the steps it `needs` first. Most of it is a
+ * line; upstairs it forks, because the study key and the tin key can be found
+ * in either order, and joins again at the study door. The chain harness proves
+ * no step can be done before everything it needs, and that doing them all
+ * reaches the door out. The house reads the same table.
+ */
+export const LOOP = [
+  { id: 'dining-key', step: 'take the dining key', container: 'kitchen-drawer', needs: [] },
+  { id: 'dining', step: 'open the dining room', door: 'dining-door', needs: ['dining-key'] },
+  { id: 'clock', step: 'set the clock', clock: true, needs: ['dining'] },
+  { id: 'study-key', step: 'take the study key', container: 'bedroom-drawer', needs: ['clock'] },
+  { id: 'tin-key', step: 'take the tin key', container: 'child-box', needs: ['clock'] },
+  { id: 'study', step: 'open the study', door: 'study-door', needs: ['study-key', 'tin-key'] },
+  { id: 'front-key', step: 'take the front key', container: 'study-desk', needs: ['study'] },
+  { id: 'out', step: 'open the front door', door: 'front-door', needs: ['front-key'] },
+];
+
+/** Past this line, out of the front door, the run is over. */
+export const OUT_Z = 5.6;
+
+/** The opening a door fills, from WALLS. */
+export function openingFor(id) {
+  for (const w of WALLS) {
+    for (const o of w.openings || []) if (o.id === id) return { wall: w, opening: o };
+  }
+  return null;
+}

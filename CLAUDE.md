@@ -55,6 +55,54 @@ damp entry hall at night, described in 9.3. It is not committed to the
 repository, and the house is our own, built in its manner. It is not a copy
 of the house in the picture.
 
+**What the build changed in this section, and why.** Written as each
+milestone lands, ahead of or with the code, as every phase has.
+
+*Milestone 0, the backlog.* The 195 ms hitch was shaders compiling the first
+time a room lit up. Everything is now drawn once, on the canvas, while the game
+loads. A first attempt drew to an off-screen target, and its programs were a
+different variant from the canvas's, so a few still compiled later.
+`tools/warm.mjs` looks round every space in every chain state and fails if a
+program, texture or geometry appears after the title: 15, 26 and 133 now, from
+10, 42 and 127 growing in play before. The scanner is placed in the room
+between the stick and the buttons, scaled down if it has to be, and
+`tools/mobile.mjs` checks it on seven screens with both the scanner and a
+carried cell.
+
+*Milestone 1, two storeys.* The player stands on `floorAt`, colliders are
+measured from the feet, and the ship leaves both at y = 0.
+`tools/house/floors.mjs` went red with the landing's banister taken out, a fall
+into the stairwell caught as a move with no way back, and green with it in.
+The ship's service worker no longer answers `/house/` with the ship's page,
+which it would have, and the house is not in the ship's precache.
+
+*Milestone 2, the loop.* Four things the build found:
+
+- **The interact ray went through walls.** The ship's ray tests only the
+  things it can use, never the rooms. On the ship nothing usable is within
+  reach of another room, so it never showed. In the house, the tin key's box
+  upstairs could be opened from the dining room through the ceiling. The chain
+  harness found it on its first run. The ray now stops at whatever it is given
+  as solid. The house gives it its shell, and the ship gives it nothing and
+  behaves as before.
+- **Upstairs forks.** The study key and the tin key can be found in either
+  order, which 9.3's step 4 always allowed. The loop table now names what each
+  step `needs` rather than relying on its row order, and the chain harness
+  proves each step against its needs.
+- **A door leaf caught a shoulder.** An open door's leaf stood 8 mm into its
+  own doorway on the hinge side. A player cutting the corner caught on its
+  edge and was pushed straight back. The monkey's autopilot stuck there for a
+  whole run. The leaf now sits behind the hinge line. The front door opens
+  outward, because opening inward it swept the place the player starts.
+- **The monkey's brain did not carry over.** Its input layer and its hostile
+  bursts did, unchanged. Its planner knew one floor, two stances, cells and
+  switches, and the house has its own (`tools/lib/monkey-house.js`). This is
+  the kind of finding 9.2 asks to be recorded.
+
+For now, doors open and stay open, and a key is spent at its door. On a
+phone the key ring sits at the top left, because the stick holds the bottom
+left.
+
 **This phase does not touch the ship.** DERELICT stays exactly as signed:
 the same level, the same chain, the same guardrails, the same harnesses and the
 same traces. Everything this section lifts, it lifts for the house only.

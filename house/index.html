@@ -29,6 +29,21 @@
         <div id="prompt"></div>
       </div>
 
+      <!-- Phase 9: the key ring, two small panels of dot-matrix light (9.4.2) -->
+      <div id="ring" class="hidden" aria-live="polite">
+        <div class="panel-dm count">0/4</div>
+        <div class="panel-dm items">—</div>
+      </div>
+
+      <!-- Phase 9: the note reader. Any interact puts it away. -->
+      <div id="reader" class="overlay hidden">
+        <div class="paper">
+          <h2></h2>
+          <p></p>
+          <span class="hint">INTERACT TO PUT IT AWAY</span>
+        </div>
+      </div>
+
       <!-- Mobile controls -->
       <div id="touch" class="hidden">
         <div id="stick">
@@ -53,7 +68,7 @@
       <div id="title" class="overlay hidden">
         <div class="panel">
           <h1>THE HOUSE</h1>
-          <p class="sub">Greybox — milestone 1. Two floors and a stair.</p>
+          <p class="sub">Greybox — milestone 2. The loop, start to finish.</p>
           <button id="start" type="button">BEGIN</button>
           <p class="keys" id="keys-desktop">WASD move &nbsp;·&nbsp; MOUSE look &nbsp;·&nbsp; E interact &nbsp;·&nbsp; C hold to crouch</p>
           <p class="keys hidden" id="keys-mobile">LEFT STICK move &nbsp;·&nbsp; DRAG RIGHT look &nbsp;·&nbsp; TAP interact &nbsp;·&nbsp; HOLD crouch</p>

@@ -141,6 +141,12 @@ jobs:
       - name: House — two floors hold
         run: node tools/house/floors.mjs http://127.0.0.1:4173/
 
+      - name: House — the loop is ordered, and the house can be left
+        run: node tools/house/chain.mjs http://127.0.0.1:4173/
+
+      - name: House — no monkey can break it
+        run: node tools/house/monkey.mjs http://127.0.0.1:4173/
+
       - name: Report — frame times on the owner's phone
         run: node tools/profile.mjs http://127.0.0.1:4173/
 
