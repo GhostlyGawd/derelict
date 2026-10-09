@@ -136,6 +136,11 @@ jobs:
       - name: Playtest — nothing compiles after the title
         run: node tools/warm.mjs http://127.0.0.1:4173/
 
+      # Phase 9, the house. Two floors and the stairs between them: every place
+      # can be walked back from, and the stairs are the only way up or down.
+      - name: House — two floors hold
+        run: node tools/house/floors.mjs http://127.0.0.1:4173/
+
       - name: Report — frame times on the owner's phone
         run: node tools/profile.mjs http://127.0.0.1:4173/
 
