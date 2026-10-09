@@ -186,13 +186,13 @@ function makeContainer(def, group, mat) {
   } else {
     const desk = def.kind === 'desk';
     const d = desk ? 0.6 : 0.45;
-    const { piece: p, fronts } = chest(mat, desk ? { w: 1.3, h: 0.78, d, drawers: 2 } : { d });
+    const { piece: p, fronts, drawers } = chest(mat, desk ? { w: 1.3, h: 0.78, d, drawers: 2 } : { d });
     place(group, colliders, p, x - sx * d, floorY, z - sz * d, def.face);
-    const front = fronts[0];
-    const z0 = front.position.z;
-    meshes = p.group.children.filter((m) => m.isMesh);
-    moving = front;
-    open = (t) => (front.position.z = z0 + 0.28 * t);
+    meshes = [];
+    p.group.traverse((m) => m.isMesh && meshes.push(m));
+    moving = fronts[0];
+    // The top drawer comes out most of its depth, and stays on its runners.
+    open = (t) => (drawers[0].position.z = (d - 0.12) * t);
   }
 
   // Its own paint, so lighting it under the crosshair lights nothing else.

@@ -218,6 +218,18 @@ palette runs from yellow-green to grey-blue as the reference's walls do, and
 old tiles no longer all match. The frame gains a vignette, as the reference's
 has. No tolerance was loosened.
 
+*The owner's play of milestone 4, 9 October 2026.* The drawers still floated
+when opened: a drawer was only its front, and pulled out it was a plank in the
+air. Every drawer is now a box, with sides, a back, a bottom and a dark
+inside, that slides out on its runners. The rooms were crowded and oddly
+placed. A second armchair, three chairs, the passage table and a bookcase are
+gone, the kitchen table stands against a wall, and the two notes that lay on
+tables in the middle of rooms are on tables against a wall instead. The
+textures still do not look like the reference, and the next step is the
+owner's to choose. A paint filter over the whole frame (a Kuwahara filter, in
+the grade pass) was tried and is left off: at a strength a phone can afford it
+barely changes the frame.
+
 For now, doors open and stay open, and a key is spent at its door. On a
 phone the key ring sits at the top left, because the stick holds the bottom
 left.

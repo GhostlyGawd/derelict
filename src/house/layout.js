@@ -267,9 +267,9 @@ export const CLOCK = { at: [-3.6, 1.7, -5.85], face: 0, stopped: 7, hour: 3, ope
 export const NOTES = [
   // Pinned to the hall's right-hand wall beside the front door, as in the reference.
   { id: 'notice', at: [2.28, 1.55, 3.3], face: -Math.PI / 2, title: 'NOTICE', text: '[Placeholder] A notice pinned by the door. Why someone left.' },
-  { id: 'hour', at: [-3.6, 0.78, -1.5], face: 0, flat: true, title: 'A NOTE', text: '[Placeholder] Every clock in the house stopped at three.' },
+  { id: 'hour', at: [-3.6, 0.78, -2.6], face: 0, flat: true, title: 'A NOTE', text: '[Placeholder] Every clock in the house stopped at three.' },
   { id: 'bath-note', at: [6.28, UPPER + 1.5, -4.5], face: -Math.PI / 2, title: 'A NOTE', text: '[Placeholder] Written on the mirror, or near it.' },
-  { id: 'study-note', at: [3.0, 0.78, -1.0], face: 0, flat: true, title: 'A NOTE', text: '[Placeholder] The last of the story, in the study.' },
+  { id: 'study-note', at: [2.97, 0.78, -1.2], face: 0, flat: true, title: 'A NOTE', text: '[Placeholder] The last of the story, in the study.' },
 ];
 
 /**

@@ -103,10 +103,11 @@ export function place(parent, colliders, p, x, y, z, face) {
 // ---- Pieces --------------------------------------------------------------------
 
 /**
- * A chest of drawers on a plinth, back to the wall. Returns the piece and
- * its drawer fronts, top first, so a container can slide one.
+ * A chest of drawers on a plinth, back to the wall. Returns the piece, its
+ * drawer fronts and the drawers themselves, top first, so a container can
+ * slide one out.
  */
-export function chest(mat, { w = 0.9, h = 0.9, d = 0.45, drawers = 3 } = {}) {
+export function chest(mat, { w = 0.9, h = 0.9, d = 0.45, drawers: count = 3 } = {}) {
   const p = piece();
   p.shadow(-w / 2, w / 2, 0, d, 0.7);
   p.b(mat.wood, -w / 2 + 0.03, w / 2 - 0.03, 0, 0.08, 0.02, d - 0.03);
@@ -114,15 +115,36 @@ export function chest(mat, { w = 0.9, h = 0.9, d = 0.45, drawers = 3 } = {}) {
   p.b(mat.wood, -w / 2 - 0.02, w / 2 + 0.02, h - 0.03, h, 0, d + 0.02);
   p.solid(-w / 2, w / 2, 0, h, 0, d);
   const fronts = [];
+  const drawers = [];
   const span = h - 0.2;
-  for (let i = 0; i < drawers; i++) {
-    const top = h - 0.06 - (span / drawers) * i;
-    const bot = top - span / drawers + 0.03;
-    const front = p.b(tint(mat.door, 0xd8ccb8), -w / 2 + 0.05, w / 2 - 0.05, bot, top, d - 0.02, d + 0.005);
-    for (const kx of [-w / 4, w / 4]) p.b(mat.knob, kx - 0.02, kx + 0.02, (top + bot) / 2 - 0.015, (top + bot) / 2 + 0.015, d + 0.005, d + 0.03);
+  for (let i = 0; i < count; i++) {
+    const top = h - 0.06 - (span / count) * i;
+    const bot = top - span / count + 0.03;
+    // A whole drawer: front, sides, back and bottom, with the dark inside
+    // it. Pulled out, it is a box on runners. The first drawers were only a
+    // front, and opened they hung in the air like a plank.
+    const drawer = new THREE.Group();
+    p.group.add(drawer);
+    const add = (material, x0, x1, y0, y1, z0, z1) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), material);
+      m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+      worldUV(m, { tile: 1 });
+      drawer.add(m);
+      return m;
+    };
+    const front = add(tint(mat.door, 0xd8ccb8), -w / 2 + 0.05, w / 2 - 0.05, bot, top, d - 0.02, d + 0.005);
+    const inner = [-w / 2 + 0.07, w / 2 - 0.07];
+    const back = 0.04;
+    add(mat.wood, inner[0], inner[0] + 0.015, bot + 0.01, top - 0.03, back, d - 0.02);
+    add(mat.wood, inner[1] - 0.015, inner[1], bot + 0.01, top - 0.03, back, d - 0.02);
+    add(mat.wood, inner[0], inner[1], bot + 0.01, top - 0.03, back, back + 0.015);
+    add(mat.wood, inner[0], inner[1], bot + 0.01, bot + 0.02, back, d - 0.02);
+    add(mat.black, inner[0] + 0.015, inner[1] - 0.015, bot + 0.02, bot + 0.025, back + 0.015, d - 0.02);
+    for (const kx of [-w / 4, w / 4]) add(mat.knob, kx - 0.02, kx + 0.02, (top + bot) / 2 - 0.015, (top + bot) / 2 + 0.015, d + 0.005, d + 0.03);
     fronts.push(front);
+    drawers.push(drawer);
   }
-  return { piece: p, fronts };
+  return { piece: p, fronts, drawers };
 }
 
 /** A table on four legs, centred on its origin rather than backed on a wall. */

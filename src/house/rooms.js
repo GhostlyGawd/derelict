@@ -157,13 +157,12 @@ function line(group, mat, s, { paint, dado = 0, under = null }) {
 
 // ---- Ground ------------------------------------------------------------------
 
-/** The parlour: a fireplace gone cold, two chairs drawn up to it, and the table the note is on. */
+/** The parlour: a fireplace gone cold, a chair drawn up to it, and the table the note is on. */
 function parlour(mat, put, hang) {
   put(fireplace(mat), -6.3, 0, -1.5, E);
   put(picture(mat, { w: 0.6, h: 0.45 }), -5.81, 1.75, -1.5, E);
-  put(armchair(mat), -4.7, 0, -0.75, W);
-  put(armchair(mat, { cover: 0x5a6450 }), -4.7, 0, -2.3, W);
-  put(rug(mat, { w: 1.8, l: 2.4 }), -4.5, 0, -1.5, E);
+  put(armchair(mat), -4.6, 0, -1.0, W);
+  put(rug(mat, { w: 1.6, l: 2.2 }), -4.6, 0, -1.4, E);
   put(bookcase(mat, { w: 1.0, seed: 11 }), -1.5, 0, -2.9, N);
   put(picture(mat, { w: 0.35, h: 0.45 }), -5.4, 1.6, -2.9, N);
   hang(-3.65, 2.8, -1.5);
@@ -172,19 +171,19 @@ function parlour(mat, put, hang) {
 /** The dining room: a table laid for people who did not come, and the clock. */
 function dining(mat, put, hang, group) {
   const [cx, cz] = [-3.8, -4.2];
-  put(table(mat, { w: 1.8, d: 0.9, h: 0.76 }), cx, 0, cz, 0);
+  put(table(mat, { w: 1.6, d: 0.8, h: 0.76 }), cx, 0, cz, 0);
   // A cloth over it, hanging a little over each edge.
   const cloth = tint(mat.curtain, 0xd0d4bc);
-  const top = new THREE.Mesh(new THREE.BoxGeometry(1.86, 0.01, 0.96), cloth);
+  const top = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.01, 0.86), cloth);
   top.position.set(cx, 0.765, cz);
   group.add(top);
   for (const sz of [-1, 1]) {
-    const drop = new THREE.Mesh(new THREE.BoxGeometry(1.86, 0.18, 0.01), cloth);
-    drop.position.set(cx, 0.68, cz + sz * 0.48);
+    const drop = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.18, 0.01), cloth);
+    drop.position.set(cx, 0.68, cz + sz * 0.43);
     group.add(drop);
   }
-  // Six places laid.
-  const places = [[-4.3, -3.95], [-3.3, -3.95], [-4.3, -4.45], [-3.3, -4.45], [-4.5, -4.2], [-3.1, -4.2]];
+  // Four places laid.
+  const places = [[-4.2, -3.95], [-3.4, -3.95], [-4.2, -4.45], [-3.4, -4.45]];
   for (const [x, z] of places) {
     const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.1, 0.015, 14), mat.enamel);
     plate.position.set(x, 0.775, z);
@@ -193,18 +192,17 @@ function dining(mat, put, hang, group) {
     glass.position.set(x + 0.13, 0.82, z + (z < cz ? 0.1 : -0.1));
     group.add(glass);
   }
-  for (const x of [-4.1, -3.5]) {
+  for (const x of [-4.0, -3.6]) {
     const p = piece();
     p.cyl(mat.knob, 0.05, 0.06, 0.03, 0, 0, 0, 8);
     p.cyl(mat.knob, 0.015, 0.015, 0.22, 0, 0.03, 0, 6);
     p.cyl(mat.enamel, 0.012, 0.012, 0.12, 0, 0.25, 0, 6);
     put(p, x, 0.77, cz, 0);
   }
-  put(chair(mat), -5.05, 0, cz, E);
-  put(chair(mat), -4.3, 0, -3.35, S);
-  put(chair(mat), -3.3, 0, -3.35, S);
-  // The sixth chair is missing: its place is the way to the clock.
-  put(chair(mat), -4.3, 0, -5.05, N);
+  put(chair(mat), -4.2, 0, -3.35, S);
+  put(chair(mat), -3.4, 0, -3.35, S);
+  // The fourth chair is missing: its place is the way to the clock.
+  put(chair(mat), -4.2, 0, -5.05, N);
   // The sideboard under the window, and what is on it.
   put(chest(mat, { w: 1.6, h: 0.9, d: 0.5, drawers: 2 }).piece, -6.3, 0, -4.3, E);
   put(shelf(mat, { w: 1.4, y: 0.9, d: 0.45, items: 4, seed: 9 }), -6.3, 0, -4.3, E);
@@ -219,23 +217,21 @@ function kitchen(mat, put, hang) {
   put(dresserBase(mat, { w: 1.2 }), 5.2, 0, -5.9, N);
   put(shelf(mat, { w: 1.1, y: 1.5, items: 5, seed: 4 }), 6.3, 0, -4.5, W);
   put(shelf(mat, { w: 0.9, y: 1.8, items: 4, seed: 5 }), 2.1, 0, -3.1, S);
-  // The table stands clear of the way from the passage door to the study
-  // door and to the drawers, which runs along its north side.
-  put(table(mat, { w: 1.1, d: 0.7 }), 3.9, 0, -4.45, 0);
-  put(chair(mat), 3.1, 0, -4.45, E);
-  put(chair(mat), 3.9, 0, -5.07, N);
+  // The table stands against the north wall, so the middle of the kitchen
+  // is clear from the passage door to the drawers and the study door.
+  put(table(mat, { w: 1.1, d: 0.7 }), 2.2, 0, -3.5, 0);
+  put(chair(mat), 3.0, 0, -3.5, W);
   // A bucket, and a broom against the wall.
   const p = piece();
   p.cyl(mat.iron, 0.13, 0.11, 0.28, 0, 0, 0, 10);
   put(p, 6.0, 0, -5.6, 0);
-  hang(3.75, 2.8, -4.5, { intensity: 5 });
+  hang(3.75, 2.8, -4.5, { intensity: 3 });
 }
 
 /** The study: the desk, the books, and the table the last note is on. */
 function study(mat, put, light) {
   put(chair(mat), 4.6, 0, -1.25, N);
-  put(bookcase(mat, { w: 1.0, seed: 21, gaps: 0.1 }), 6.3, 0, -0.9, W);
-  put(bookcase(mat, { w: 1.0, seed: 22, gaps: 0.35 }), 6.3, 0, -2.0, W);
+  put(bookcase(mat, { w: 1.0, seed: 21, gaps: 0.1 }), 6.3, 0, -1.2, W);
   put(rug(mat, { w: 1.4, l: 1.6 }), 4.4, 0, -1.7, E);
   put(picture(mat, { w: 0.4, h: 0.55 }), 2.5, 1.6, -2.1, E);
   // The lamp on the desk is the study's one light.
@@ -246,7 +242,6 @@ function study(mat, put, light) {
 /** The back passage: the cellar door, coats on their hooks, and a bare bulb. */
 function passage(mat, put, hang) {
   put(deadDoor(mat, { barred: false }), 0.1, 0, -5.9, N);
-  put(table(mat, { w: 0.35, d: 0.9, h: 0.8 }), -0.62, 0, -2.2, 0);
   // Coats on hooks, on the wall opposite.
   const p = piece();
   p.b(mat.wood, -0.6, 0.6, 1.62, 1.7, 0, 0.03);
@@ -272,10 +267,9 @@ function landing(mat, put, hang) {
   hang(0.75, y + 2.6, -4.45, { drop: 0.35, intensity: 11, angle: 1.4 });
 }
 
-/** The gallery beside the stairwell: a chair against the end wall, pictures, a runner. */
+/** The gallery beside the stairwell: pictures and a runner. */
 function gallery(mat, put, hang) {
   const y = UPPER;
-  put(chair(mat), 0.5, y, -0.4, S);
   put(picture(mat, { w: 0.4, h: 0.5 }), 1.15, y + 1.55, -1.0, W);
   put(picture(mat, { w: 0.4, h: 0.5, empty: true }), 1.15, y + 1.55, -2.0, W);
   put(rug(mat, { w: 0.8, l: 2.4 }), 0.15, y, -1.5, 0);
@@ -317,7 +311,6 @@ function childsRoom(mat, put, light) {
   h.b(paint, 0.3, 0.5, 0.75, 0.86, -0.06, 0.06);
   h.solid(-0.45, 0.5, 0, 0.86, -0.15, 0.15);
   put(h, -2.6, y, -5.35, 0);
-  put(chair(mat, { material: tint(mat.wood, 0x9a9a80) }), -5.2, y, -5.4, N);
   put(picture(mat, { w: 0.35, h: 0.45, empty: true }), -1.0, y + 1.5, -3.6, W);
   put(rug(mat, { w: 1.4, l: 1.4 }), -3.8, y, -4.4, 0);
   // The night through the window is the only light.

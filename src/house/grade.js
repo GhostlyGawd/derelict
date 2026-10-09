@@ -23,7 +23,41 @@ const FRAG = /* glsl */ `
   uniform sampler2D src;
   uniform sampler2D lut;
   uniform float strength;
+  uniform float paint;
+  uniform vec2 texel;
   varying vec2 vUv;
+
+  // A Kuwahara filter: of the four squares round a pixel, take the mean of
+  // the one that varies least. Edges stay sharp and the inside of every patch
+  // flattens into a stroke of one colour, which is how a painting reads.
+  vec3 painted(vec2 uv) {
+    vec3 m[4];
+    float v[4];
+    for (int q = 0; q < 4; q++) {
+      vec2 dir = vec2(q == 1 || q == 3 ? 1.0 : -1.0, q >= 2 ? 1.0 : -1.0);
+      vec3 sum = vec3(0.0);
+      vec3 sq = vec3(0.0);
+      for (int j = 0; j <= 2; j++) {
+        for (int i = 0; i <= 2; i++) {
+          vec3 c = texture2D(src, uv + dir * vec2(float(i), float(j)) * texel).rgb;
+          sum += c;
+          sq += c * c;
+        }
+      }
+      m[q] = sum / 9.0;
+      vec3 var3 = sq / 9.0 - m[q] * m[q];
+      v[q] = var3.r + var3.g + var3.b;
+    }
+    vec3 best = m[0];
+    float low = v[0];
+    for (int q = 1; q < 4; q++) {
+      if (v[q] < low) {
+        low = v[q];
+        best = m[q];
+      }
+    }
+    return best;
+  }
 
   vec3 toSrgb(vec3 c) {
     c = clamp(c, 0.0, 1.0);
@@ -52,7 +86,7 @@ const FRAG = /* glsl */ `
   }
 
   void main() {
-    vec3 c = toSrgb(texture2D(src, vUv).rgb);
+    vec3 c = toSrgb(paint > 0.5 ? painted(vUv) : texture2D(src, vUv).rgb);
     // The reference's frame darkens toward its corners, as an old lens and an
     // old monitor both did. Applied before the grade, so the corners fall
     // down the same green ramp as everything else that is dark.
@@ -75,7 +109,7 @@ export function createGrade(view, lut) {
     depthBuffer: true,
   });
   const material = new THREE.ShaderMaterial({
-    uniforms: { src: { value: target.texture }, lut: { value: lut }, strength: { value: 1 } },
+    uniforms: { src: { value: target.texture }, lut: { value: lut }, strength: { value: 1 }, paint: { value: 0 }, texel: { value: new THREE.Vector2(1, 1) } },
     vertexShader: VERT,
     fragmentShader: FRAG,
     depthTest: false,
@@ -93,7 +127,10 @@ export function createGrade(view, lut) {
     /** Draws a frame through the grade, in place of view.render. */
     render(scene, cam, viewmodel) {
       const { width, height } = view.size;
-      if (target.width !== width || target.height !== height) target.setSize(width, height);
+      if (target.width !== width || target.height !== height) {
+        target.setSize(width, height);
+        material.uniforms.texel.value.set(1 / width, 1 / height);
+      }
       renderer.setRenderTarget(target);
       renderer.clear();
       renderer.render(scene, cam);
