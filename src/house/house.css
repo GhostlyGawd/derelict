@@ -49,6 +49,8 @@
 #reader {
   background: rgba(0, 0, 0, 0.72);
   z-index: 5;
+  /* Taps and clicks go through to the view, where the trace sees them. */
+  pointer-events: none;
 }
 
 #reader .paper {

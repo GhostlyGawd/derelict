@@ -110,7 +110,18 @@ class House {
     for (const t of this.things.targets) this.interactor.register(t);
     this.ringEl = document.getElementById('ring');
     this.readerEl = document.getElementById('reader');
-    this.readerEl.addEventListener('click', () => this.#closeNote());
+    // The reader lets every touch and click through to the view, so putting a
+    // note away is an input the trace records and replay sees, never a DOM
+    // click on the wall clock. A click reaches the canvas as an interact; a tap
+    // anywhere off the buttons is queued here and taken on the next frame.
+    this.dismissQueued = false;
+    window.addEventListener(
+      'touchstart',
+      (e) => {
+        if (this.reading && !e.target?.closest?.('#touch-interact, #touch-crouch')) this.dismissQueued = true;
+      },
+      { passive: true }
+    );
     this.#drawRing();
 
     // The light: one lamp a room at most, each in something that can be seen
@@ -222,7 +233,9 @@ class House {
         this.input.takeLook();
         this.player.update(dt, STILL, this.colliders());
         this.hud.setPrompt(null);
-        if (this.input.takeInteract()) this.#closeNote();
+        const tapped = this.dismissQueued;
+        this.dismissQueued = false;
+        if (this.input.takeInteract() || tapped) this.#closeNote();
       } else {
         this.player.update(dt, this.input, this.colliders());
         this.#updateInteraction();
@@ -313,6 +326,7 @@ class House {
   #openNote(note) {
     note.read = true;
     this.reading = note;
+    this.dismissQueued = false;
     this.readerEl.querySelector('h2').textContent = note.title;
     this.readerEl.querySelector('p').textContent = note.text;
     this.readerEl.classList.remove('hidden');

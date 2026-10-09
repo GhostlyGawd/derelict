@@ -254,6 +254,22 @@ every surface a mid-sized mottle of lighter and darker paint and wood, larger
 stains with harder edges on the walls, and wet patches on the boards off the
 paths people walk. All thirteen views stay inside the target.
 
+*The owner's first trace of the house, 9 October 2026,* committed as
+`tools/traces/house/owner-2026-10-09-m4.json`. It is a whole run on the
+phone: 115 s, out of the front door, 17 ms a frame at the median and 18 at the
+95th percentile, with one frame of 62 ms. That is far short of ten minutes,
+and it is not the bar: the owner knew the house, and there is no story in it
+yet. It did not replay. It left its recording at frame 690, the first look
+after the first note, because the note reader was put away by a DOM click,
+which arrives on the wall clock and is not in a trace. Replay never put the
+note away, so every touch after it was read as a reader's. The reader now lets
+every touch and click through to the view, and a tap off the buttons is taken
+on the next frame as an input. The same trace then replays at all 230
+checkpoints and ends where the owner did. `tools/house/monkey.mjs` replays
+every owner trace of the house and requires exactly that. They have their own
+folder, because the ship's replay and profiler read every trace beside
+them.
+
 For now, doors open and stay open, and a key is spent at its door. On a
 phone the key ring sits at the top left, because the stick holds the bottom
 left.

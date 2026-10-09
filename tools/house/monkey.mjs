@@ -196,6 +196,24 @@ try {
 } catch {
   /* none yet */
 }
+// ---- The owner's runs ------------------------------------------------------------
+// Recorded on the owner's phone with ?trace, replayed exactly as recorded: every
+// checkpoint the same, and the run ending where it ended for the owner (7.3.2).
+// They live in their own folder, so the ship's replay and profiler never read them.
+const owners = readdirSync(path.resolve('tools/traces/house')).filter((f) => f.endsWith('.json')).sort();
+console.log(`\n  the owner's house runs (${owners.length})`);
+for (const file of owners) {
+  const trace = JSON.parse(readFileSync(path.resolve('tools/traces/house', file), 'utf8'));
+  const r = await watch(trace);
+  const at = new Map((r.checkpoints || []).map((c) => [c[0], c]));
+  const same = trace.checkpoints.filter((c) => JSON.stringify(c) === JSON.stringify(at.get(c[0]))).length;
+  expect(
+    `${file}: replays exactly (${same}/${trace.checkpoints.length} checkpoints) and ends ${trace.final?.[1]}`,
+    !r.stopped && same === trace.checkpoints.length && JSON.stringify(r.final) === JSON.stringify(trace.final),
+    r.stopped ? `frame ${r.stopped.frame}: ${r.stopped.reason}` : `replayed ${JSON.stringify(r.final)}${divergence(trace.checkpoints, r.checkpoints)}`
+  );
+}
+
 console.log(`\n  regression traces (${regressions.length})`);
 for (const file of regressions) {
   const trace = JSON.parse(readFileSync(path.join(REGRESSIONS, file), 'utf8'));
