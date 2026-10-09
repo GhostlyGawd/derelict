@@ -25,7 +25,9 @@ export const TARGET = {
 
 /** The surface palette every house generator draws from. sRGB, 0–255. */
 export const PALETTE = {
-  plaster: [[112, 126, 94], [92, 108, 76], [124, 132, 102], [76, 92, 62], [104, 114, 84], [134, 140, 110]],
+  // From yellow-green where the paint holds the light, through olive, to the
+  // grey-blue of plaster gone cold: the reference's walls are never one green.
+  plaster: [[112, 126, 94], [92, 108, 76], [124, 132, 102], [76, 92, 62], [104, 114, 84], [134, 140, 110], [146, 142, 98], [88, 104, 100], [66, 76, 50], [158, 160, 126]],
   plasterBase: [100, 114, 84],
   damp: [26, 34, 20],
   tide: [14, 20, 10],

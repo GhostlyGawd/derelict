@@ -53,6 +53,11 @@ const FRAG = /* glsl */ `
 
   void main() {
     vec3 c = toSrgb(texture2D(src, vUv).rgb);
+    // The reference's frame darkens toward its corners, as an old lens and an
+    // old monitor both did. Applied before the grade, so the corners fall
+    // down the same green ramp as everything else that is dark.
+    vec2 d = (vUv - 0.5) * vec2(1.0, 0.85);
+    c *= 1.0 - smoothstep(0.32, 0.8, length(d)) * 0.45;
     c = mix(c, grade(c), strength);
     // Fifteen-bit colour, dithered.
     float levels = 31.0;

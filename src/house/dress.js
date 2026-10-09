@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
-import { STAIRWELL, WALLS, WALL_THICKNESS } from './layout.js';
+import { SPACES, STAIRWELL, WALLS, WALL_THICKNESS } from './layout.js';
+import { dressRooms } from './rooms.js';
 import { worldUV } from './surfaces.js';
 
 const T = WALL_THICKNESS;
@@ -32,7 +33,12 @@ export function dressHouse(mat) {
 
   casings(box, mat);
   arches(group, mat);
+  windows(box, group, mat);
   hall(box, group, mat, colliders, lights);
+  const rooms = dressRooms(mat);
+  group.add(rooms.group);
+  colliders.push(...rooms.colliders);
+  lights.push(...rooms.lights);
 
   return { group, colliders, lights };
 }
@@ -94,6 +100,68 @@ function arches(group, mat) {
   }
 }
 
+/** Rooms whose windows are left bare: a kitchen and a bathroom want the light. */
+const BARE = new Set(['kitchen-window', 'bathroom-window']);
+
+/**
+ * Every window onto the night: the pane, a frame and glazing bars on the
+ * inside face, a sill, and curtains. The inside is whichever side a room is on.
+ */
+function windows(box, group, mat) {
+  for (const w of WALLS) {
+    for (const o of w.openings || []) {
+      if (o.kind !== 'window') continue;
+      const inRoom = (sign) => {
+        const x = w.axis === 'x' ? w.at + sign * 0.4 : o.center;
+        const z = w.axis === 'x' ? o.center : w.at + sign * 0.4;
+        return SPACES.some((s) => s.y === w.y && x > s.x[0] && x < s.x[1] && z > s.z[0] && z < s.z[1]);
+      };
+      const sign = inRoom(1) ? 1 : -1;
+      const t0 = o.center - o.width / 2;
+      const t1 = o.center + o.width / 2;
+      const y0 = w.y + o.sill;
+      const y1 = y0 + o.height;
+      const face = w.at + sign * (T / 2);
+      // A box given in (along the wall, up, out from the inside face).
+      const put = (a, b, ya, yb, n0, n1, material = mat.wood) => {
+        const na = face + sign * n0;
+        const nb = face + sign * n1;
+        return w.axis === 'x' ? box(material, Math.min(na, nb), Math.max(na, nb), ya, yb, a, b) : box(material, a, b, ya, yb, Math.min(na, nb), Math.max(na, nb));
+      };
+      const pane = new THREE.Mesh(new THREE.PlaneGeometry(o.width, o.height), mat.night);
+      if (w.axis === 'x') {
+        pane.rotation.y = sign > 0 ? Math.PI / 2 : -Math.PI / 2;
+        pane.position.set(w.at, (y0 + y1) / 2, o.center);
+      } else {
+        pane.rotation.y = sign > 0 ? 0 : Math.PI;
+        pane.position.set(o.center, (y0 + y1) / 2, w.at);
+      }
+      group.add(pane);
+      // Frame, sill and glazing bars.
+      put(t0 - 0.06, t1 + 0.06, y0 - 0.05, y0, -0.02, 0.05);
+      put(t0 - 0.06, t1 + 0.06, y1, y1 + 0.06, -0.02, 0.03);
+      put(t0 - 0.06, t0, y0, y1, -0.02, 0.03);
+      put(t1, t1 + 0.06, y0, y1, -0.02, 0.03);
+      put(o.center - 0.02, o.center + 0.02, y0, y1, -T / 2 - 0.02, -T / 2 + 0.02);
+      put(t0, t1, (y0 + y1) / 2 - 0.02, (y0 + y1) / 2 + 0.02, -T / 2 - 0.02, -T / 2 + 0.02);
+      if (BARE.has(o.id)) continue;
+      // The curtain: a pale valance across the top, and a fall down each side.
+      const cloth = (a, b, ya, yb, n) => {
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(b - a, yb - ya), mat.curtain);
+        const nn = face + sign * n;
+        if (w.axis === 'x') {
+          m.rotation.y = Math.PI / 2;
+          m.position.set(nn, (ya + yb) / 2, (a + b) / 2);
+        } else m.position.set((a + b) / 2, (ya + yb) / 2, nn);
+        group.add(m);
+      };
+      cloth(t0 - 0.15, t1 + 0.15, y1 - 0.33, y1 + 0.12, 0.06);
+      cloth(t1 - 0.2, t1 + 0.14, y0 - 0.3, y1, 0.07);
+      if (o.width > 0.9) cloth(t0 - 0.14, t0 + 0.12, y0 - 0.25, y1, 0.07);
+    }
+  }
+}
+
 /** The entry hall, to the reference. */
 function hall(box, group, mat, colliders, lights) {
   // ---- The one lamp: a white shade on a cord, over the middle of the rug ----
@@ -151,37 +219,6 @@ function hall(box, group, mat, colliders, lights) {
     const rug = new THREE.Mesh(geo, mat.rug);
     rug.position.set(0.1, 0.006, (from + to) / 2);
     group.add(rug);
-  }
-
-  // ---- The window in the left wall, onto the night, with its curtain ----
-  {
-    const win = WALLS.flatMap((w) => (w.openings || []).map((o) => ({ w, o }))).find(({ o }) => o.id === 'hall-window');
-    const { w, o } = win;
-    const z0 = o.center - o.width / 2;
-    const z1 = o.center + o.width / 2;
-    const y0 = w.y + o.sill;
-    const y1 = y0 + o.height;
-    const inner = w.at + T / 2;
-    const pane = new THREE.Mesh(new THREE.PlaneGeometry(o.width, o.height), mat.night);
-    pane.rotation.y = Math.PI / 2;
-    pane.position.set(w.at, (y0 + y1) / 2, o.center);
-    group.add(pane);
-    // Frame, sill and glazing bars.
-    box(mat.wood, inner - 0.02, inner + 0.04, y0 - 0.05, y0, z0 - 0.06, z1 + 0.06);
-    box(mat.wood, inner - 0.02, inner + 0.03, y1, y1 + 0.06, z0 - 0.06, z1 + 0.06);
-    box(mat.wood, inner - 0.02, inner + 0.03, y0, y1, z0 - 0.06, z0);
-    box(mat.wood, inner - 0.02, inner + 0.03, y0, y1, z1, z1 + 0.06);
-    box(mat.wood, w.at - 0.02, w.at + 0.02, y0, y1, o.center - 0.02, o.center + 0.02);
-    box(mat.wood, w.at - 0.02, w.at + 0.02, (y0 + y1) / 2 - 0.02, (y0 + y1) / 2 + 0.02, z0, z1);
-    // The curtain: a pale valance across the top, and a fall down one side.
-    const valance = new THREE.Mesh(new THREE.PlaneGeometry(o.width + 0.3, 0.45), mat.curtain);
-    valance.rotation.y = Math.PI / 2;
-    valance.position.set(inner + 0.06, y1 - 0.12, o.center);
-    group.add(valance);
-    const fall = new THREE.Mesh(new THREE.PlaneGeometry(0.34, o.height + 0.2), mat.curtain);
-    fall.rotation.y = Math.PI / 2;
-    fall.position.set(inner + 0.07, (y0 + y1) / 2 - 0.1, z1 - 0.02);
-    group.add(fall);
   }
 
   // ---- The sideboard, under the window, nearest the player ----

@@ -131,18 +131,24 @@ export function damp(r, { source, spread = 6, radius = 6, stain = [20, 26, 16], 
  * Streaks: water that ran down a wall. Thin, wavering, darker at the top
  * where it started, fading as it goes.
  */
-export function runs(r, { count = 40, colour = [16, 20, 12], alpha = 0.35, minLength = 0.15, maxLength = 0.6, seed = 1 }) {
+export function runs(r, { count = 40, colour = [16, 20, 12], alpha = 0.35, minLength = 0.15, maxLength = 0.6, width = [1, 3.5], fromTop = 1, seed = 1 }) {
   const rand = rng(seed);
   const s = r.size;
   for (let n = 0; n < count; n++) {
     let x = rand() * s;
-    const y0 = rand() * s;
+    // `fromTop` of 1 starts a run anywhere; smaller starts them near the top,
+    // where water comes in at the ceiling.
+    const y0 = rand() * s * fromTop;
     const len = (minLength + rand() * (maxLength - minLength)) * s;
-    const w = 1 + rand() * 2.5;
+    const w = width[0] + rand() * (width[1] - width[0]);
     for (let t = 0; t < len; t++) {
       x += (noise2(x / s, (y0 + t) / s, 24, seed + n) - 0.5) * 0.6;
       const fade = 1 - t / len;
-      for (let k = 0; k < w; k++) r.set(x + k, y0 + t, colour, alpha * fade);
+      // Soft at the sides: the middle of a wide run is wettest.
+      for (let k = 0; k < w; k++) {
+        const side = 1 - Math.abs((k + 0.5) / w - 0.5) * 2;
+        r.set(x + k, y0 + t, colour, alpha * fade * (w > 4 ? 0.35 + 0.65 * side : 1));
+      }
     }
   }
 }

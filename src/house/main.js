@@ -111,16 +111,9 @@ class House {
     this.readerEl.addEventListener('click', () => this.#closeNote());
     this.#drawRing();
 
-    // The light: the hall has its one lamp (dress.js). The rooms not yet
-    // dressed keep a dim lamp each so they can be played, and a little night
-    // comes in everywhere.
-    this.scene.add(new THREE.HemisphereLight(0x3a4a5a, 0x0a0c08, 0.12));
-    for (const s of SPACES) {
-      if (s.id === 'hall' || s.id === 'stairhead') continue;
-      const lamp = new THREE.PointLight(0xd8e6c8, 2.5, 7, 1.6);
-      lamp.position.set((s.x[0] + s.x[1]) / 2, s.y + s.h - 0.3, (s.z[0] + s.z[1]) / 2);
-      this.scene.add(lamp);
-    }
+    // The light: one lamp a room at most, each in something that can be seen
+    // (dress.js and rooms.js), and a little night that comes in everywhere.
+    this.scene.add(new THREE.HemisphereLight(0x4a5a78, 0x0a0c08, 0.32));
     this.grade = createGrade(this.view, this.surfaces.grade);
     this.handheld = buildHandheld(this.surfaces);
 

@@ -4,7 +4,7 @@
       "file": "/assets/house/textures/plaster.png",
       "normal": "/assets/house/textures/plaster_n.png",
       "size": 512,
-      "bytes": 219323
+      "bytes": 225736
     },
     "floor": {
       "file": "/assets/house/textures/floor.png",
@@ -59,6 +59,12 @@
       "normal": "/assets/house/textures/picture_n.png",
       "size": 128,
       "bytes": 8151
+    },
+    "tile": {
+      "file": "/assets/house/textures/tile.png",
+      "normal": "/assets/house/textures/tile_n.png",
+      "size": 256,
+      "bytes": 57429
     }
   },
   "grade": {

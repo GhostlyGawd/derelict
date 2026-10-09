@@ -63,6 +63,11 @@
     // move and the end go there, wherever the finger has wandered. That is how
     // the browser does it, and the crouch button's release depends on it.
     if (type !== 'touchstart' && live.has(id)) target = live.get(id).target;
+    // A screen reports whole pixels, and the recorder keeps a tenth of one. A
+    // touch at 577.84 played as 577.84 and replayed as 577.8, and the replay's
+    // look drifted from the run it was recorded from.
+    x = Math.round(x);
+    y = Math.round(y);
     if (type === 'touchstart' || type === 'touchmove') live.set(id, { target, x, y });
     const changed = [new Touch({ identifier: id, target, clientX: x, clientY: y })];
     if (type === 'touchend' || type === 'touchcancel') live.delete(id);

@@ -57,7 +57,7 @@ export const SPACES = [
   { id: 'passage', name: 'Back Passage', floor: 0, x: [-0.9, 1.1], z: [-6, 0], y: GROUND, h: 2.8 },
   { id: 'study', name: 'Study', floor: 0, x: [2.4, 6.4], z: [-3, 0], y: GROUND, h: 2.8 },
   { id: 'dining', name: 'Dining Room', floor: 0, x: [-6.4, -0.9], z: [-6, -3], y: GROUND, h: 2.8 },
-  { id: 'kitchen', name: 'Kitchen', floor: 0, x: [1.1, 6.4], z: [-6, -3], y: GROUND, h: 2.8 },
+  { id: 'kitchen', name: 'Kitchen', surface: 'tile', floor: 0, x: [1.1, 6.4], z: [-6, -3], y: GROUND, h: 2.8 },
   // ---- Upper ----
   { id: 'stairhead', name: 'Stairhead', floor: 1, x: [1.2, 2.4], z: [-2.9, -2.3], y: UPPER, h: 2.6 },
   { id: 'landing', name: 'Landing', floor: 1, x: [-0.9, 2.4], z: [-6, -2.9], y: UPPER, h: 2.6 },
@@ -66,7 +66,7 @@ export const SPACES = [
   { id: 'gallery', name: 'Gallery', floor: 1, x: [-0.9, 1.2], z: [-2.9, 0], y: UPPER, h: 2.6 },
   { id: 'bedroom', name: 'Bedroom', floor: 1, x: [-6.4, -0.9], z: [-3, 0], y: UPPER, h: 2.6 },
   { id: 'child', name: "Child's Room", floor: 1, x: [-6.4, -0.9], z: [-6, -3], y: UPPER, h: 2.6 },
-  { id: 'bathroom', name: 'Bathroom', floor: 1, x: [2.4, 6.4], z: [-6, -2.9], y: UPPER, h: 2.6 },
+  { id: 'bathroom', name: 'Bathroom', surface: 'tile', floor: 1, x: [2.4, 6.4], z: [-6, -2.9], y: UPPER, h: 2.6 },
 ];
 
 /**
@@ -97,8 +97,9 @@ export const WALLS = [
   { y: GROUND, h: 2.8, axis: 'z', at: 0, from: -6.4, to: 1.25, openings: [
     { center: -1.6, width: 0.95, height: 2.15, id: 'parlour-door', kind: 'door' },
     { center: 0.1, width: 1.3, height: 2.35, id: 'arch', kind: 'arch' },
+    { center: -4.4, width: 1.0, height: 1.4, sill: 0.9, id: 'parlour-window', kind: 'window' },
   ] },
-  { y: GROUND, h: 2.8, axis: 'z', at: 0, from: 2.4, to: 6.4, openings: [] },
+  { y: GROUND, h: 2.8, axis: 'z', at: 0, from: 2.4, to: 6.4, openings: [{ center: 3.2, width: 0.9, height: 1.4, sill: 0.9, id: 'study-window', kind: 'window' }] },
   { y: GROUND, h: 2.8, axis: 'z', at: 4.6, from: -2.4, to: 2.4, openings: [] },
   { y: GROUND, h: 2.8, axis: 'x', at: -2.4, from: 0, to: 4.6, openings: [
     { center: 2.6, width: 1.0, height: 1.5, sill: 0.85, id: 'hall-window', kind: 'window' },
@@ -108,8 +109,8 @@ export const WALLS = [
   ] },
   { y: GROUND, h: 2.8, axis: 'x', at: 2.4, from: -3, to: 0, openings: [] },
   // The back of the house
-  { y: GROUND, h: 2.8, axis: 'z', at: -6, from: -6.4, to: 6.4, openings: [] },
-  { y: GROUND, h: 2.8, axis: 'x', at: -6.4, from: -6, to: 0, openings: [] },
+  { y: GROUND, h: 2.8, axis: 'z', at: -6, from: -6.4, to: 6.4, openings: [{ center: 5.2, width: 0.9, height: 1.0, sill: 1.15, id: 'kitchen-window', kind: 'window' }] },
+  { y: GROUND, h: 2.8, axis: 'x', at: -6.4, from: -6, to: 0, openings: [{ center: -4.3, width: 0.9, height: 1.1, sill: 1.15, id: 'dining-window', kind: 'window' }] },
   { y: GROUND, h: 2.8, axis: 'x', at: 6.4, from: -6, to: 0, openings: [] },
   { y: GROUND, h: 2.8, axis: 'z', at: -3, from: -6.4, to: -0.9, openings: [] },
   { y: GROUND, h: 2.8, axis: 'z', at: -3, from: 1.1, to: 6.4, openings: [{ center: 4, width: 1.0, height: 2.15, id: 'study-door', kind: 'door' }] },
@@ -120,8 +121,11 @@ export const WALLS = [
   { y: UPPER, h: 2.6, axis: 'z', at: 0, from: -6.4, to: 1.2, openings: [] },
   // At the head of the stairs, the door the clock holds, onto the landing.
   { y: UPPER, h: 2.6, axis: 'z', at: -2.9, from: 1.2, to: 2.4, openings: [{ center: 1.8, width: 1.0, height: 2.1, id: 'stair-door', kind: 'door' }] },
-  { y: UPPER, h: 2.6, axis: 'z', at: -6, from: -6.4, to: 6.4, openings: [] },
-  { y: UPPER, h: 2.6, axis: 'x', at: -6.4, from: -6, to: 0, openings: [] },
+  { y: UPPER, h: 2.6, axis: 'z', at: -6, from: -6.4, to: 6.4, openings: [
+    { center: -3.0, width: 0.9, height: 1.2, sill: 0.9, id: 'child-window', kind: 'window' },
+    { center: 4.6, width: 0.9, height: 0.9, sill: 1.15, id: 'bathroom-window', kind: 'window' },
+  ] },
+  { y: UPPER, h: 2.6, axis: 'x', at: -6.4, from: -6, to: 0, openings: [{ center: -2.45, width: 0.8, height: 1.2, sill: 1.0, id: 'bedroom-window', kind: 'window' }] },
   { y: UPPER, h: 2.6, axis: 'x', at: 6.4, from: -6, to: -2.9, openings: [] },
   { y: UPPER, h: 2.6, axis: 'x', at: -0.9, from: -6, to: 0, openings: [
     { center: -1.5, width: 1.0, height: 2.1, id: 'bedroom-door', kind: 'door' },
@@ -237,14 +241,15 @@ export const DOORS = [
 
 /**
  * Things that hold an item: a drawer, a box, a desk. Opened once, and the
- * item goes on the ring. `at` is the front face's centre; `face` is the way
- * it faces, as a yaw (0 faces +z).
+ * item goes on the ring. `at` is the centre of the part that opens, on the
+ * front face; `face` is the way it faces, as a yaw (0 faces +z). Each is a
+ * piece of furniture standing in its room with its back to the wall.
  */
 export const CONTAINERS = [
-  { id: 'kitchen-drawer', name: 'Drawer', at: [6.05, 0.8, -4.5], face: -Math.PI / 2, holds: 'dining-key' },
-  { id: 'bedroom-drawer', name: 'Drawer', at: [-6.05, UPPER + 0.8, -1.5], face: Math.PI / 2, holds: 'study-key' },
-  { id: 'child-box', name: 'Box', at: [-4.6, UPPER + 0.6, -5.65], face: 0, holds: 'tin-key' },
-  { id: 'study-desk', name: 'Desk Drawer', at: [4.6, 0.8, -0.35], face: Math.PI, holds: 'front-key' },
+  { id: 'kitchen-drawer', name: 'Drawer', kind: 'chest', at: [5.85, 0.74, -4.5], face: -Math.PI / 2, holds: 'dining-key' },
+  { id: 'bedroom-drawer', name: 'Drawer', kind: 'chest', at: [-3.0, UPPER + 0.74, -0.55], face: Math.PI, holds: 'study-key' },
+  { id: 'child-box', name: 'Box', kind: 'box', at: [-4.6, UPPER + 0.45, -5.5], face: 0, holds: 'tin-key' },
+  { id: 'study-desk', name: 'Desk Drawer', kind: 'desk', at: [4.6, 0.59, -0.7], face: Math.PI, holds: 'front-key' },
 ];
 
 /**

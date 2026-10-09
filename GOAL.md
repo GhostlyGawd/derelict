@@ -172,6 +172,52 @@ battery lantern 9.4.4 asked for, held with its face to the player as the
 device in the reference is: a grille, a gauge and a handle, built in engine
 and kept clear of the touch buttons by the scanner's rule.
 
+*The owner's look at milestone 3, 9 October 2026.* "The hall reads much
+better." Three things did not. The drawers floated: each was a plain box
+pushed half into its wall, with no legs, no plinth and nothing under it, so it
+read as hanging in the air. The upstairs wall clipped: the flight's handrail
+and balusters kept rising past the hall's ceiling, into the wall of the slot
+the stairs climb through, and came out of it into the gallery. And the style
+is not yet the picture, and nothing past the hall was dressed. The look bar
+stays open. The open banister now runs from the newel post to the hall's back
+wall, and above that a handrail runs on the wall. Every drawer and box is a
+piece of furniture standing in its room. Milestone 4, dressing the rest of the
+house, follows on in the same pull request, with the style pushed further in
+the hall at the same time rather than signed first: the owner can judge the
+hall better among dressed rooms than alone.
+
+*Milestone 4, the rest of the house.* Every room is furnished from a kit of
+parametric pieces (`src/house/furniture.js`): chests, tables, chairs, beds, a
+wardrobe, bookcases, a fireplace, a range, a sink, a bath and a basin, lamps,
+pictures and rugs. Each stands on legs or a plinth, and each casts a soft
+shadow onto the floor, so it reads as touching the ground. The rooms are
+placed in `src/house/rooms.js`. Every room has its own paint over the plaster.
+The dining room and the study have a wooden wainscot, and the kitchen and the
+bathroom are tiled to a dado. The tile is the tenth surface texture: the night
+outside is its own asset class in 9.7, so the box holds. Every outside wall
+that faces a room has a window onto the night.
+
+Placing the furniture was where the proofs bit. The monkey's autopilot plans
+with ten centimetres to spare round the player, and it could not get past the
+kitchen table, round the dining table to the clock, or out of a corner the
+parlour's bookcase made, all of which a player of the real size could. Each
+was re-laid with room to spare rather than the planner's margin cut. The
+bedroom was re-laid whole, with the bed's head under the window and its
+drawers on the north wall. The monkey also found a fault in itself. Its
+synthetic touches landed on fractional pixels, the recorder keeps a tenth of
+one, and a replay's look drifted from the run it was recorded from. Its
+touches now land on whole pixels, as a screen's do.
+
+The style harness now looks at every room, thirteen views in all, and it made
+the lighting. Its first verdict was that every room past the hall was far
+darker than the target and short of highlights and tones. Each room had a dim
+lamp that lit it flat, and lit its neighbours through the walls. Every hanging
+lamp is now a cone down from its shade, as the hall's is, so a room has a pool
+of light and dark corners. The night fills the shadows blue, the plaster's
+palette runs from yellow-green to grey-blue as the reference's walls do, and
+old tiles no longer all match. The frame gains a vignette, as the reference's
+has. No tolerance was loosened.
+
 For now, doors open and stay open, and a key is spent at its door. On a
 phone the key ring sits at the top left, because the stick holds the bottom
 left.
@@ -405,9 +451,10 @@ the image is copied or committed. At 448 × 299:
 
 The house is held to these within tolerances the build sets on the entry hall
 and records here before it dresses another room. Set on 9 October 2026, on
-three views of the hall (`tools/house/style.mjs`):
+three views of the hall, and held since milestone 4 by every room, thirteen
+views in all (`tools/house/style.mjs`):
 
-| | Tolerance | The hall, from the door |
+| | Tolerance | Every view |
 |---|---|---|
 | Median luminance | ×0.4 to ×3 of the target | in |
 | 95th-percentile luminance | ×0.5 to ×2 | in |
@@ -416,7 +463,7 @@ three views of the hall (`tools/house/style.mjs`):
 | Fine detail | ×0.5 to ×2 | in |
 | Distinct 15-bit colours | ×0.4 to ×2.5 | in |
 
-The reference view's mean colour is 36, 42, 23 against the reference's
+The reference view's mean colour is 43, 48, 27 against the reference's
 35, 46, 27. A tolerance is not loosened to let a change through. The numbers describe a look.
 They are not a picture to match pixel for pixel, and the house's own rooms
 will differ from the reference in every detail.

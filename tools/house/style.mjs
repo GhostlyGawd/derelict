@@ -29,6 +29,17 @@ const VIEWS = [
   { name: 'hall, from the door (the reference view)', pos: [0.05, 4.1], yaw: 0, pitch: -0.06 },
   { name: 'hall, toward the stairs', pos: [-1.2, 3.2], yaw: -0.55, pitch: 0.05 },
   { name: 'hall, back toward the window', pos: [0.6, 0.9], yaw: 2.4, pitch: -0.05 },
+  // Every other room, from its doorway, as a player first sees it (9.6).
+  { name: 'parlour, from its door', pos: [-1.6, -0.5], yaw: 1.25, pitch: -0.08 },
+  { name: 'dining room, from its door', pos: [-1.3, -4.5], yaw: Math.PI / 2, pitch: -0.08 },
+  { name: 'kitchen, from the passage', pos: [1.6, -4.5], yaw: -Math.PI / 2, pitch: -0.08 },
+  { name: 'study, from its door', pos: [4.0, -2.6], yaw: Math.PI, pitch: -0.08 },
+  { name: 'back passage, from the arch', pos: [0.1, -0.4], yaw: 0, pitch: -0.05 },
+  { name: 'landing, from the stairs', pos: [1.6, -3.5], y: 3, yaw: 0.5, pitch: -0.05 },
+  { name: 'gallery, from the landing', pos: [0.15, -2.6], y: 3, yaw: Math.PI, pitch: -0.05 },
+  { name: 'bedroom, from its door', pos: [-1.3, -1.5], y: 3, yaw: Math.PI / 2, pitch: -0.08 },
+  { name: "child's room, from its door", pos: [-1.3, -4.5], y: 3, yaw: Math.PI / 2, pitch: -0.08 },
+  { name: 'bathroom, from its door', pos: [2.8, -4.5], y: 3, yaw: -Math.PI / 2, pitch: -0.08 },
 ];
 
 /**
@@ -131,7 +142,7 @@ console.log('The house against its style target:');
 for (const view of VIEWS) {
   await page.evaluate((v) => {
     const g = window.__house;
-    g.player.position.set(v.pos[0], 0, v.pos[1]);
+    g.player.position.set(v.pos[0], v.y || 0, v.pos[1]);
     g.player.velocity.set(0, 0, 0);
     g.player.yaw = v.yaw;
     g.player.pitch = v.pitch;

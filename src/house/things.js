@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
-import { CLOCK, CONTAINERS, DOORS, ITEMS, NOTES, WALL_THICKNESS, openingFor } from './layout.js';
+import { chest, piece, place, table, tint as paint } from './furniture.js';
+import { CLOCK, CONTAINERS, DOORS, GROUND, ITEMS, NOTES, UPPER, WALL_THICKNESS, openingFor } from './layout.js';
 
 /**
  * The house's interactives in greybox (phase 9, milestone 2): doors on hinges,
@@ -140,57 +141,80 @@ function shortest(a) {
   return Math.atan2(Math.sin(a), Math.cos(a));
 }
 
+/**
+ * A drawer, a box or a desk that holds an item: a piece of furniture standing
+ * in its room, its front at `def.at`, with the one part that opens. The first
+ * drawers were bare boxes pushed half into their walls, and on the owner's
+ * phone they hung in the air.
+ */
 function makeContainer(def, group, mat) {
   const [x, y, z] = def.at;
-  const body = new THREE.Group();
-  body.position.set(x, 0, z);
-  body.rotation.y = def.face;
-  group.add(body);
-  const floorY = y - (def.id === 'child-box' ? 0.6 : 0.8);
-  const height = y - floorY + 0.1;
-  const cabinet = new THREE.Mesh(new THREE.BoxGeometry(0.9, height, 0.5), mat ? mat.wood : new THREE.MeshLambertMaterial({ color: 0x4a3c2c }));
-  cabinet.position.set(0, floorY + height / 2, -0.25);
-  body.add(cabinet);
-  const drawer = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.16, 0.06), mat ? mat.door.clone() : new THREE.MeshLambertMaterial({ color: 0x7a6040 }));
-  drawer.position.set(0, y, 0.01);
-  body.add(drawer);
+  const floorY = y >= UPPER - 0.5 ? UPPER : GROUND;
+  const sx = Math.round(Math.sin(def.face));
+  const sz = Math.round(Math.cos(def.face));
+  const colliders = [];
+  let moving;
+  let open;
+  let meshes;
+  if (!mat) {
+    // No surfaces (a harness without assets): a plain block, as in greybox.
+    const block = new THREE.Mesh(new THREE.BoxGeometry(0.9, y - floorY + 0.1, 0.45), new THREE.MeshLambertMaterial({ color: 0x4a3c2c }));
+    block.position.set(x - sx * 0.225, (y + floorY + 0.1) / 2, z - sz * 0.225);
+    group.add(block);
+    meshes = [block];
+    moving = block;
+    open = () => {};
+    colliders.push({ minX: x - 0.45, maxX: x + 0.45, minY: floorY, maxY: y + 0.1, minZ: z - 0.45, maxZ: z + 0.45 });
+  } else if (def.kind === 'box') {
+    // A toy box with a lid that lifts.
+    const d = 0.4;
+    const p = piece();
+    p.shadow(-0.35, 0.35, 0, d, 0.65);
+    p.b(paint(mat.door, 0x9aa080), -0.35, 0.35, 0.03, 0.45, 0, d);
+    p.b(mat.wood, -0.37, 0.37, 0, 0.05, -0.01, d + 0.01);
+    p.solid(-0.37, 0.37, 0, 0.5, 0, d);
+    const hinge = new THREE.Group();
+    hinge.position.set(0, 0.45, 0.01);
+    p.group.add(hinge);
+    const lid = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.05, d + 0.02), paint(mat.door, 0x8a9070));
+    lid.position.set(0, 0.025, d / 2);
+    hinge.add(lid);
+    place(group, colliders, p, x - sx * d, floorY, z - sz * d, def.face);
+    meshes = [lid, ...p.group.children.filter((m) => m.isMesh && m !== lid)];
+    moving = lid;
+    open = (t) => (hinge.rotation.x = -1.9 * t);
+  } else {
+    const desk = def.kind === 'desk';
+    const d = desk ? 0.6 : 0.45;
+    const { piece: p, fronts } = chest(mat, desk ? { w: 1.3, h: 0.78, d, drawers: 2 } : { d });
+    place(group, colliders, p, x - sx * d, floorY, z - sz * d, def.face);
+    const front = fronts[0];
+    const z0 = front.position.z;
+    meshes = p.group.children.filter((m) => m.isMesh);
+    moving = front;
+    open = (t) => (front.position.z = z0 + 0.28 * t);
+  }
 
-  // The cabinet's footprint, for the colliders: 0.9 wide, 0.5 deep, behind
-  // the front face whichever way it faces.
-  const footprint = () => {
-    const c = Math.cos(def.face);
-    const s = Math.sin(def.face);
-    const corners = [[-0.45, -0.5], [0.45, -0.5], [-0.45, 0], [0.45, 0]].map(([lx, lz]) => [
-      x + lx * c + lz * s,
-      z - lx * s + lz * c,
-    ]);
-    const xs = corners.map((p) => p[0]);
-    const zs = corners.map((p) => p[1]);
-    return {
-      minX: Math.min(...xs), maxX: Math.max(...xs),
-      minZ: Math.min(...zs), maxZ: Math.max(...zs),
-      minY: floorY, maxY: floorY + height,
-    };
-  };
-
+  // Its own paint, so lighting it under the crosshair lights nothing else.
+  moving.material = moving.material.clone();
   const state = {
     kind: 'container',
     id: def.id,
     holds: def.holds,
     opened: false,
     t: 0,
-    meshes: [drawer, cabinet],
+    meshes,
     point: new THREE.Vector3(x, y, z),
     get prompt() {
       return `Open ${def.name}`;
     },
-    highlight: tint([drawer]),
+    highlight: tint([moving]),
     canUse: () => !state.opened,
-    colliders: () => [footprint()],
+    colliders: () => colliders,
     update(dt) {
       if (!state.opened || state.t >= 1) return;
       state.t = Math.min(1, state.t + dt / 0.3);
-      drawer.position.z = 0.01 + 0.3 * state.t;
+      open(state.t);
     },
   };
   return state;
@@ -269,19 +293,20 @@ function makeNote(def, group, mat) {
   return state;
 }
 
-/** Furniture a flat note lies on, so it is not floating. Greybox only. */
+/** A table on legs under each note that lies flat, so it is not floating. */
 function tables(group, surfaces) {
   const colliders = [];
-  const mat = surfaces ? surfaces.wood : new THREE.MeshLambertMaterial({ color: 0x4a3a2a });
   for (const n of NOTES) {
     if (!n.flat) continue;
     const [x, y, z] = n.at;
-    const w = 0.9;
-    const d = 0.6;
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, y - 0.01, d), mat);
-    mesh.position.set(x, (y - 0.01) / 2, z);
-    group.add(mesh);
-    colliders.push({ minX: x - w / 2, maxX: x + w / 2, minY: 0, maxY: y, minZ: z - d / 2, maxZ: z + d / 2 });
+    if (!surfaces) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.9, y - 0.01, 0.6), new THREE.MeshLambertMaterial({ color: 0x4a3a2a }));
+      mesh.position.set(x, (y - 0.01) / 2, z);
+      group.add(mesh);
+      colliders.push({ minX: x - 0.45, maxX: x + 0.45, minY: 0, maxY: y, minZ: z - 0.3, maxZ: z + 0.3 });
+      continue;
+    }
+    place(group, colliders, table(surfaces, { w: 0.9, d: 0.6, h: y - 0.005 }), x, y >= UPPER ? UPPER : GROUND, z, 0);
   }
   return colliders;
 }

@@ -83,6 +83,16 @@ function watch(trace, { finish = false } = {}) {
   return replay(browser, BASE, trace, { errors, inject: [BRAIN], perFrame: CHECK, after: finish ? FINISH : null });
 }
 
+/** Where a replay first left its recording, so a mismatch says when as well as how far. */
+function divergence(recorded = [], replayed = []) {
+  const at = new Map(replayed.map((c) => [c[0], c]));
+  for (const c of recorded) {
+    const d = at.get(c[0]);
+    if (d && JSON.stringify(c) !== JSON.stringify(d)) return `; first apart at frame ${c[0]}: recorded ${JSON.stringify(c)}, replayed ${JSON.stringify(d)}`;
+  }
+  return '; every checkpoint agreed';
+}
+
 /** The same failure, for shrinking: same first few words of the reason. */
 const kindOf = (reason) => String(reason).split(/[\s(]/).slice(0, 3).join(' ');
 
@@ -232,7 +242,7 @@ for (let n = 0; n < SEEDS.length; n++) {
     expect(
       `seed ${seed} replays to the same end (${b?.[1]}, ${off.toFixed(3)} m apart)`,
       !r.stopped && a && a[1] === b[1] && a[2] === b[2] && off <= 0.05,
-      r.stopped ? `stopped at ${r.stopped.frame}: ${r.stopped.reason}` : `recorded ${JSON.stringify(a)}, replayed ${JSON.stringify(b)}`
+      r.stopped ? `stopped at ${r.stopped.frame}: ${r.stopped.reason}` : `recorded ${JSON.stringify(a)}, replayed ${JSON.stringify(b)}${divergence(trace.checkpoints, r.checkpoints)}`
     );
   }
 }

@@ -21,30 +21,38 @@ export const HOUSE_TEXTURES = [
   { id: 'night', size: 256, draw: night, note: 'the night outside: sky, rain, branches' },
   { id: 'paper', size: 128, draw: paper, note: 'a notice, written but not legible' },
   { id: 'picture', size: 128, draw: picture, note: 'a dark painting' },
+  { id: 'tile', size: 256, draw: tile, note: 'glazed tile for the kitchen and the bathroom, a metre per tile' },
 ];
 
 function plaster(s, seed) {
   const r = new Raster(s, seed);
   r.fill(P.plasterBase);
   // Light and dark at the scale of a person: walls are never one tone.
-  r.mottle({ frequency: 2, octaves: 3, amount: 0.38 });
-  brushStrokes(r, { palette: P.plaster, count: (s * s) / 200, length: s / 26, width: s / 36, flow: 1.5, alpha: 0.34, vertical: 0.55, seed: seed + 1 });
-  r.mottle({ frequency: 7, amount: 0.14 });
-  // Rising damp from the floor, and blooms higher up where water got in.
+  r.mottle({ frequency: 2, octaves: 3, amount: 0.46 });
+  brushStrokes(r, { palette: P.plaster, count: (s * s) / 170, length: s / 22, width: s / 32, flow: 1.5, alpha: 0.4, vertical: 0.6, seed: seed + 1 });
+  r.mottle({ frequency: 7, amount: 0.16 });
+  // Rising damp from the floor, its front wavering rather than ruled, and
+  // soft blooms higher up where water got in. A bloom with a hard edge reads
+  // as a stain stuck on; the first ones did, and repeated on every wall.
+  const smooth = (a, b, v) => Math.max(0, Math.min(1, (v - a) / (b - a)));
   damp(r, {
-    source: (u, v) => Math.max(0, (v - 0.72) / 0.28) ** 1.5 + (fbm(u, v, 3, 3, seed + 9) > 0.72 ? 0.8 : 0),
+    source: (u, v) => Math.max(0, (v - 0.7 + (fbm(u, 0.5, 4, 2, seed + 8) - 0.5) * 0.16) / 0.3) ** 1.4 + smooth(0.62, 0.86, fbm(u, v, 3, 4, seed + 9)) * 0.55,
     spread: 5,
     radius: Math.max(2, s / 96),
     stain: P.damp,
     tideColour: P.tide,
-    strength: 0.78,
-    tides: 3,
+    strength: 0.62,
+    tides: 2,
     seed: seed + 2,
   });
-  runs(r, { count: 80, colour: [30, 38, 22], alpha: 0.3, seed: seed + 3 });
-  flake(r, { under: [118, 124, 98], threshold: 0.8, frequency: 14, edge: [60, 66, 46], seed: seed + 4 });
-  r.grime({ frequency: 4, octaves: 4, amount: 0.35, colour: [24, 30, 18] });
-  falloff(r, { top: 0.82, bottom: 0.7 });
+  // Water that came in at the ceiling and ran: wide, soft and dark at the
+  // top, and fine runs inside them.
+  runs(r, { count: 26, colour: [22, 30, 16], alpha: 0.3, minLength: 0.3, maxLength: 0.9, width: [6, 16], fromTop: 0.15, seed: seed + 3 });
+  runs(r, { count: 50, colour: [26, 34, 20], alpha: 0.28, width: [1, 2.5], seed: seed + 5 });
+  // The paint has lifted in patches, and the pale plaster shows under it.
+  flake(r, { under: [150, 156, 124], threshold: 0.74, frequency: 9, edge: [44, 50, 32], seed: seed + 4 });
+  r.grime({ frequency: 4, octaves: 4, amount: 0.32, colour: [24, 30, 18] });
+  falloff(r, { top: 0.8, bottom: 0.72 });
   return r;
 }
 
@@ -197,6 +205,64 @@ function paper(s, seed) {
       x += w + 2 + rand() * 3;
     }
   }
+  return r;
+}
+
+/**
+ * Glazed tile: six to a metre, no two quite the same glaze, with dirty
+ * grout, a few cracked and the damp coming up through the joints.
+ */
+function tile(s, seed) {
+  const r = new Raster(s, seed);
+  const n = 6;
+  const c = s / n;
+  const rand = rng(seed + 1);
+  r.fill([60, 66, 50]);
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const x = Math.round(i * c) + 1;
+      const y = Math.round(j * c) + 1;
+      const w = Math.round(c) - 2;
+      // Old tiles never match: most are the green glaze, some were replaced
+      // with cream or grey-blue ones from another batch.
+      const pick = rand();
+      const batch = pick < 0.14 ? [178, 164, 118] : pick < 0.24 ? [132, 150, 150] : mixRgb([168, 176, 146], [138, 150, 120], rand());
+      const glaze = mixRgb(batch, [150, 156, 128], rand() * 0.25);
+      r.rect(x, y, w, w, glaze);
+      // Crazing and wear inside the glaze, so a tile is never one flat colour.
+      for (let k = 0; k < w * w * 0.08; k++) r.set(x + rand() * w, y + rand() * w, mixRgb(glaze, [90, 96, 72], 0.3 + rand() * 0.3), 0.5);
+      r.raiseRect(x, y, w, w, 1.5);
+      r.bevel(x, y, w, w, 0.7, 2);
+      if (rand() < 0.12) {
+        // A crack across it.
+        let cx = x + rand() * w;
+        let cy = y;
+        while (cy < y + w) {
+          r.set(cx, cy, [40, 44, 34], 0.8);
+          cx += (rand() - 0.5) * 2.4;
+          cy += 1;
+        }
+      }
+    }
+  }
+  r.mottle({ frequency: 6, amount: 0.12 });
+  // Damp gets into tile through the grout: it darkens the joints and creeps a
+  // little way onto the glaze beside them, rather than blotting the tiles.
+  const joint = (t) => {
+    const f = (t * n) % 1;
+    return Math.min(f, 1 - f) * c;
+  };
+  damp(r, {
+    source: (u, v) => (Math.min(joint(u), joint(v)) < 2.5 && fbm(u, v, 2, 3, seed + 6) > 0.55 ? 1 : 0),
+    spread: 2,
+    radius: 1,
+    stain: [40, 46, 32],
+    tideColour: [30, 34, 22],
+    strength: 0.45,
+    tides: 1,
+    seed: seed + 2,
+  });
+  r.grime({ frequency: 4, octaves: 4, amount: 0.3, colour: [30, 34, 24] });
   return r;
 }
 

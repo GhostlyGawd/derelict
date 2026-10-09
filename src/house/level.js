@@ -38,12 +38,12 @@ export function buildHouse(surfaces) {
     if (solid) colliders.push({ minX: x0, maxX: x1, minY: y0, maxY: y1, minZ: z0, maxZ: z1 });
     return mesh;
   };
-  const plane = (material, x0, x1, z0, z1, y, up) => {
+  const plane = (material, x0, x1, z0, z1, y, up, tile = 2) => {
     const geo = new THREE.PlaneGeometry(x1 - x0, z1 - z0);
     geo.rotateX(up ? -Math.PI / 2 : Math.PI / 2);
     const mesh = new THREE.Mesh(geo, material);
     mesh.position.set((x0 + x1) / 2, y, (z0 + z1) / 2);
-    worldUV(mesh, { tile: 2 });
+    worldUV(mesh, { tile });
     group.add(mesh);
   };
   /** A rectangle with another cut out of it, as up to four rectangles. */
@@ -63,7 +63,9 @@ export function buildHouse(surfaces) {
 
   // ---- Floors and ceilings ----
   for (const s of SPACES) {
-    plane(mat.floor, s.x[0], s.x[1], s.z[0], s.z[1], s.y, true);
+    // Most floors are boards; the kitchen and the bathroom are tiled, a metre to a repeat.
+    if (s.surface === 'tile') plane(surfaces.tile, s.x[0], s.x[1], s.z[0], s.z[1], s.y, true, 1);
+    else plane(mat.floor, s.x[0], s.x[1], s.z[0], s.z[1], s.y, true);
     // Ground-floor ceilings stop where the stairwell opens above them.
     const roof = s.floor === 0 ? minus(s.x, s.z, STAIRWELL) : [[s.x, s.z]];
     for (const [x, z] of roof) plane(mat.ceiling, x[0], x[1], z[0], z[1], s.y + s.h, false);
@@ -158,28 +160,33 @@ export function buildHouse(surfaces) {
     post(z, y0 + 0.12, y1, 0.035);
     post(z, y0 + 0.24, y0 + 0.36, 0.05);
   };
-  // Down the flight: a baluster on every other tread under a sloping rail,
-  // with a newel post at the foot.
+  // The open banister: from a newel post at the foot of the flight, a
+  // baluster to every tread under a sloping rail, to a post against the hall's
+  // back wall. Past that line the flight runs between walls, and the rail
+  // there is a handrail on the wall. It once ran on up to the stairhead,
+  // through the slot's wall, and came out of it into the gallery upstairs.
   const zFoot = BLOCKERS[0].z[1];
   const zHead = STAIRS.z[0];
+  const zBack = T / 2 + 0.05;
   const stairY = (z) => Math.min(STAIRS.top, Math.max(0, ((STAIRS.z[1] - z) / (STAIRS.z[1] - STAIRS.z[0])) * (STAIRS.top - STAIRS.bottom)));
-  for (let z = zFoot - 0.2; z >= zHead - 1e-6; z -= run) baluster(z, stairY(z), stairY(z) + RAIL);
+  for (let z = zFoot - 0.2; z > zBack + 0.05; z -= run) baluster(z, stairY(z), stairY(z) + RAIL);
   post(zFoot, 0, stairY(zFoot) + RAIL + 0.15, 0.11);
   post(zFoot, stairY(zFoot) + RAIL + 0.15, stairY(zFoot) + RAIL + 0.22, 0.15);
-  {
-    const y0 = stairY(zFoot) + RAIL;
-    const y1 = stairY(zHead) + RAIL;
-    const len = Math.hypot(zFoot - zHead, y1 - y0);
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, len), mat.banister);
-    rail.position.set(railX, (y0 + y1) / 2, (zFoot + zHead) / 2);
-    rail.rotation.x = Math.atan2(y1 - y0, zFoot - zHead);
+  post(zBack, 0, stairY(zBack) + RAIL + 0.1, 0.1);
+  const sloped = (x, z0, z1, rise, w, h) => {
+    const y0 = stairY(z0) + rise;
+    const y1 = stairY(z1) + rise;
+    const len = Math.hypot(z0 - z1, y1 - y0);
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(w, h, len), mat.banister);
+    rail.position.set(x, (y0 + y1) / 2, (z0 + z1) / 2);
+    rail.rotation.x = Math.atan2(y1 - y0, z0 - z1);
     group.add(rail);
-  }
-  // Along the stairhead: level, at rail height off the upper floor.
-  const zEnd = BLOCKERS[0].z[0];
-  for (let z = zHead; z >= zEnd - 1e-6; z -= run) baluster(z, UPPER, UPPER + RAIL);
-  box(mat.banister, railX - 0.04, railX + 0.04, UPPER + RAIL, UPPER + RAIL + 0.06, zEnd, zHead, false);
-  post(zHead, UPPER - 0.3, UPPER + RAIL + 0.15, 0.11);
+  };
+  sloped(railX, zFoot, zBack, RAIL, 0.08, 0.06);
+  // The handrail on the wall, on brackets, from the back wall to the head.
+  const wallX = STAIRS.x[0] - 0.02;
+  sloped(wallX, -T / 2, zHead, RAIL - 0.05, 0.045, 0.045);
+  for (let z = -0.4; z > zHead; z -= 0.9) box(mat.banister, STAIRWELL.x[0] - 0.05, wallX, stairY(z) + RAIL - 0.12, stairY(z) + RAIL - 0.08, z - 0.02, z + 0.02, false);
 
   return { group, colliders };
 }
