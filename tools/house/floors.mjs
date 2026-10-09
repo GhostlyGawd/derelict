@@ -18,13 +18,16 @@
  *      player can get to it, because the player can. A door's open leaf is a
  *      collider, so a leaf that swings across a way through fails here.
  *   4. At the end, every space is reached on its own floor.
+ *   5. No place inside the house counts as out of it. The run ends past a
+ *      line beside the front door, and the kitchen once ran east of that
+ *      line too: walking to its stove ended the game.
  *
  *   node tools/house/floors.mjs [baseUrl]
  */
 import { LOOP, X, Z, edges, fill, onStairs, openFreeDoors, openHouse, takeStep } from './lib/grid.mjs';
 
 const BASE = process.argv[2] || 'http://127.0.0.1:4173/';
-const { SPACES } = await import(new URL('../../src/house/layout.js', import.meta.url).href);
+const { SPACES, isOut } = await import(new URL('../../src/house/layout.js', import.meta.url).href);
 /** A change of floor height bigger than this between squares is a climb or a fall. */
 const LEVEL_CHANGE = 0.2;
 
@@ -49,11 +52,15 @@ const judge = (name, colliders, seen) => {
   const reached = new Set();
   let up = 0;
   let stairs = 0;
+  let out = null;
   for (const [i, j, y] of seen.values()) {
     if (y > 2.99) up++;
     else if (y > 0.001) stairs++;
     for (const s of SPACES) {
-      if (Math.abs(s.y - y) < 1e-6 && X(i) > s.x[0] && X(i) < s.x[1] && Z(j) > s.z[0] && Z(j) < s.z[1]) reached.add(s.id);
+      if (Math.abs(s.y - y) < 1e-6 && X(i) > s.x[0] && X(i) < s.x[1] && Z(j) > s.z[0] && Z(j) < s.z[1]) {
+        reached.add(s.id);
+        if (isOut({ x: X(i), y, z: Z(j) })) out ??= `${s.id} at (${X(i)}, ${y}, ${Z(j)})`;
+      }
     }
   }
   report.push(
@@ -68,6 +75,7 @@ const judge = (name, colliders, seen) => {
     const e = between[0];
     failures.push(`${name}: ${between.length} moves between floors off the stairs, e.g. (${e.from.join(', ')}) → (${e.to.join(', ')})`);
   }
+  if (out) failures.push(`${name}: a place inside the house counts as out of it: ${out}`);
   if (previous) {
     let lost = 0;
     let example = null;
@@ -83,6 +91,18 @@ const judge = (name, colliders, seen) => {
   last = reached;
 };
 
+// The player has to start somewhere they can stand: a spawn whose box is in
+// a wall reaches one place and nothing else. That once crashed this proof
+// rather than failing it.
+{
+  const start = await driver.snapshot();
+  const reach = fill(start.colliders, start.spawn);
+  if (reach.size < 50) {
+    console.log(`FAIL\n  ✗ the player starts somewhere they cannot move from (${reach.size} places reached)`);
+    await driver.close();
+    process.exit(1);
+  }
+}
 let { snap, seen } = await openFreeDoors(driver);
 judge('the start', snap.colliders, seen);
 for (const row of LOOP) {
@@ -106,3 +126,4 @@ if (failures.length) {
 console.log('\n  ✓ every place on both floors can be walked back from, at every step');
 console.log('  ✓ the stairs are the only way between the floors');
 console.log('  ✓ the reachable set only grows, and every space is reached by the end');
+console.log('  ✓ no place inside the house counts as out of it');

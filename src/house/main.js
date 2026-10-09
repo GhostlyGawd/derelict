@@ -11,11 +11,17 @@ import { Interactor } from '../game/interact.js';
 import { fovFor } from '../game/viewmodel.js';
 
 import { buildHouse } from './level.js';
-import { ITEMS, LOOP, OUT_Z, PLAYER_HEIGHT, PLAYER_RADIUS, RING_SIZE, SPACES, SPAWN, floorAt, spaceAt } from './layout.js';
+import { loadSurfaces } from './surfaces.js';
+import { dressHouse } from './dress.js';
+import { createGrade } from './grade.js';
+import { buildHandheld } from './handheld.js';
+import { ITEMS, LOOP, PLAYER_HEIGHT, PLAYER_RADIUS, RING_SIZE, SPACES, SPAWN, floorAt, isOut, spaceAt } from './layout.js';
 import * as LAYOUT from './layout.js';
 import { buildThings } from './things.js';
 
-const BASE_FOV = 72;
+// Wider than the ship's 72: the reference hall is seen through a wide lens,
+// with the front door at the right edge of the frame and the window at the left.
+const BASE_FOV = 80;
 /** No input at all, for the frames a note is open. */
 const STILL = { move: { x: 0, y: 0 }, crouchHeld: false, takeLook: () => ({ dx: 0, dy: 0 }) };
 
@@ -42,7 +48,7 @@ class House {
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x020403);
-    this.scene.fog = new THREE.Fog(0x020403, 4, 22);
+    this.scene.fog = new THREE.Fog(0x050a05, 5, 16);
     this.camera = new THREE.PerspectiveCamera(BASE_FOV, 1, 0.05, 60);
     this.player = new Player(this.camera);
     this.player.floorAt = floorAt;
@@ -80,13 +86,18 @@ class House {
   }
 
   async boot() {
-    this.hud.setLoading(0.3, 'Building the house…');
+    this.hud.setLoading(0.2, 'Opening the door…');
+    this.surfaces = await loadSurfaces();
+    this.hud.setLoading(0.6, 'Building the house…');
     await new Promise((r) => requestAnimationFrame(() => r()));
-    const house = buildHouse();
+    const house = buildHouse(this.surfaces.materials);
     this.scene.add(house.group);
-    this.things = buildThings();
+    this.dressing = dressHouse(this.surfaces.materials);
+    this.scene.add(this.dressing.group);
+    for (const light of this.dressing.lights) this.scene.add(light);
+    this.things = buildThings(this.surfaces.materials);
     this.scene.add(this.things.group);
-    this.staticColliders = house.colliders.concat(this.things.staticColliders);
+    this.staticColliders = house.colliders.concat(this.things.staticColliders, this.dressing.colliders);
     this.doors = this.things.doors;
     this.doorsById = new Map(this.things.doors.map((d) => [d.id, d]));
     this.thingsById = new Map(this.things.all.map((t) => [t.id, t]));
@@ -100,13 +111,18 @@ class House {
     this.readerEl.addEventListener('click', () => this.#closeNote());
     this.#drawRing();
 
-    // Greybox light: enough to read the shapes, one lamp per room.
-    this.scene.add(new THREE.HemisphereLight(0x8a9a88, 0x1a1c18, 0.55));
+    // The light: the hall has its one lamp (dress.js). The rooms not yet
+    // dressed keep a dim lamp each so they can be played, and a little night
+    // comes in everywhere.
+    this.scene.add(new THREE.HemisphereLight(0x3a4a5a, 0x0a0c08, 0.12));
     for (const s of SPACES) {
-      const lamp = new THREE.PointLight(0xd8e6c8, 6, 9, 1.6);
+      if (s.id === 'hall' || s.id === 'stairhead') continue;
+      const lamp = new THREE.PointLight(0xd8e6c8, 2.5, 7, 1.6);
       lamp.position.set((s.x[0] + s.x[1]) / 2, s.y + s.h - 0.3, (s.z[0] + s.z[1]) / 2);
       this.scene.add(lamp);
     }
+    this.grade = createGrade(this.view, this.surfaces.grade);
+    this.handheld = buildHandheld(this.surfaces);
 
     this.player.reset(SPAWN.pos, SPAWN.yaw);
     this.hud.setLoading(1, 'Ready');
@@ -130,6 +146,7 @@ class House {
     this.hud.setHudVisible(true);
     this.ringEl.classList.remove('hidden');
     this.ringEl.classList.toggle('touch', this.input.usingTouch);
+    this.#resize();
     this.hud.setTouchVisible(this.input.usingTouch);
     this.input.setEnabled(true);
     this.input.requestPointerLock();
@@ -156,6 +173,28 @@ class House {
     this.camera.fov = fovFor(BASE_FOV, aspect);
     this.camera.aspect = aspect;
     this.camera.updateProjectionMatrix();
+    this.handheld?.resize(aspect, this.#thumbRoom());
+  }
+
+  /**
+   * Where the thumbs' controls are, as fractions of the screen's width, as on
+   * the ship: the handheld keeps between the stick and the buttons (9.4.7).
+   */
+  #thumbRoom() {
+    if (!this.input.usingTouch) return {};
+    const edge = (ids, side) => {
+      let v = side === 'left' ? Infinity : -Infinity;
+      for (const id of ids) {
+        const b = document.getElementById(id)?.getBoundingClientRect();
+        if (b && b.width > 0) v = side === 'left' ? Math.min(v, b.left) : Math.max(v, b.right);
+      }
+      return Number.isFinite(v) ? v : null;
+    };
+    const buttons = edge(['touch-interact', 'touch-crouch'], 'left');
+    const stick = edge(['stick'], 'right');
+    if (buttons === null) return {};
+    const w = window.innerWidth;
+    return { rightLimit: (buttons - 10) / w, leftLimit: stick === null ? null : (stick + 10) / w };
   }
 
   #frame(now) {
@@ -193,11 +232,12 @@ class House {
         this.player.update(dt, this.input, this.colliders());
         this.#updateInteraction();
       }
-      if (this.player.position.z > OUT_Z) this.#out();
+      if (isOut(this.player.position)) this.#out();
     }
     for (const t of this.things.all) t.update(dt);
     this.refusal = Math.max(0, this.refusal - dt);
-    if (render) this.view.render(this.scene, this.camera, null);
+    this.handheld.update(dt, this.player.bobPhase, this.player.speed);
+    if (render) this.grade.render(this.scene, this.camera, this.reading ? null : this.handheld);
     else {
       this.scene.updateMatrixWorld();
       this.camera.updateMatrixWorld();
@@ -214,7 +254,10 @@ class House {
     const action = target ? this.#promptFor(target) : null;
     const key = this.input.promptKey;
     this.hud.setPrompt(action && (key ? `[${key}] ${action}` : action));
-    if (this.input.takeInteract()) this.#press(target);
+    if (this.input.takeInteract()) {
+      this.handheld.play();
+      this.#press(target);
+    }
   }
 
   #promptFor(target) {
@@ -289,7 +332,7 @@ class House {
   #drawRing() {
     const names = this.ring.map((k) => ITEMS[k].name);
     this.ringEl.querySelector('.count').textContent = `${this.ring.length}/${RING_SIZE}`;
-    this.ringEl.querySelector('.items').textContent = names.length ? names.join(' · ') : '—';
+    this.ringEl.querySelector('.items').textContent = names.length ? names.join(' ') : '';
   }
 
   /** Which steps of the loop are done, for the harnesses: one boolean per LOOP row. */

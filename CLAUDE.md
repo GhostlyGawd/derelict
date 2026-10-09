@@ -133,6 +133,45 @@ two of the reasons are bugs the instruments should have caught:
   ship, because the ship is not to change in this phase, and recorded here
   as a finding for a later one.
 
+*Milestone 3, the entry hall.* The hall was re-laid to the reference's
+composition. The flight now runs on past the back wall's line into a slot in
+the ceiling, the front door is in the right-hand wall just short of the stair
+foot, and a gallery beside the stairwell reaches the bedroom. The field of
+view is wider than the ship's (80° against 72°), because the reference shows
+the window at the left edge and the front door at the right. The style
+engine's first findings were its own bugs: a damp spread that grew on every
+pass and soaked the wall black, and a fractional blur radius that read the
+wetness field between cells. Both were caught by looking at the generated
+plaster before it went on a wall. The lamp is a downward cone with a faint
+glow up, because a bare bulb lit the ceiling brightest of anything, and the
+reference's ceiling is nearly black.
+
+Dressing the hall broke two proofs, and both were real. The hall's chair,
+placed where the reference has it, stood in the parlour doorway, and the floor
+proof found the parlour and its note unreachable. And the line past which the
+run ends was a line across the whole plan, so walking to the kitchen stove
+ended the game. The chain harness found that one by accident. Its hostile
+walks at the study door start in the kitchen, and they ended the run on its
+first pass, which left its second pass, the self-test, a house that no longer
+moved. The line now holds only beside the hall, and the floor proof fails any
+place inside the house that counts as out of it. It is shown to fail on the
+old line. The self-test's walks now also turn back and lean on the door, as a
+player trying to get through would.
+
+The monkey then found three more, all from re-laying the house, and all now in
+`tools/traces/monkey-house/` or fixed in the layout. With the study door open,
+its leaf and the study's note table left a gap narrower than the player, so
+the study could be entered and its desk never reached. The floor proof had
+passed it, because the desk is within arm's reach of the doorway. And the slot
+the stairs climb through had side walls a few centimetres proud of the
+banister on one side and of the hall's wall on the other, so a player climbing
+with a shoulder to either one had their head inside the slot's edge. The
+banister now runs to a newel post at the foot of the flight, as in the
+reference, and the stairs are climbed from the front. The handheld is the
+battery lantern 9.4.4 asked for, held with its face to the player as the
+device in the reference is: a grille, a gauge and a handle, built in engine
+and kept clear of the touch buttons by the scanner's rule.
+
 For now, doors open and stay open, and a key is spent at its door. On a
 phone the key ring sits at the top left, because the stick holds the bottom
 left.
@@ -365,7 +404,20 @@ the image is copied or committed. At 448 × 299:
 | Distinct colours at 15-bit | 763 |
 
 The house is held to these within tolerances the build sets on the entry hall
-and records here before it dresses another room. The numbers describe a look.
+and records here before it dresses another room. Set on 9 October 2026, on
+three views of the hall (`tools/house/style.mjs`):
+
+| | Tolerance | The hall, from the door |
+|---|---|---|
+| Median luminance | ×0.4 to ×3 of the target | in |
+| 95th-percentile luminance | ×0.5 to ×2 | in |
+| Share where green dominates | ±0.12 | in |
+| Mean saturation | ±0.15 | in |
+| Fine detail | ×0.5 to ×2 | in |
+| Distinct 15-bit colours | ×0.4 to ×2.5 | in |
+
+The reference view's mean colour is 36, 42, 23 against the reference's
+35, 46, 27. A tolerance is not loosened to let a change through. The numbers describe a look.
 They are not a picture to match pixel for pixel, and the house's own rooms
 will differ from the reference in every detail.
 

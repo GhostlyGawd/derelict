@@ -5,21 +5,36 @@
  * floors and lighting are derived from these tables, so the house is reshaped
  * here and nowhere else.
  *
- * Units are metres. +X is east, -Z is north (into the house). The front door
- * is on the south face at z = +5, and the player starts inside it looking in.
+ * Units are metres. +X is east, -Z is north (into the house).
  *
- *   GROUND (y = 0)                      UPPER (y = 3.0)
- *   ┌────────┬────────┬────────┐  z=-4  ┌────────┬────────┬────────┐
- *   │ DINING │  BACK  │KITCHEN │        │ CHILD'S│        │BATHROOM│
- *   │        │PASSAGE │        │        │  ROOM  │        │        │
- *   ├────────┼──arch──┼────────┤  z=-1  │        │LANDING ├────────┤ z=1
- *   │PARLOUR │ ENTRY  ║ STUDY  │        ├────────┤        │ (shut) │
- *   │        │  HALL  ║(locked)│        │BEDROOM │    ║   │        │
- *   └────────┴──door──┴────────┘  z=+5  └────────┴────────┴────────┘
- *    x=-6    x=-2    x=2     x=6               ║ = the stairs
+ * The entry hall is the reference picture, laid out to be seen from where the
+ * player starts: at the hall's south end, looking north. In front of them,
+ * the hall's back wall has a panelled door on the left and an arch in the
+ * middle onto a passage. The stairs climb away up the right-hand side, into a
+ * slot in the ceiling. The front door, with its small panes, is in the right
+ * wall near the player; a curtained window is in the left wall. The hall is
+ * the front of the house and stands out from it, so both its side walls are
+ * outside walls, and the rest of the house is behind it.
  *
- * The stairs climb the hall's east wall from the front toward the back, from
- * the hall floor at z = 4.6 to the landing at z = 0.4.
+ *   GROUND (y = 0)                                 UPPER (y = 3.0)
+ *   x=-6.4      -0.9  1.1          6.4      z      x=-6.4      -0.9     2.4   6.4
+ *   ┌───────────┬─────┬──────────────┐  -6        ┌───────────┬────────┬─────┐
+ *   │  DINING   │BACK │   KITCHEN    │            │  CHILD'S  │        │BATH │
+ *   │ (locked)  │PASS-│              │            │   ROOM    │LANDING │     │
+ *   ├───────────┤ AGE ├────door──────┤  -3        ├───────────┤        ├─────┤
+ *   │  PARLOUR  │     │    STUDY     │            │  BEDROOM  │        │     │
+ *   │           │     │   (locked)   │            │           │        │     │
+ *   └──┬─door───┴arch─┴──┬───────────┘   0        └───────────┴──door──┴─────┘
+ *      │    ENTRY HALL ║ │                                       ║ stairhead
+ *      │ window        ║ │                                       ║
+ *      │      stairs → ║ door (front)                            ║ (stairs)
+ *      └───────────────┘    6.5
+ *       x=-2.4        2.4
+ *
+ * The stairs climb the hall's east side from z = 1.5, through the line of
+ * the back wall and on up to the stairhead at z = -2.3, where the door the
+ * clock unlatches waits in the landing's south wall. A gallery beside the
+ * stairwell, over the back passage, leads to the bedroom.
  */
 
 export const WALL_THICKNESS = 0.2;
@@ -37,95 +52,107 @@ export const STEP_UP = 0.45;
 
 export const SPACES = [
   // ---- Ground ----
-  { id: 'hall', name: 'Entry Hall', floor: 0, x: [-2, 2], z: [-1, 5], y: GROUND, h: 2.8 },
-  { id: 'parlour', name: 'Parlour', floor: 0, x: [-6, -2], z: [1, 5], y: GROUND, h: 2.8 },
-  { id: 'study', name: 'Study', floor: 0, x: [2, 6], z: [1, 5], y: GROUND, h: 2.8 },
-  { id: 'dining', name: 'Dining Room', floor: 0, x: [-6, -2], z: [-4, 1], y: GROUND, h: 2.8 },
-  { id: 'passage', name: 'Back Passage', floor: 0, x: [-2, 2], z: [-4, -1], y: GROUND, h: 2.8 },
-  { id: 'kitchen', name: 'Kitchen', floor: 0, x: [2, 6], z: [-4, 1], y: GROUND, h: 2.8 },
+  { id: 'hall', name: 'Entry Hall', floor: 0, x: [-2.4, 2.4], z: [0, 4.6], y: GROUND, h: 2.8 },
+  { id: 'parlour', name: 'Parlour', floor: 0, x: [-6.4, -0.9], z: [-3, 0], y: GROUND, h: 2.8 },
+  { id: 'passage', name: 'Back Passage', floor: 0, x: [-0.9, 1.1], z: [-6, 0], y: GROUND, h: 2.8 },
+  { id: 'study', name: 'Study', floor: 0, x: [2.4, 6.4], z: [-3, 0], y: GROUND, h: 2.8 },
+  { id: 'dining', name: 'Dining Room', floor: 0, x: [-6.4, -0.9], z: [-6, -3], y: GROUND, h: 2.8 },
+  { id: 'kitchen', name: 'Kitchen', floor: 0, x: [1.1, 6.4], z: [-6, -3], y: GROUND, h: 2.8 },
   // ---- Upper ----
-  { id: 'landing', name: 'Landing', floor: 1, x: [-2, 2], z: [-4, 5], y: UPPER, h: 2.6 },
-  { id: 'bedroom', name: 'Bedroom', floor: 1, x: [-6, -2], z: [1, 5], y: UPPER, h: 2.6 },
-  { id: 'child', name: "Child's Room", floor: 1, x: [-6, -2], z: [-4, 1], y: UPPER, h: 2.6 },
-  { id: 'bathroom', name: 'Bathroom', floor: 1, x: [2, 6], z: [-4, 1], y: UPPER, h: 2.6 },
+  { id: 'stairhead', name: 'Stairhead', floor: 1, x: [1.2, 2.4], z: [-2.9, -2.3], y: UPPER, h: 2.6 },
+  { id: 'landing', name: 'Landing', floor: 1, x: [-0.9, 2.4], z: [-6, -2.9], y: UPPER, h: 2.6 },
+  // The landing runs on south as a gallery beside the stairwell, over the
+  // back passage, to the bedroom's door.
+  { id: 'gallery', name: 'Gallery', floor: 1, x: [-0.9, 1.2], z: [-2.9, 0], y: UPPER, h: 2.6 },
+  { id: 'bedroom', name: 'Bedroom', floor: 1, x: [-6.4, -0.9], z: [-3, 0], y: UPPER, h: 2.6 },
+  { id: 'child', name: "Child's Room", floor: 1, x: [-6.4, -0.9], z: [-6, -3], y: UPPER, h: 2.6 },
+  { id: 'bathroom', name: 'Bathroom', floor: 1, x: [2.4, 6.4], z: [-6, -2.9], y: UPPER, h: 2.6 },
 ];
 
 /**
- * The stairs: a ramp of floor, rising along -Z. Climbed, never jumped — there
- * is no jump — and the only way between the floors.
+ * The stairs: a ramp of floor, rising along -Z, from the hall up through the
+ * back wall's line to the stairhead. Climbed, never jumped — there is no jump
+ * — and the only way between the floors.
  */
-export const STAIRS = { x: [0.85, 1.95], z: [0.4, 4.6], bottom: GROUND, top: UPPER };
+export const STAIRS = { x: [1.3, 2.3], z: [-2.3, 1.5], bottom: GROUND, top: UPPER };
 
 /**
- * The hole in the upper floor the stairs come up through. No landing floor
- * here, and the banister keeps anyone on the landing from walking into it.
+ * The slot the flight climbs through: a hole in the hall's ceiling, walled up
+ * to the upper floor's ceiling, running back past the hall to the stairhead.
+ * Its walls are colliders above the hall's ceiling, so nobody on the upper
+ * part of the flight or the stairhead steps off it to either side.
  */
-export const STAIRWELL = { x: [0.8, 2], z: [0.4, 5] };
+export const STAIRWELL = { x: [1.25, 2.4], z: [-2.9, 1.5] };
 
 /**
  * Wall lines, per floor. `axis: 'x'` is a wall at constant x running in z from
  * `from` to `to`; `axis: 'z'` runs in x. `y` is the floor it stands on and `h`
- * its height. Openings are cut out and capped above. `kind` names what fills
- * the opening in a later milestone; in greybox every opening is open.
+ * its height. Openings are cut out and capped above; `kind` says what fills
+ * one. A `window` is cut from the wall's look only, never from its collider.
  */
 export const WALLS = [
   // ===== Ground floor =====
-  // Outer shell
-  { y: GROUND, h: 2.8, axis: 'z', at: 5, from: -6, to: 6, openings: [{ center: 0, width: 1.1, height: 2.2, id: 'front-door', kind: 'door' }] },
-  { y: GROUND, h: 2.8, axis: 'z', at: -4, from: -6, to: 6, openings: [] },
-  { y: GROUND, h: 2.8, axis: 'x', at: -6, from: -4, to: 5, openings: [] },
-  { y: GROUND, h: 2.8, axis: 'x', at: 6, from: -4, to: 5, openings: [] },
-  // Hall west (parlour), hall east (study, behind the stairs: solid)
-  { y: GROUND, h: 2.8, axis: 'x', at: -2, from: -1, to: 5, openings: [{ center: 3, width: 1.0, height: 2.15, id: 'parlour-door', kind: 'door' }] },
-  { y: GROUND, h: 2.8, axis: 'x', at: 2, from: -1, to: 5, openings: [] },
-  // Hall to back passage: the arch
-  { y: GROUND, h: 2.8, axis: 'z', at: -1, from: -2, to: 2, openings: [{ center: -0.45, width: 1.5, height: 2.35, id: 'arch', kind: 'arch' }] },
-  // Parlour / dining, and study / kitchen
-  { y: GROUND, h: 2.8, axis: 'z', at: 1, from: -6, to: -2, openings: [] },
-  { y: GROUND, h: 2.8, axis: 'z', at: 1, from: 2, to: 6, openings: [{ center: 4, width: 1.0, height: 2.15, id: 'study-door', kind: 'door' }] },
-  // Back passage to dining and kitchen
-  { y: GROUND, h: 2.8, axis: 'x', at: -2, from: -4, to: -1, openings: [{ center: -2.5, width: 1.0, height: 2.15, id: 'dining-door', kind: 'door' }] },
-  { y: GROUND, h: 2.8, axis: 'x', at: 2, from: -4, to: -1, openings: [{ center: -2.5, width: 1.0, height: 2.15, id: 'kitchen-door', kind: 'door' }] },
+  // The hall's back wall, which runs on as the front of the house, broken
+  // where the stairs pass through it.
+  { y: GROUND, h: 2.8, axis: 'z', at: 0, from: -6.4, to: 1.25, openings: [
+    { center: -1.6, width: 0.95, height: 2.15, id: 'parlour-door', kind: 'door' },
+    { center: 0.1, width: 1.3, height: 2.35, id: 'arch', kind: 'arch' },
+  ] },
+  { y: GROUND, h: 2.8, axis: 'z', at: 0, from: 2.4, to: 6.4, openings: [] },
+  { y: GROUND, h: 2.8, axis: 'z', at: 4.6, from: -2.4, to: 2.4, openings: [] },
+  { y: GROUND, h: 2.8, axis: 'x', at: -2.4, from: 0, to: 4.6, openings: [
+    { center: 2.6, width: 1.0, height: 1.5, sill: 0.85, id: 'hall-window', kind: 'window' },
+  ] },
+  { y: GROUND, h: 2.8, axis: 'x', at: 2.4, from: 0, to: 4.6, openings: [
+    { center: 1.95, width: 1.0, height: 2.2, id: 'front-door', kind: 'door' },
+  ] },
+  { y: GROUND, h: 2.8, axis: 'x', at: 2.4, from: -3, to: 0, openings: [] },
+  // The back of the house
+  { y: GROUND, h: 2.8, axis: 'z', at: -6, from: -6.4, to: 6.4, openings: [] },
+  { y: GROUND, h: 2.8, axis: 'x', at: -6.4, from: -6, to: 0, openings: [] },
+  { y: GROUND, h: 2.8, axis: 'x', at: 6.4, from: -6, to: 0, openings: [] },
+  { y: GROUND, h: 2.8, axis: 'z', at: -3, from: -6.4, to: -0.9, openings: [] },
+  { y: GROUND, h: 2.8, axis: 'z', at: -3, from: 1.1, to: 6.4, openings: [{ center: 4, width: 1.0, height: 2.15, id: 'study-door', kind: 'door' }] },
+  { y: GROUND, h: 2.8, axis: 'x', at: -0.9, from: -6, to: 0, openings: [{ center: -4.5, width: 1.0, height: 2.15, id: 'dining-door', kind: 'door' }] },
+  { y: GROUND, h: 2.8, axis: 'x', at: 1.1, from: -6, to: 0, openings: [{ center: -4.5, width: 1.0, height: 2.15, id: 'kitchen-door', kind: 'door' }] },
 
   // ===== Upper floor =====
-  { y: UPPER, h: 2.6, axis: 'z', at: 5, from: -6, to: 6, openings: [] },
-  { y: UPPER, h: 2.6, axis: 'z', at: -4, from: -6, to: 6, openings: [] },
-  { y: UPPER, h: 2.6, axis: 'x', at: -6, from: -4, to: 5, openings: [] },
-  { y: UPPER, h: 2.6, axis: 'x', at: 6, from: -4, to: 5, openings: [] },
-  { y: UPPER, h: 2.6, axis: 'x', at: -2, from: -4, to: 5, openings: [
-    { center: 3, width: 1.0, height: 2.1, id: 'bedroom-door', kind: 'door' },
-    { center: -1.5, width: 1.0, height: 2.1, id: 'child-door', kind: 'door' },
+  { y: UPPER, h: 2.6, axis: 'z', at: 0, from: -6.4, to: 1.2, openings: [] },
+  // At the head of the stairs, the door the clock holds, onto the landing.
+  { y: UPPER, h: 2.6, axis: 'z', at: -2.9, from: 1.2, to: 2.4, openings: [{ center: 1.8, width: 1.0, height: 2.1, id: 'stair-door', kind: 'door' }] },
+  { y: UPPER, h: 2.6, axis: 'z', at: -6, from: -6.4, to: 6.4, openings: [] },
+  { y: UPPER, h: 2.6, axis: 'x', at: -6.4, from: -6, to: 0, openings: [] },
+  { y: UPPER, h: 2.6, axis: 'x', at: 6.4, from: -6, to: -2.9, openings: [] },
+  { y: UPPER, h: 2.6, axis: 'x', at: -0.9, from: -6, to: 0, openings: [
+    { center: -1.5, width: 1.0, height: 2.1, id: 'bedroom-door', kind: 'door' },
+    { center: -4.5, width: 1.0, height: 2.1, id: 'child-door', kind: 'door' },
   ] },
-  { y: UPPER, h: 2.6, axis: 'x', at: 2, from: -4, to: 5, openings: [{ center: -1.5, width: 1.0, height: 2.1, id: 'bathroom-door', kind: 'door' }] },
-  { y: UPPER, h: 2.6, axis: 'z', at: 1, from: -6, to: -2, openings: [] },
-  { y: UPPER, h: 2.6, axis: 'z', at: 1, from: 2, to: 6, openings: [] },
-  // The head of the stairs: a short partition across the top of the flight,
-  // from the banister to the hall's east wall, with a door in it. The stairs
-  // below are open; this door is what the clock unlatches (9.3, step 3).
-  { y: UPPER, h: 2.6, axis: 'z', at: 0.3, from: 0.75, to: 1.9, openings: [{ center: 1.38, width: 1.0, height: 2.1, id: 'stair-door', kind: 'door' }] },
+  { y: UPPER, h: 2.6, axis: 'x', at: 2.4, from: -6, to: -2.9, openings: [{ center: -4.5, width: 1.0, height: 2.1, id: 'bathroom-door', kind: 'door' }] },
+  { y: UPPER, h: 2.6, axis: 'z', at: -3, from: -6.4, to: -0.9, openings: [] },
+  { y: UPPER, h: 2.6, axis: 'z', at: -2.9, from: 2.4, to: 6.4, openings: [] },
 ];
 
 /**
- * Solid things that are not walls: the banister, and the stairs' own side.
- * Boxes, in metres, with a floor and a ceiling each.
+ * Solid things that are not walls. Boxes, in metres, with a floor and a
+ * ceiling each.
  */
 export const BLOCKERS = [
-  // The banister and the panelled side of the stairs, along their open west
-  // side, from where the treads are knee-high to the top, and on up past the
-  // landing's floor so nobody on the landing walks into the stairwell.
-  { x: [0.75, 0.85], z: [0.4, 3.9], y: [0, UPPER + 1.0] },
-  // The banister carries on along the landing above the bottom of the stairs.
-  { x: [0.75, 0.85], z: [3.9, 5], y: [UPPER, UPPER + 1.0] },
+  // The banister, down the flight's open west side from the stairhead to the
+  // newel post at its foot, as in the reference: the stairs are climbed from
+  // the front. Tall, so nobody steps off the stairs into the hall, and down to
+  // the floor, so nobody walks in under the flight. What is drawn is a rail on
+  // balusters (level.js), not this box.
+  { x: [1.15, 1.25], z: [-2.9, 1.45], y: [0, UPPER + 1.0] },
 ];
 
-/** Where the player starts: just inside the front door, facing in. */
-export const SPAWN = { pos: [0, GROUND, 4.2], yaw: 0 };
+/** Where the player starts: at the hall's south end, looking in, as in the reference. */
+export const SPAWN = { pos: [0.05, GROUND, 4.1], yaw: 0 };
 
 /**
  * The floor under (x, z), for a player whose feet are at `y`: the highest
- * floor that is at or below a step's height above them. Rooms are flat, the
- * stairs are a ramp, and the landing has a hole where the stairs come up. A
- * point with no floor at all (outside the house) returns null.
+ * floor that is at or below a step's height above them. Rooms are flat and
+ * the stairs are a ramp. A point with no floor at all (outside the house)
+ * returns null.
  */
 export function floorAt(x, z, y = GROUND) {
   let best = null;
@@ -134,7 +161,6 @@ export function floorAt(x, z, y = GROUND) {
   };
   for (const s of SPACES) {
     if (x < s.x[0] || x > s.x[1] || z < s.z[0] || z > s.z[1]) continue;
-    if (s.floor === 1 && inside(STAIRWELL, x, z)) continue;
     consider(s.y);
   }
   if (inside(STAIRS, x, z)) consider(stairHeight(z));
@@ -197,7 +223,7 @@ export const RING_SIZE = 4;
  * the player's, and arrives with the dread in milestone 6.
  */
 export const DOORS = [
-  { id: 'front-door', hinge: -1, swing: 1, lock: ['front-key'] },
+  { id: 'front-door', hinge: -1, swing: 1, lock: ['front-key'], panes: [2, 3] },
   { id: 'parlour-door', hinge: 1, swing: -1 },
   { id: 'dining-door', hinge: -1, swing: -1, lock: ['dining-key'] },
   { id: 'kitchen-door', hinge: -1, swing: 1 },
@@ -215,10 +241,10 @@ export const DOORS = [
  * it faces, as a yaw (0 faces +z).
  */
 export const CONTAINERS = [
-  { id: 'kitchen-drawer', name: 'Drawer', at: [5.65, 0.8, -2.6], face: -Math.PI / 2, holds: 'dining-key' },
-  { id: 'bedroom-drawer', name: 'Drawer', at: [-5.65, UPPER + 0.8, 3.6], face: Math.PI / 2, holds: 'study-key' },
-  { id: 'child-box', name: 'Box', at: [-4.6, UPPER + 0.6, -3.65], face: 0, holds: 'tin-key' },
-  { id: 'study-desk', name: 'Desk Drawer', at: [3.4, 0.8, 4.65], face: Math.PI, holds: 'front-key' },
+  { id: 'kitchen-drawer', name: 'Drawer', at: [6.05, 0.8, -4.5], face: -Math.PI / 2, holds: 'dining-key' },
+  { id: 'bedroom-drawer', name: 'Drawer', at: [-6.05, UPPER + 0.8, -1.5], face: Math.PI / 2, holds: 'study-key' },
+  { id: 'child-box', name: 'Box', at: [-4.6, UPPER + 0.6, -5.65], face: 0, holds: 'tin-key' },
+  { id: 'study-desk', name: 'Desk Drawer', at: [4.6, 0.8, -0.35], face: Math.PI, holds: 'front-key' },
 ];
 
 /**
@@ -226,7 +252,7 @@ export const CONTAINERS = [
  * it an hour. When it reads `hour` it unlatches the door at the head of the
  * stairs, and that stays unlatched whatever the clock does after.
  */
-export const CLOCK = { at: [-4, 1.7, -3.85], face: 0, stopped: 7, hour: 3, opens: 'stair-door' };
+export const CLOCK = { at: [-3.6, 1.7, -5.85], face: 0, stopped: 7, hour: 3, opens: 'stair-door' };
 
 /**
  * Notes, as placeholders. The text is written in milestone 5 and shown to the
@@ -234,10 +260,11 @@ export const CLOCK = { at: [-4, 1.7, -3.85], face: 0, stopped: 7, hour: 3, opens
  * say, so the loop can be played and proved now.
  */
 export const NOTES = [
-  { id: 'notice', at: [-1.88, 1.5, 4.2], face: Math.PI / 2, title: 'NOTICE', text: '[Placeholder] A notice pinned by the door. Why someone left.' },
-  { id: 'hour', at: [-4, 0.78, 3.2], face: 0, flat: true, title: 'A NOTE', text: '[Placeholder] Every clock in the house stopped at three.' },
-  { id: 'bath-note', at: [5.88, UPPER + 1.5, -1.5], face: -Math.PI / 2, title: 'A NOTE', text: '[Placeholder] Written on the mirror, or near it.' },
-  { id: 'study-note', at: [4.6, 0.78, 4.4], face: 0, flat: true, title: 'A NOTE', text: '[Placeholder] The last of the story, in the study.' },
+  // Pinned to the hall's right-hand wall beside the front door, as in the reference.
+  { id: 'notice', at: [2.28, 1.55, 3.3], face: -Math.PI / 2, title: 'NOTICE', text: '[Placeholder] A notice pinned by the door. Why someone left.' },
+  { id: 'hour', at: [-3.6, 0.78, -1.5], face: 0, flat: true, title: 'A NOTE', text: '[Placeholder] Every clock in the house stopped at three.' },
+  { id: 'bath-note', at: [6.28, UPPER + 1.5, -4.5], face: -Math.PI / 2, title: 'A NOTE', text: '[Placeholder] Written on the mirror, or near it.' },
+  { id: 'study-note', at: [3.0, 0.78, -1.0], face: 0, flat: true, title: 'A NOTE', text: '[Placeholder] The last of the story, in the study.' },
 ];
 
 /**
@@ -259,8 +286,15 @@ export const LOOP = [
   { id: 'out', step: 'open the front door', door: 'front-door', needs: ['front-key'] },
 ];
 
-/** Past this line, out of the front door, the run is over. */
-export const OUT_Z = 5.6;
+/**
+ * The way out: through the front door in the hall's east wall. `inside` and
+ * `outside` are standing places either side of it, for the harnesses, and
+ * `past` is the line beyond which the run is over. It is only a line beside the
+ * hall, on the ground floor: the kitchen, the study and the
+ * bathroom run east of it too, and are inside.
+ */
+export const EXIT = { door: 'front-door', inside: [1.75, 0, 1.95], outside: [3.6, 0, 1.95], past: 2.95 };
+export const isOut = (p) => p.x > EXIT.past && p.z > 0 && p.y < 1;
 
 /** The opening a door fills, from WALLS. */
 export function openingFor(id) {

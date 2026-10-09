@@ -29,7 +29,7 @@ function frame(wall) {
   return wall.axis === 'x' ? { u: [0, 1], n: [1, 0] } : { u: [1, 0], n: [0, 1] };
 }
 
-function makeDoor(def, group) {
+function makeDoor(def, group, mat) {
   const { wall, opening } = openingFor(def.id);
   const { u, n } = frame(wall);
   const w = opening.width - 0.02;
@@ -42,12 +42,31 @@ function makeDoor(def, group) {
   const pivot = new THREE.Group();
   pivot.position.set(hx, wall.y, hz);
   group.add(pivot);
-  const material = new THREE.MeshLambertMaterial({ color: def.lock ? 0x5a3a28 : 0x6a5038 });
+  const material = mat ? mat.door.clone() : new THREE.MeshLambertMaterial({ color: def.lock ? 0x5a3a28 : 0x6a5038 });
   const leaf = new THREE.Mesh(new THREE.BoxGeometry(w, h, LEAF), material);
   // The leaf's own frame: it runs along local -hinge·x from the pivot, so the
   // closed door spans the opening when the pivot is turned to the wall.
   leaf.position.set(-def.hinge * (w / 2), h / 2, 0);
   pivot.add(leaf);
+  // The front door has small panes in its upper half, with the night behind
+  // them, as in the reference.
+  if (def.panes && mat) {
+    const [cols, rows] = def.panes;
+    const pw = (w * 0.62) / cols;
+    const ph = (h * 0.34) / rows;
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows; r++) {
+        for (const side of [-1, 1]) {
+          const pane = new THREE.Mesh(new THREE.PlaneGeometry(pw * 0.86, ph * 0.86), mat.night);
+          pane.position.set(-def.hinge * (w * 0.19 + pw * (c + 0.5)), h * 0.58 + ph * (r + 0.5), side * (LEAF / 2 + 0.002));
+          if (side < 0) pane.rotation.y = Math.PI;
+          leaf.add(pane);
+          pane.position.x -= leaf.position.x;
+          pane.position.y -= leaf.position.y;
+        }
+      }
+    }
+  }
   const knob = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.16), new THREE.MeshLambertMaterial({ color: 0xb09a60 }));
   knob.position.set(-def.hinge * (w - 0.1), 1.0, 0);
   pivot.add(knob);
@@ -121,7 +140,7 @@ function shortest(a) {
   return Math.atan2(Math.sin(a), Math.cos(a));
 }
 
-function makeContainer(def, group) {
+function makeContainer(def, group, mat) {
   const [x, y, z] = def.at;
   const body = new THREE.Group();
   body.position.set(x, 0, z);
@@ -129,16 +148,10 @@ function makeContainer(def, group) {
   group.add(body);
   const floorY = y - (def.id === 'child-box' ? 0.6 : 0.8);
   const height = y - floorY + 0.1;
-  const cabinet = new THREE.Mesh(
-    new THREE.BoxGeometry(0.9, height, 0.5),
-    new THREE.MeshLambertMaterial({ color: 0x4a3c2c })
-  );
+  const cabinet = new THREE.Mesh(new THREE.BoxGeometry(0.9, height, 0.5), mat ? mat.wood : new THREE.MeshLambertMaterial({ color: 0x4a3c2c }));
   cabinet.position.set(0, floorY + height / 2, -0.25);
   body.add(cabinet);
-  const drawer = new THREE.Mesh(
-    new THREE.BoxGeometry(0.7, 0.16, 0.06),
-    new THREE.MeshLambertMaterial({ color: 0x7a6040 })
-  );
+  const drawer = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.16, 0.06), mat ? mat.door.clone() : new THREE.MeshLambertMaterial({ color: 0x7a6040 }));
   drawer.position.set(0, y, 0.01);
   body.add(drawer);
 
@@ -183,13 +196,13 @@ function makeContainer(def, group) {
   return state;
 }
 
-function makeClock(group) {
+function makeClock(group, mat) {
   const [x, y, z] = CLOCK.at;
   const body = new THREE.Group();
   body.position.set(x, 0, z);
   body.rotation.y = CLOCK.face;
   group.add(body);
-  const caseMesh = new THREE.Mesh(new THREE.BoxGeometry(0.55, 2.0, 0.3), new THREE.MeshLambertMaterial({ color: 0x3a2a1c }));
+  const caseMesh = new THREE.Mesh(new THREE.BoxGeometry(0.55, 2.0, 0.3), mat ? mat.wood : new THREE.MeshLambertMaterial({ color: 0x3a2a1c }));
   caseMesh.position.set(0, 1.0, -0.12);
   body.add(caseMesh);
   const face = new THREE.Mesh(new THREE.CircleGeometry(0.2, 16), new THREE.MeshLambertMaterial({ color: 0xd8d0b8 }));
@@ -231,8 +244,9 @@ function makeClock(group) {
   return state;
 }
 
-function makeNote(def, group) {
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.21, 0.28), new THREE.MeshLambertMaterial({ color: 0xcfc8b0, side: THREE.DoubleSide }));
+function makeNote(def, group, mat) {
+  const paper = mat ? mat.paper.clone() : new THREE.MeshLambertMaterial({ color: 0xcfc8b0, side: THREE.DoubleSide });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(def.flat ? 0.21 : 0.32, def.flat ? 0.28 : 0.44), paper);
   const [x, y, z] = def.at;
   mesh.position.set(x, y, z);
   if (def.flat) mesh.rotation.set(-Math.PI / 2, 0, def.face);
@@ -256,9 +270,9 @@ function makeNote(def, group) {
 }
 
 /** Furniture a flat note lies on, so it is not floating. Greybox only. */
-function tables(group) {
+function tables(group, surfaces) {
   const colliders = [];
-  const mat = new THREE.MeshLambertMaterial({ color: 0x4a3a2a });
+  const mat = surfaces ? surfaces.wood : new THREE.MeshLambertMaterial({ color: 0x4a3a2a });
   for (const n of NOTES) {
     if (!n.flat) continue;
     const [x, y, z] = n.at;
@@ -272,14 +286,14 @@ function tables(group) {
   return colliders;
 }
 
-export function buildThings() {
+export function buildThings(mat = null) {
   const group = new THREE.Group();
   group.name = 'things';
-  const doors = DOORS.map((d) => makeDoor(d, group));
-  const containers = CONTAINERS.map((c) => makeContainer(c, group));
-  const clock = makeClock(group);
-  const notes = NOTES.map((n) => makeNote(n, group));
-  const furniture = tables(group);
+  const doors = DOORS.map((d) => makeDoor(d, group, mat));
+  const containers = CONTAINERS.map((c) => makeContainer(c, group, mat));
+  const clock = makeClock(group, mat);
+  const notes = NOTES.map((n) => makeNote(n, group, mat));
+  const furniture = tables(group, mat);
   const all = [...doors, ...containers, clock, ...notes];
   return {
     group,

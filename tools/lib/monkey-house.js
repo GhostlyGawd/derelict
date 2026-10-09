@@ -27,7 +27,7 @@
   const pad = window.__pad || null;
   const LOOK = touch ? 0.0042 : 0.0022;
   const STEP = 0.1;
-  const { floorAt, SPACES, LOOP, ITEMS, RING_SIZE, STAIRS, PLAYER_EYE } = g.layout;
+  const { floorAt, SPACES, LOOP, ITEMS, RING_SIZE, STAIRS, PLAYER_EYE, EXIT } = g.layout;
 
   // ------------------------------------------------------------------ rng --
   function rng(seed) {
@@ -383,7 +383,7 @@
     const prog = g.progress();
     const done = new Set(LOOP.filter((_, i) => prog[i]).map((r) => r.id));
     const row = LOOP.find((r, i) => !prog[i] && r.needs.every((n) => done.has(n)));
-    if (!row) return { key: 'out', walk: [0, 4.7], y: 0 };
+    if (!row) return { key: 'out', walk: [EXIT.inside[0], EXIT.inside[2]], y: 0 };
     // A player sets the clock to the hour a note gave them, so the pilot reads
     // it first. It is also how every run comes to have a note open in it.
     if (row.clock) {
@@ -516,9 +516,9 @@
     // At the front door with it open: out, and no turning back for the
     // waypoint just walked past. Without this the pilot stepped through,
     // found the waypoint behind it, turned round, and did it again.
-    if (goal.walk && p.z > 4.4 && Math.abs(p.x) < 0.5 && g.doorsById.get('front-door').open) {
+    if (goal.walk && p.x > EXIT.inside[0] - 0.3 && Math.abs(p.z - EXIT.inside[2]) < 0.4 && g.doorsById.get('front-door').open) {
       setCrouch(false);
-      face(0, 8, g.camera.position.y);
+      face(EXIT.outside[0] + 4, EXIT.outside[2], g.camera.position.y);
       setForward(true);
       return null;
     }
@@ -541,7 +541,7 @@
 
     if (goal.walk) {
       // Out of the front door: face the night and keep walking.
-      face(0, 8, g.camera.position.y);
+      face(EXIT.outside[0] + 4, EXIT.outside[2], g.camera.position.y);
       setForward(true);
       return null;
     }
@@ -577,7 +577,7 @@
     // On the floor under them, always; off every floor only out of the open front door.
     const f = floorAt(p.x, p.z, p.y);
     if (f === null) {
-      if (!(g.doorsById.get('front-door').open && p.z > 4.8)) return `player outside the house at (${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)})`;
+      if (!(g.doorsById.get('front-door').open && p.x > 2.2)) return `player outside the house at (${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)})`;
     } else if (Math.abs(f - p.y) > 1e-6) {
       return `player not standing on the floor under them (y=${p.y.toFixed(3)}, floor ${f.toFixed(3)})`;
     }

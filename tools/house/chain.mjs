@@ -36,25 +36,30 @@ const ok = (name, pass, detail = '') => {
 // is walked at from its near side, in a fresh run, with seeded random keys,
 // turns and long phone frames, and the player must never end up on the far
 // side. The owner got past the old stair gate this way (9.4.1 build notes). To show the
-// check can fail, it is run once more with the house's fix for that turned off,
-// and must then catch an escape.
+// check can fail, it is run once more with one door's collider taken away, and
+// must then catch the player walking through it.
 {
-  const fuzz = (touch) =>
+  const fuzz = (broken = null) =>
     driver.page.evaluate(
-      async ({ touch }) => {
+      async ({ broken }) => {
         const g = window.__house;
-        g.player.touch = touch;
+        // To show the check can fail, one door is broken on purpose: shut, and
+        // with no collider at all. The fuzz must then get through it.
+        const door = broken ? g.doorsById.get(broken) : null;
+        const mend = door?.colliders;
+        if (door) door.colliders = () => [];
         let seed = 9001;
         const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
         const keys = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyC'];
         const up = () => keys.forEach((k) => window.dispatchEvent(new KeyboardEvent('keyup', { code: k })));
-        // Each barrier: where to start, which way is "at it", and what counts as through.
+        // Each barrier: where to start, which way is "at it", a point beyond it to
+        // push toward, and what counts as through.
         // The stair door is climbed to first: it waits at the head of the stairs.
         const barriers = [
-          { id: 'stair-door', start: () => [1.1 + rnd() * 0.7, 0, 4.85], yaw: 0, climb: 120, through: (p) => p.y > 2.99 && p.z < 0.2 },
-          { id: 'dining-door', start: () => [-0.8 - rnd() * 0.6, 0, -2.5 + (rnd() - 0.5) * 0.8], yaw: Math.PI / 2, climb: 0, through: (p) => p.x < -2.0 },
-          { id: 'study-door', start: () => [4 + (rnd() - 0.5) * 0.8, 0, -0.2 - rnd() * 0.6], yaw: Math.PI, climb: 0, through: (p) => p.z > 1.0 },
-          { id: 'front-door', start: () => [(rnd() - 0.5) * 0.8, 0, 4.0 + rnd() * 0.4], yaw: Math.PI, climb: 0, through: (p) => p.z > 5.0 },
+          { id: 'stair-door', start: () => [1.65 + (rnd() - 0.5) * 0.5, 0, 1.9], yaw: 0, climb: 150, aim: [1.8, -4.5], through: (p) => p.y > 2.99 && p.z < -3.0 },
+          { id: 'dining-door', start: () => [0.1 + rnd() * 0.5, 0, -4.5 + (rnd() - 0.5) * 0.8], yaw: Math.PI / 2, climb: 0, aim: [-2.5, -4.5], through: (p) => p.x < -1.0 && p.z < -3.0 },
+          { id: 'study-door', start: () => [4 + (rnd() - 0.5) * 0.8, 0, -3.5 - rnd() * 0.5], yaw: Math.PI, climb: 0, aim: [4, -1.5], through: (p) => p.z > -2.9 },
+          { id: 'front-door', start: () => [1.6 + rnd() * 0.3, 0, 1.95 + (rnd() - 0.5) * 0.6], yaw: -Math.PI / 2, climb: 0, aim: [3.6, 1.95], through: (p) => p.x > 2.5 },
         ];
         const out = {};
         for (const b of barriers) {
@@ -69,6 +74,12 @@ const ok = (name, pass, detail = '') => {
             for (let i = 0; i < 300; i++) {
               if (rnd() < 0.1) window.dispatchEvent(new KeyboardEvent(rnd() < 0.6 ? 'keydown' : 'keyup', { code: keys[(rnd() * keys.length) | 0] }));
               if (rnd() < 0.2) g.player.yaw += (rnd() - 0.5) * 1.2;
+              // Then turn back on the far side and lean on it, as a player trying to get through would.
+              else if (rnd() < 0.25) {
+                const p = g.player.position;
+                g.player.yaw = Math.atan2(p.x - b.aim[0], p.z - b.aim[1]);
+                window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW' }));
+              }
               g.stepForTest(rnd() < 0.3 ? 0.05 : 1 / 60, { render: false });
               if (b.through(g.player.position)) {
                 escapes++;
@@ -79,10 +90,10 @@ const ok = (name, pass, detail = '') => {
           }
           out[b.id] = escapes;
         }
-        g.player.touch = 1e-6;
+        if (door) door.colliders = mend;
         return out;
       },
-      { touch }
+      { broken }
     );
   // A fresh house, with everything shut.
   await driver.page.reload();
@@ -95,10 +106,10 @@ const ok = (name, pass, detail = '') => {
   });
   await driver.page.waitForFunction(() => window.__house.phase === 'playing');
   await driver.page.evaluate(() => (window.__house.input.locked = true));
-  const held = await fuzz(1e-6);
+  const held = await fuzz();
   for (const [id, n] of Object.entries(held)) ok(`${id} cannot be walked through (120 hostile tries)`, n === 0, `${n} got through`);
-  const broken = await fuzz(0);
-  ok('the barrier check can fail: with the fix off, something gets through', Object.values(broken).some((n) => n > 0), JSON.stringify(broken));
+  const broken = await fuzz('dining-door');
+  ok('the barrier check can fail: a door with no collider is walked through', broken['dining-door'] > 0, JSON.stringify(broken));
 }
 
 // Back to a fresh run for the loop itself.
@@ -168,9 +179,9 @@ ok('every key was used at its door', end.ring.length === 0, `left on the ring: $
 // Out of the front door, on foot, through the real input layer.
 const out = await driver.page.evaluate(() => {
   const g = window.__house;
-  g.player.position.set(0, 0, 4.4);
+  g.player.position.set(...g.layout.EXIT.inside);
   g.player.velocity.set(0, 0, 0);
-  g.player.yaw = Math.PI;
+  g.player.yaw = -Math.PI / 2;
   window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW', key: 'w' }));
   for (let i = 0; i < 240 && g.phase === 'playing'; i++) g.stepForTest(1 / 60, { render: false });
   window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyW', key: 'w' }));

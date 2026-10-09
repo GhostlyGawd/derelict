@@ -147,6 +147,12 @@ jobs:
       - name: House — no monkey can break it
         run: node tools/house/monkey.mjs http://127.0.0.1:4173/
 
+      # The look as numbers (9.4.5): fixed views of the house, through the real
+      # surfaces, light and grade, held to the style target measured from the
+      # owner's reference.
+      - name: House — the house holds its style
+        run: node tools/house/style.mjs http://127.0.0.1:4173/
+
       - name: Report — frame times on the owner's phone
         run: node tools/profile.mjs http://127.0.0.1:4173/
 

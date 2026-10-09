@@ -1,0 +1,85 @@
+{
+  "textures": {
+    "plaster": {
+      "file": "/assets/house/textures/plaster.png",
+      "normal": "/assets/house/textures/plaster_n.png",
+      "size": 512,
+      "bytes": 219323
+    },
+    "floor": {
+      "file": "/assets/house/textures/floor.png",
+      "normal": "/assets/house/textures/floor_n.png",
+      "size": 512,
+      "bytes": 188616
+    },
+    "ceiling": {
+      "file": "/assets/house/textures/ceiling.png",
+      "normal": "/assets/house/textures/ceiling_n.png",
+      "size": 256,
+      "bytes": 28515
+    },
+    "door": {
+      "file": "/assets/house/textures/door.png",
+      "normal": "/assets/house/textures/door_n.png",
+      "size": 256,
+      "bytes": 44602
+    },
+    "wood": {
+      "file": "/assets/house/textures/wood.png",
+      "normal": "/assets/house/textures/wood_n.png",
+      "size": 256,
+      "bytes": 41003
+    },
+    "rug": {
+      "file": "/assets/house/textures/rug.png",
+      "normal": "/assets/house/textures/rug_n.png",
+      "size": 256,
+      "bytes": 32121
+    },
+    "curtain": {
+      "file": "/assets/house/textures/curtain.png",
+      "normal": "/assets/house/textures/curtain_n.png",
+      "size": 128,
+      "bytes": 11709
+    },
+    "night": {
+      "file": "/assets/house/textures/night.png",
+      "normal": "/assets/house/textures/night_n.png",
+      "size": 256,
+      "bytes": 45104
+    },
+    "paper": {
+      "file": "/assets/house/textures/paper.png",
+      "normal": "/assets/house/textures/paper_n.png",
+      "size": 128,
+      "bytes": 16162
+    },
+    "picture": {
+      "file": "/assets/house/textures/picture.png",
+      "normal": "/assets/house/textures/picture_n.png",
+      "size": 128,
+      "bytes": 8151
+    }
+  },
+  "grade": {
+    "file": "/assets/house/grade.png",
+    "size": 16,
+    "bytes": 12056
+  },
+  "target": {
+    "meanSrgb": [
+      35,
+      46,
+      27
+    ],
+    "luminance": {
+      "p5": 0.006,
+      "p50": 0.015,
+      "p95": 0.159
+    },
+    "greenDominant": 0.96,
+    "saturation": 0.45,
+    "detail": 10,
+    "colours15": 763
+  }
+}
