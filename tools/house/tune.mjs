@@ -13,7 +13,12 @@
  * with shrinking steps keeps whatever lowers the score, and the best look is
  * written back to look.json, for the pipeline to bake from.
  *
- *   node tools/house/tune.mjs [baseUrl] [--evals N] [--dry]
+ * With `--room <id>`, it tunes one other room instead: that room's own light
+ * and exposure, against the whole-frame target on that room's view. The hall
+ * owns the shared knobs (grime, paint, the rug); another room only turns its
+ * own lamps.
+ *
+ *   node tools/house/tune.mjs [baseUrl] [--room id] [--evals N] [--dry]
  */
 import { writeFileSync } from 'node:fs';
 import { chromium } from 'playwright';
@@ -23,25 +28,29 @@ import { LOOK_FILE, chartFields, compose, encode, readLook } from '../../pipelin
 import { TARGET } from '../../pipeline/house/style.js';
 import { gradeLut } from '../../pipeline/house/textures.js';
 import { regions, stats } from '../lib/stylestats.js';
+import { VIEWS as ALL_VIEWS } from './views.js';
 
 const ROOT = process.argv.find((a) => /^https?:/.test(a)) || 'http://127.0.0.1:4173/';
 const at = process.argv.indexOf('--evals');
 const MAX_EVALS = at > 0 ? Number(process.argv[at + 1]) : 160;
 const DRY = process.argv.includes('--dry');
+const r = process.argv.indexOf('--room');
+const ROOM = r > 0 ? process.argv[r + 1] : 'hall';
+const VIEWS = ALL_VIEWS.filter((v) => v.room === ROOM);
+if (!VIEWS.length) throw new Error(`no style view judges the room "${ROOM}"`);
 
-const VIEWS = [
-  { name: 'reference view', pos: [0.05, 4.1], yaw: 0, pitch: -0.06, regions: true },
-  { name: 'toward the stairs', pos: [-1.2, 3.2], yaw: -0.55, pitch: 0.05 },
-  { name: 'back toward the window', pos: [0.6, 0.9], yaw: 2.4, pitch: -0.05 },
+/** A room's own light and exposure. */
+const roomKnobs = (room) => [
+  { path: ['rooms', room, 'exposure'], lo: 0.4, hi: 16, log: true },
+  { path: ['rooms', room, 'light', 'cone'], lo: 0.2, hi: 4, log: true },
+  { path: ['rooms', room, 'light', 'glow'], lo: 0.2, hi: 12, log: true },
+  { path: ['rooms', room, 'light', 'night'], lo: 0, hi: 20 },
+  { path: ['rooms', room, 'fill'], lo: 0, hi: 16 },
 ];
 
 /** The knobs, where they live in the look, and how far each may go. */
-const KNOBS = [
-  { path: ['exposure'], lo: 0.4, hi: 8, log: true },
-  { path: ['light', 'cone'], lo: 0.2, hi: 4, log: true },
-  { path: ['light', 'glow'], lo: 0.2, hi: 12, log: true },
-  { path: ['light', 'night'], lo: 0, hi: 20 },
-  { path: ['fill'], lo: 0, hi: 16 },
+const KNOBS = ROOM !== 'hall' ? roomKnobs(ROOM) : [
+  ...roomKnobs('hall'),
   { path: ['live', 'rug'], lo: 0.35, hi: 1.2 },
   // The paint is the look the owner asked for: the tuner may weaken it, never remove it.
   { path: ['grime', 'mottle'], lo: 0.5, hi: 2.5 },
@@ -80,7 +89,7 @@ function regionScore(r) {
 }
 
 console.log('tune: the slow part of the bake, once …');
-const fields = await chartFields('public/assets/house/textures');
+const fields = await chartFields('public/assets/house/textures', () => {}, [ROOM]);
 
 const browser = await chromium.launch({
   ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
@@ -131,7 +140,7 @@ async function score(look) {
   for (const v of VIEWS) {
     await page.evaluate((v) => {
       const g = window.__house;
-      g.player.position.set(v.pos[0], 0, v.pos[1]);
+      g.player.position.set(v.pos[0], v.y || 0, v.pos[1]);
       g.player.velocity.set(0, 0, 0);
       g.player.yaw = v.yaw;
       g.player.pitch = v.pitch;
@@ -152,6 +161,8 @@ async function score(look) {
 }
 
 let best = readLook();
+// A room tuned for the first time starts from the default look.
+best.rooms[ROOM] ??= structuredClone(best.rooms.default);
 let bestScore = await score(best);
 console.log(`start: ${bestScore.total.toFixed(2)} (${bestScore.parts.join(', ')})`);
 const steps = KNOBS.map((k) => (k.log ? 0.35 : (k.hi - k.lo) * 0.2));

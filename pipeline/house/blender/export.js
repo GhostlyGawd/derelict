@@ -5,7 +5,8 @@ import sharp from 'sharp';
 import * as THREE from 'three';
 
 import { chartSize, chartsFor, skin } from '../../../src/house/charts.js';
-import { HALL_LAMP, dressHouse } from '../../../src/house/dress.js';
+import { dressHouse } from '../../../src/house/dress.js';
+import { SPACES, spaceAt } from '../../../src/house/layout.js';
 import { buildHouse } from '../../../src/house/level.js';
 import { buildThings } from '../../../src/house/things.js';
 
@@ -20,22 +21,41 @@ import { buildThings } from '../../../src/house/things.js';
  * a committed light map is checked against.
  */
 
-/** The rooms whose surfaces Blender lights. The hall first, as before. */
-export const LIT_ROOMS = ['hall'];
+/** The rooms whose surfaces Blender lights: every space in the house. */
+export const LIT_ROOMS = SPACES.map((s) => s.id);
 
-/** Each room's lamps, from the data the game builds them from. Power as Cycles takes it. */
-const LAMPS = {
-  hall: () => {
-    const { at, colour, down, glow } = HALL_LAMP;
-    const c = new THREE.Color(colour);
-    // three.js gives a light's intensity in candela; a Cycles point or spot of
-    // power P watts has an intensity of P / 4π, so P = 4π × intensity.
-    return [
-      { kind: 'spot', layer: 'cone', pos: [at[0], at[1] - down.drop, at[2]], colour: [c.r, c.g, c.b], power: 4 * Math.PI * down.intensity, angle: down.angle, blend: down.penumbra, radius: 0.08 },
-      { kind: 'point', layer: 'glow', pos: [at[0], at[1] - glow.drop, at[2]], colour: [c.r, c.g, c.b], power: 4 * Math.PI * glow.intensity, radius: 0.05 },
-    ];
-  },
-};
+/**
+ * Every lamp in the house, from the lights the game itself builds
+ * (src/house/dress.js and rooms.js), with the room it hangs in. three.js
+ * gives a light's intensity in candela; a Cycles point or spot of power P
+ * watts has an intensity of P / 4π, so P = 4π × intensity. Every spot in the
+ * house points straight down, as Blender's does unturned.
+ */
+function lamps(lights) {
+  const out = [];
+  for (const l of lights) {
+    if (!l.isSpotLight && !l.isPointLight) continue;
+    const p = l.position;
+    const room = spaceAt(p.x, p.z, p.y - 1)?.id ?? null;
+    const c = l.color;
+    const lamp = { kind: l.isSpotLight ? 'spot' : 'point', room, pos: [p.x, p.y, p.z], colour: [c.r, c.g, c.b], power: 4 * Math.PI * l.intensity };
+    if (l.isSpotLight) {
+      const t = l.target.position;
+      if (Math.abs(t.x - p.x) > 1e-6 || Math.abs(t.z - p.z) > 1e-6 || t.y >= p.y) throw new Error(`a spot at ${p.toArray()} does not point straight down`);
+      Object.assign(lamp, { angle: l.angle, blend: l.penumbra, radius: 0.08 });
+    } else lamp.radius = 0.05;
+    out.push(lamp);
+  }
+  return out;
+}
+
+/**
+ * The light layers a chart is baked in, each weighed by the look afterwards:
+ * its own room's lamps as cones and as glows, the light that spills in from
+ * every other room, and the night through the windows. Light adds.
+ */
+export const LAYERS = ['cone', 'glow', 'others', 'night'];
+export const layerOf = (lamp, room) => (lamp.room !== room ? 'others' : lamp.kind === 'spot' ? 'cone' : 'glow');
 
 /** Which generated surface each material shows, and what it is tinted. */
 const SOURCE = {
@@ -48,9 +68,7 @@ const SOURCE = {
 /** What gives light rather than taking it, and how strongly, as Cycles emission. */
 const EMIT = { night: 1.0, shade: 0, lampshade: 0.6 };
 /** Which light layer each glowing material bakes into. */
-const EMIT_LAYER = { night: 'night', lampshade: 'glow' };
-/** The light layers a chart is baked in, each weighed by the look afterwards. */
-export const LAYERS = ['cone', 'glow', 'night'];
+const EMIT_LAYER = { night: 'night', lampshade: 'others' };
 
 async function meanColour(textureDir, id) {
   const { data, info } = await sharp(path.join(textureDir, `${id}.png`)).removeAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -70,7 +88,8 @@ export async function exportScene(textureDir) {
   });
   const root = new THREE.Group();
   root.add(buildHouse(mats).group);
-  root.add(dressHouse(mats).group);
+  const dressing = dressHouse(mats);
+  root.add(dressing.group);
   const things = buildThings(mats);
   root.add(things.group);
   // Doors stand open in play, and light the hall through; a baked door would be a fixed one.
@@ -130,8 +149,7 @@ export async function exportScene(textureDir) {
     }
   }
 
-  const lamps = LIT_ROOMS.flatMap((r) => LAMPS[r]());
-  const scene = { units: 'metres, y up', materials, parts, charts, lamps };
+  const scene = { units: 'metres, y up', materials, parts, charts, lamps: lamps(dressing.lights), layers: LAYERS };
   const json = JSON.stringify(scene);
   const bin = Buffer.from(new Float32Array(floats).buffer);
   const script = readFileSync(new URL('./bake.py', import.meta.url));

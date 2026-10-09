@@ -117,7 +117,9 @@ export function skin(c, material) {
   const geo = new THREE.ShapeGeometry(shape, 12);
   const pos = geo.attributes.position;
   const uv = geo.attributes.uv;
-  const lift = 0.004;
+  // In front of the surface; a wall's skin also clears a room's paint and
+  // dado (src/house/rooms.js), which stand up to 12 mm off the plaster.
+  const lift = c.kind === 'wall' ? 0.014 : 0.004;
   for (let i = 0; i < pos.count; i++) {
     const sc = pos.getX(i);
     const tc = pos.getY(i);

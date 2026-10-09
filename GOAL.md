@@ -318,6 +318,33 @@ The score fell from 96 to 41. Every one of the thirteen views stays inside
 well. The regions are still the farthest numbers. The reference's front-door
 wall is lit far brighter than ours, and its rug far darker. Those come from
 how the picture was painted, not from a knob, and are the owner's to judge.
+
+*Every room baked, 9 October 2026.* The owner said to continue, so every
+room was baked the same way: 67 walls, floors and ceilings across twelve
+spaces. Blender bakes them in about eleven minutes, the light maps committed
+as sources come to 14 MB, and the baked surfaces the game loads come to
+2.0 MB. The pipeline's own part takes about five minutes, most of it the
+occlusion traced for the grime. Three things changed to get there:
+
+- **A room's paint and dado are in its bake.** The game paints a room's
+  walls with a lining 4 to 12 mm in front of the plaster (`LININGS`, now
+  shared by the game and the bake). A wall's baked skin stands 14 mm off the
+  plaster, in front of it, and carries the paint, the wainscot or the tile
+  in its colour. The dado's rail still stands proud of the skin.
+- **Light is baked per room.** Each surface is baked in four layers: its own
+  room's lamp cones, its own room's glows, the light that spills in from every
+  other room, and the night through the windows. Every lamp comes from the
+  lights the game itself builds.
+- **Each room has its own look.** Baked at neutral settings, eight rooms
+  were far darker than the target, and 24 checks failed. The tuner gained a
+  room mode: it turns one room's light and exposure against that room's own
+  view, and never the hall's shared knobs. Tuned room by room, every view is
+  inside the target again. The kitchen needed its exposure ceiling raised:
+  its walls stand outside its lamp's cone and get only the edge of it.
+
+Two things read wrong in the rooms and are left for the owner's look. The
+kitchen's and bathroom's tiled floors carry the same wet blotches as the
+boards, and the walls' mottle reads heavy in places.
 - **A tuner.** The knobs that make the look (exposure, grime, damp, wear,
   paint and the grade) live in one table, and a tool turns them to bring
   fixed views of the hall closer to the reference. It scores regions of the

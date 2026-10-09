@@ -6,8 +6,9 @@ import { MeshBVH } from 'three-mesh-bvh';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 import { chartPoint, chartSize, chartsFor } from '../../src/house/charts.js';
-import { HALL_LAMP, NIGHT_FILL, dressHouse } from '../../src/house/dress.js';
-import { SPACES, SPAWN, STAIRS, WALLS } from '../../src/house/layout.js';
+import { NIGHT_FILL, dressHouse } from '../../src/house/dress.js';
+import { LININGS } from '../../src/house/rooms.js';
+import { SPACES, SPAWN, STAIRS, WALLS, spaceAt } from '../../src/house/layout.js';
 import { buildHouse } from '../../src/house/level.js';
 import { buildThings } from '../../src/house/things.js';
 import { fbm, noise2, rng } from '../lib/raster.js';
@@ -39,7 +40,20 @@ import { checkLight, readLight } from './blender/run.js';
  */
 
 /** The rooms baked so far. The hall first, as the look was proved there first. */
-export const BAKED_ROOMS = ['hall'];
+export const BAKED_ROOMS = SPACES.map((s) => s.id);
+
+/** Where each room's lamps hang, from the lights the game builds: soot gathers on the ceiling over them. */
+const LAMPS_BY_ROOM = (() => {
+  const mats = new Proxy({}, { get: (t, k) => (typeof k === 'string' ? (t[k] ??= new THREE.MeshBasicMaterial({ name: k })) : undefined) });
+  const out = new Map();
+  for (const l of dressHouse(mats).lights) {
+    if (!l.isSpotLight && !l.isPointLight) continue;
+    const room = spaceAt(l.position.x, l.position.z, l.position.y - 1)?.id;
+    if (!out.has(room)) out.set(room, []);
+    out.get(room).push([l.position.x, l.position.y, l.position.z]);
+  }
+  return out;
+})();
 
 // ---- The house, as something to trace rays against ----------------------------
 
@@ -109,19 +123,31 @@ function texel(img, u, v) {
  * runs in the house, as `worldUV` in src/house/surfaces.js lays them out.
  */
 function surfaceFor(c) {
+  const linear = (hex) => {
+    const col = new THREE.Color(hex);
+    return [col.r, col.g, col.b];
+  };
+  const space = SPACES.find((s) => s.id === c.space);
   if (c.kind === 'wall') {
     const alongZ = c.u[2] !== 0;
+    const along = (p) => (alongZ ? p[2] : p[0]);
+    // A room's paint over the plaster, and its wainscot or tiled dado below,
+    // exactly as src/house/rooms.js lines the walls the skin lies over.
+    const lining = LININGS[c.space];
+    const paint = lining ? linear(lining.paint) : [1, 1, 1];
     return {
-      id: 'plaster',
-      uv: (p) => [(alongZ ? p[2] : p[0]) / 2.8, (p[1] - c.floorY) / 2.8],
+      ids: lining?.under ? ['plaster', lining.under] : ['plaster'],
       tangent: alongZ ? [0, 0, 1] : [1, 0, 0],
       bitangent: [0, 1, 0],
+      at: (p) =>
+        lining?.dado && p[1] - c.floorY < lining.dado
+          ? { id: lining.under, uv: [along(p), p[1]], tint: [1, 1, 1] }
+          : { id: 'plaster', uv: [along(p) / 2.8, (p[1] - c.floorY) / 2.8], tint: paint },
     };
   }
-  const space = SPACES.find((s) => s.id === c.space);
   const id = c.kind === 'ceiling' ? 'ceiling' : space.surface === 'tile' ? 'tile' : 'floor';
   const tile = id === 'tile' ? 1 : 2;
-  return { id, uv: (p) => [p[0] / tile, p[2] / tile], tangent: [1, 0, 0], bitangent: [0, 0, 1] };
+  return { ids: [id], tangent: [1, 0, 0], bitangent: [0, 0, 1], at: (p) => ({ id, uv: [p[0] / tile, p[2] / tile], tint: [1, 1, 1] }) };
 }
 
 // ---- Light -----------------------------------------------------------------------
@@ -261,8 +287,7 @@ function grime(c, sc, tc, p, ao, walks) {
   }
   if (c.kind === 'ceiling') {
     // Soot above the lamp, and damp blooming in from the corners.
-    const lamp = HALL_LAMP.at;
-    if (c.space === 'hall') out.soot = Math.max(0, 1 - Math.hypot(p[0] - lamp[0], p[2] - lamp[2]) / 0.55) * 0.8;
+    for (const lamp of LAMPS_BY_ROOM.get(c.space) || []) out.soot = Math.max(out.soot, Math.max(0, 1 - Math.hypot(p[0] - lamp[0], p[2] - lamp[2]) / 0.55) * 0.8);
     out.damp = smoothstep(0.85, 0.45, ao) * 0.6 * (0.6 + n2 * 0.6);
   }
   // Dirt gathers where light and air do not reach: corners, under things, along the skirting.
@@ -375,7 +400,7 @@ export function readLook() {
  * light Blender baked onto it. Slow (the occlusion is traced), so the tuner
  * computes it once and composes many times.
  */
-export async function chartFields(textureDir, log = () => {}) {
+export async function chartFields(textureDir, log = () => {}, rooms = BAKED_ROOMS) {
   const bvh = houseBVH();
   const cache = new Map();
   const surface = async (id) => {
@@ -383,13 +408,14 @@ export async function chartFields(textureDir, log = () => {}) {
     return cache.get(id);
   };
   const out = [];
-  for (const room of BAKED_ROOMS) {
+  for (const room of rooms) {
     const space = SPACES.find((s) => s.id === room);
     const walks = walksFor(space);
     for (const c of chartsFor(room)) {
       const { w, h } = chartSize(c);
       const tex = surfaceFor(c);
-      const img = await surface(tex.id);
+      const imgs = {};
+      for (const id of tex.ids) imgs[id] = await surface(id);
       const light = await readLight(c.id);
       if (light.w !== w || light.h !== h) throw new Error(`${c.id}: its light is ${light.w}×${light.h}, the chart is ${w}×${h}`);
       const n = w * h;
@@ -409,14 +435,14 @@ export async function chartFields(textureDir, log = () => {}) {
           for (let sy = -1; sy <= 1; sy++) {
             for (let sx = -1; sx <= 1; sx++) {
               const q = chartPoint(c, sc + (sx * c.width) / w / 3, tc + (sy * c.height) / h / 3);
-              const [u, v] = tex.uv(q);
-              const t = texel(img.colour, u, v);
-              for (let k = 0; k < 3; k++) f.albedo[o * 3 + k] += LIN[t[k]] / 9;
+              const at = tex.at(q);
+              const t = texel(imgs[at.id].colour, at.uv[0], at.uv[1]);
+              for (let k = 0; k < 3; k++) f.albedo[o * 3 + k] += (LIN[t[k]] * at.tint[k]) / 9;
             }
           }
           // The surface's relief, turning the normal the night's fill sees.
-          const [u, v] = tex.uv(p);
-          const nm = texel(img.normal, u, v);
+          const here = tex.at(p);
+          const nm = texel(imgs[here.id].normal, here.uv[0], here.uv[1]);
           const nn = [0, 1, 2].map((k) => tex.tangent[k] * ((nm[0] / 255) * 2 - 1) * 0.8 + tex.bitangent[k] * ((nm[1] / 255) * 2 - 1) * 0.8 + c.normal[k] * ((nm[2] / 255) * 2 - 1));
           f.up[o] = (nn[1] / Math.hypot(...nn)) * 0.5 + 0.5;
           const ao = occlusion(bvh, p, c.normal, (noise2(i, j, 1, 1) * 2 + ((i * 7 + j * 13) % 11) / 11) * Math.PI);
@@ -438,6 +464,7 @@ export function compose(f, look, index) {
   const sky = new THREE.Color(NIGHT_FILL.sky);
   const ground = new THREE.Color(NIGHT_FILL.ground);
   const G = look.grime;
+  const R = look.rooms[f.chart.space] ?? look.rooms.default;
   const linear = new Float32Array(w * h * 3);
   const albedo = [0, 0, 0];
   const mix = (col, t) => {
@@ -454,11 +481,11 @@ export function compose(f, look, index) {
     // windows; then the night's cool fill, as the game's hemisphere light gives it.
     const up = f.up[o];
     for (let k = 0; k < 3; k++) {
-      const hemi = ([ground.r, ground.g, ground.b][k] * (1 - up) + [sky.r, sky.g, sky.b][k] * up) * NIGHT_FILL.intensity * look.fill;
+      const hemi = ([ground.r, ground.g, ground.b][k] * (1 - up) + [sky.r, sky.g, sky.b][k] * up) * NIGHT_FILL.intensity * R.fill;
       let baked = 0;
-      for (const [layer, gain] of Object.entries(look.light)) baked += f.light[layer][o * 3 + k] * gain;
+      for (const [layer, gain] of Object.entries(R.light)) baked += f.light[layer][o * 3 + k] * gain;
       const lit = albedo[k] * (baked + (hemi * f.ao[o]) / Math.PI);
-      linear[o * 3 + k] = toSrgb(lit * look.exposure);
+      linear[o * 3 + k] = toSrgb(lit * R.exposure);
     }
   }
   const painted = look.paint.kuwahara > 0 ? kuwahara(linear, w, h, look.paint.kuwahara) : linear;

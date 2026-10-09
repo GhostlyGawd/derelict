@@ -24,6 +24,22 @@ const S = Math.PI; // faces −z
 const E = Math.PI / 2; // faces +x
 const W = -Math.PI / 2; // faces −x
 
+/**
+ * Each room's walls, in its own paint, with a wainscot or a tiled dado where
+ * the room has one: the generated plaster, wood and tile under other colours,
+ * so a room is told apart by its paint as much as its furniture. Shared with
+ * the bake (pipeline/house/bake.js), which paints the same walls.
+ */
+export const LININGS = {
+  parlour: { paint: 0xfff0d4 },
+  dining: { paint: 0xe4ecd0, dado: 1.0, under: 'wood' },
+  kitchen: { paint: 0xe8f0dc, dado: 1.25, under: 'tile' },
+  study: { paint: 0xf4e8cc, dado: 0.9, under: 'wood' },
+  bedroom: { paint: 0xffe2c8 },
+  child: { paint: 0xd4ecec },
+  bathroom: { paint: 0xe4f0e4, dado: 1.4, under: 'tile' },
+};
+
 export function dressRooms(mat) {
   const group = new THREE.Group();
   group.name = 'rooms';
@@ -52,19 +68,7 @@ export function dressRooms(mat) {
     lights.push(down, down.target);
   };
 
-  // Each room's walls, in its own paint, with a wainscot or a tiled dado
-  // where the room has one. All are the generated plaster, wood and tile under
-  // other colours: a room is told apart by its paint as much as its furniture.
-  const linings = {
-    parlour: { paint: 0xfff0d4 },
-    dining: { paint: 0xe4ecd0, dado: 1.0, under: mat.wood },
-    kitchen: { paint: 0xe8f0dc, dado: 1.25, under: mat.tile },
-    study: { paint: 0xf4e8cc, dado: 0.9, under: mat.wood },
-    bedroom: { paint: 0xffe2c8 },
-    child: { paint: 0xd4ecec },
-    bathroom: { paint: 0xe4f0e4, dado: 1.4, under: mat.tile },
-  };
-  for (const s of SPACES) if (linings[s.id]) line(group, mat, s, linings[s.id]);
+  for (const s of SPACES) if (LININGS[s.id]) line(group, mat, s, LININGS[s.id]);
 
   parlour(mat, put, hang);
   dining(mat, put, hang, group);
@@ -86,8 +90,9 @@ export function dressRooms(mat) {
  * door and arch and round each window's glass. Below `dado`, `under` instead
  * (panelled wood or tile), with a rail along its top.
  */
-function line(group, mat, s, { paint, dado = 0, under = null }) {
+function line(group, mat, s, { paint, dado = 0, under: underName = null }) {
   const T = WALL_THICKNESS;
+  const under = underName ? mat[underName] : null;
   const skin = tint(mat.wall, paint);
   const add = (material, x0, x1, y0, y1, z0, z1, tile) => {
     if (x1 - x0 < 0.01 && z1 - z0 < 0.01) return;

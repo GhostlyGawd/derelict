@@ -124,7 +124,7 @@ for L in S["lamps"]:
     ob = bpy.data.objects.new(L["kind"], light)
     ob.location = zup(*L["pos"])
     scene.collection.objects.link(ob)  # a spot points down its own -z, which is down
-    lamps.append((L["layer"], ob))
+    lamps.append((L, ob))
 
 # The charts: each a mesh with its UVs, and a float image to bake into.
 wall_like = {}
@@ -165,18 +165,38 @@ os.makedirs(out_dir, exist_ok=True)
 # One bake per light layer, everything else switched off, so the pipeline can
 # weigh the lamp's cone, its glow and the night against each other afterwards
 # without baking again: light adds.
-layers = sorted({l for l, _ in lamps} | {l for l, _, _ in glowing})
-for layer in layers:
-    for l, ob in lamps:
-        ob.hide_render = l != layer
+
+
+def layer_of(L, room):
+    # As export.js's layerOf: the chart's own room's cones and glows, and everything else's.
+    if L["room"] != room:
+        return "others"
+    return "cone" if L["kind"] == "spot" else "glow"
+
+
+# Visibility changes are what cost (the scene is synced again), so each layer
+# is set once per room and that room's charts are baked under it.
+rooms = sorted({c["room"] for c, _, _ in targets})
+for layer in S["layers"]:
     for l, mat, emit in glowing:
         mat.node_tree.nodes["Emission"].inputs["Strength"].default_value = emit if l == layer else 0.0
-    for c, ob, img in targets:
-        bpy.ops.object.select_all(action="DESELECT")
-        ob.select_set(True)
-        bpy.context.view_layer.objects.active = ob
-        bpy.ops.object.bake(type="DIFFUSE", pass_filter={"DIRECT", "INDIRECT"}, use_clear=True, margin=6)
-        px = img.pixels[:]
-        with open(os.path.join(out_dir, "%s.%s.f32" % (c["id"], layer)), "wb") as f:
-            f.write(struct.pack("<%df" % len(px), *px))
-        print("baked", c["id"], layer, c["w"], c["h"], flush=True)
+    for room in rooms:
+        lit = False
+        for L, ob in lamps:
+            ob.hide_render = layer_of(L, room) != layer
+            lit = lit or not ob.hide_render
+        lit = lit or any(l == layer for l, _, _ in glowing)
+        for c, ob, img in targets:
+            if c["room"] != room:
+                continue
+            if lit:
+                bpy.ops.object.select_all(action="DESELECT")
+                ob.select_set(True)
+                bpy.context.view_layer.objects.active = ob
+                bpy.ops.object.bake(type="DIFFUSE", pass_filter={"DIRECT", "INDIRECT"}, use_clear=True, margin=6)
+                px = img.pixels[:]
+            else:
+                px = [0.0] * (c["w"] * c["h"] * 4)
+            with open(os.path.join(out_dir, "%s.%s.f32" % (c["id"], layer)), "wb") as f:
+                f.write(struct.pack("<%df" % len(px), *px))
+            print("baked", c["id"], layer, c["w"], c["h"], flush=True)
