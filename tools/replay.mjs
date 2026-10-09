@@ -216,10 +216,13 @@ const padded = await (async () => {
     const g = window.__derelict;
     const pad = window.__pad;
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-    // Forward, easing on, with the right stick swinging the view about.
+    // Forward, easing on, with the right stick swinging the view about. The
+    // swing stays to one side: a full sine averages to no turn at all, and on
+    // a slow runner that sampled it at few enough frames to end inside the
+    // bar below.
     for (let i = 0; i < 30; i++) {
       pad.axes[1] = -Math.min(1, i / 10);
-      pad.axes[2] = Math.sin(i / 5) * 0.8;
+      pad.axes[2] = 0.45 + Math.sin(i / 5) * 0.35;
       pad.axes[3] = Math.cos(i / 7) * 0.3;
       await wait(30);
     }
