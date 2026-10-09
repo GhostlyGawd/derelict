@@ -59,6 +59,8 @@ async function main() {
   const lutFile = path.join(OUT, 'grade.png');
   await write(lutFile, lutPng);
   manifest.grade = { file: '/assets/house/grade.png', size: 16, bytes: lutPng.length };
+  // The look's live knobs, for the materials the game lights itself (9.4.4).
+  manifest.live = readLook().live;
   log.done(`grade — 16³ lookup table, ${bytes(lutPng.length)} → ${rel(lutFile)}`);
 
   log.stage(`house — baked surfaces (${BAKED_ROOMS.join(', ')})`);
