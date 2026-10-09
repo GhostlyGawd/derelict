@@ -1,12 +1,11 @@
 
 # DERELICT — Spec
 
-**How to read this document.** Phase 8 (v1.7) is the most recent section. It
-is approved and built, and ships when its pull requests merge; its owner bars
-are open. Phase 7, Phase 6, Phase 5, Phase 4, Phase 3, Phase 2, Amendment 1 and
-the v1.0 sections below them are shipped. Where any two disagree, the later
-section wins. Nothing here is a suggestion — if we change something during a
-build, we change this document first.
+**How to read this document.** Phase 8 (v1.7) is the most recent section and
+is shipped, as are Phase 7, Phase 6, Phase 5, Phase 4, Phase 3, Phase 2,
+Amendment 1 and the v1.0 sections below them. There is no draft in flight.
+Where any two disagree, the later section wins. Nothing here is a suggestion —
+if we change something during a build, we change this document first.
 
 ---
 
@@ -40,11 +39,16 @@ to tri budget, crunch textures to 256 px).
 
 # Phase 8 — v1.7
 
-**Status: APPROVED AND BUILT.** Proposed 8 October 2026 in PR #28 and
-approved by the owner the same day; built the same day in PR #29. It ships
-when both merge. Every bar Claude can verify is green. The owner's bars are
-open: the ship still looking like itself, the pad, the dust, the home screen in
-airplane mode, and a recording on the new build. On the same terms as
+**Status: SHIPPED.** Proposed 8 October 2026 in PR #28 and approved by the
+owner the same day; built the same day in PR #29, and shipped when the owner
+had both merged that evening. Every bar Claude can verify was green at merge.
+Of the owner's bars, two are signed: the ship still looks like itself, and the
+owner's run on the new build is committed and replays. Three stay open and
+carry forward unsigned: the dust after it was cut back, the pad (not yet
+tried), and the home screen in airplane mode (not yet tried). A next phase
+must not treat any of the three as reviewed. The scanner's placement on a
+portrait phone, which the owner raised on the same play, is open too (see
+below). On the same terms as
 everything below: nothing here is a suggestion, and if we change something
 during the build we change this document first.
 
