@@ -142,7 +142,8 @@ async function main() {
       prompt: job.prompts[u.chart.kind],
       out: path.join(CHARTS, `${id}.jpg`),
       seed: 100 * (i + 1),
-      strength: job.strength,
+      // A wall is repainted freely; a floor or ceiling only lightly, or the model paints a room onto it.
+      strength: job.strength[u.chart.kind],
     };
     // 3. A surface the painter barely saw is painted beside the one they saw most of.
     if (u.seen < 0.05) behind.push({ item, kind: u.chart.kind });
