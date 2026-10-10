@@ -269,6 +269,10 @@ checkpoints and ends where the owner did. `tools/house/monkey.mjs` replays
 every owner trace of the house and requires exactly that. They have their own
 folder, because the ship's replay and profiler read every trace beside
 them.
+The owner's second, on the baked house, 10 October 2026
+(`owner-2026-10-10-baked.json`): 86 s to the front door, 17 ms at the median,
+18 at the 95th percentile and 55 at worst, three frames over 33 ms. It replays
+at all 172 checkpoints.
 
 *Blender and a tuner, chosen by the owner on 9 October 2026.* The baked hall
 lit better and still did not look like the picture. The owner asked whether
