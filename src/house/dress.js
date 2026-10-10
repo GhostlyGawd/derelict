@@ -245,10 +245,10 @@ function hall(box, group, mat, colliders, lights) {
     const len = from - to;
     const geo = new THREE.PlaneGeometry(width, len);
     geo.rotateX(-Math.PI / 2);
-    // One repeat of the pattern per 1.4 m along it, the whole width across:
+    // One repeat of the pattern per 1.26 m along it, the whole width across:
     // the length of the runner the painting shows (its swatch, model/hall.json).
     const uv = geo.attributes.uv;
-    for (let i = 0; i < uv.count; i++) uv.setY(i, uv.getY(i) * (len / 1.4));
+    for (let i = 0; i < uv.count; i++) uv.setY(i, uv.getY(i) * (len / 1.26));
     const rug = new THREE.Mesh(geo, mat.hallRug ?? mat.rug);
     rug.position.set(0.3, 0.006, (from + to) / 2);
     group.add(rug);

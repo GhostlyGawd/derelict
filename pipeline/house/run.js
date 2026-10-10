@@ -10,6 +10,7 @@ import { STYLE_BIBLE_HOUSE, TARGET } from './style.js';
 import { BAKED_ROOMS, bakeRooms, readLook } from './bake.js';
 import { HOUSE_TEXTURES, gradeLut } from './textures.js';
 import { paintedSwatches } from './model/run.js';
+const SWATCH_JOB = JSON.parse(readFileSync(new URL('./model/hall.json', import.meta.url), 'utf8'));
 import { readFileSync } from 'node:fs';
 
 /**
@@ -42,7 +43,17 @@ async function main() {
   const swatches = paintedSwatches();
   for (const spec of HOUSE_TEXTURES) {
     if (swatches[spec.id]) {
-      const png = await crunchTexture(readFileSync(swatches[spec.id]), spec.size);
+      // Some paint is calmed toward its own mean (`contrast` in model/hall.json):
+      // a board's grain that reads in the painting reads as stripes on every
+      // frame and rail of a house.
+      let source = readFileSync(swatches[spec.id]);
+      const contrast = SWATCH_JOB.swatches[spec.id]?.contrast;
+      if (contrast) {
+        const { channels } = await sharp(source).stats();
+        const mean = channels.slice(0, 3).map((c) => c.mean);
+        source = await sharp(source).removeAlpha().linear([contrast, contrast, contrast], mean.map((m) => m * (1 - contrast))).png().toBuffer();
+      }
+      const png = await crunchTexture(source, spec.size);
       const normal = await sharp({ create: { width: spec.size, height: spec.size, channels: 3, background: { r: 128, g: 128, b: 255 } } })
         .png({ compressionLevel: 9, palette: false, adaptiveFiltering: false })
         .toBuffer();
