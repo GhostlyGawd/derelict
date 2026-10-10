@@ -9,9 +9,7 @@ import { normalMapFrom } from '../lib/normal.js';
 import { STYLE_BIBLE_HOUSE, TARGET } from './style.js';
 import { BAKED_ROOMS, bakeRooms, readLook } from './bake.js';
 import { HOUSE_TEXTURES, gradeLut } from './textures.js';
-import { composePainted } from './model/compose.js';
-import { paintingSource } from './model/run.js';
-import { PAINTING } from '../../src/house/layout.js';
+import { paintedSwatches } from './model/run.js';
 import { readFileSync } from 'node:fs';
 
 /**
@@ -37,7 +35,29 @@ async function main() {
   const manifest = { textures: {}, grade: null, baked: {}, target: TARGET };
 
   log.stage('house — textures');
+  // Where the owner's painting gives a material (9.3), the texture is grown
+  // from it (pipeline/house/model/), committed, and crunched here like any
+  // other. Its light and shade are the painting's own, so its relief is flat:
+  // a normal map derived from painted shading would light it twice.
+  const swatches = paintedSwatches();
   for (const spec of HOUSE_TEXTURES) {
+    if (swatches[spec.id]) {
+      const png = await crunchTexture(readFileSync(swatches[spec.id]), spec.size);
+      const normal = await sharp({ create: { width: spec.size, height: spec.size, channels: 3, background: { r: 128, g: 128, b: 255 } } })
+        .png({ compressionLevel: 9, palette: false, adaptiveFiltering: false })
+        .toBuffer();
+      await write(path.join(OUT, 'textures', `${spec.id}.png`), png);
+      await write(path.join(OUT, 'textures', `${spec.id}_n.png`), normal);
+      manifest.textures[spec.id] = {
+        file: `/assets/house/textures/${spec.id}.png`,
+        normal: `/assets/house/textures/${spec.id}_n.png`,
+        size: spec.size,
+        bytes: png.length + normal.length,
+        painted: true,
+      };
+      log.done(`${spec.id} — ${spec.size}px, from the owner's painting, ${bytes(png.length)}`);
+      continue;
+    }
     // Drawn at twice the size so the downscale has real detail to resolve.
     const source = spec.draw(spec.size * 2, seedOf(`house:${spec.id}`));
     const png = await crunchTexture(await encodeRaster(source), spec.size);
@@ -69,31 +89,11 @@ async function main() {
 
   log.stage(`house — baked surfaces (${BAKED_ROOMS.join(', ')})`);
   const baked = await bakeRooms(path.join(OUT, 'textures'), (c, w, h, n) => log.done(`${c.id} — ${w}×${h}, ${bytes(n)}`));
-  // The hall's charts are the owner's painting, unwrapped and filled by the
-  // model (9.3): committed, and copied byte for byte in place of the bake.
-  const painted = new Map((await composePainted()).map((p) => [p.id, p]));
   for (const b of baked) {
-    const p = painted.get(b.id);
-    if (p) {
-      await write(path.join(OUT, 'baked', `${b.id}.jpg`), p.jpg);
-      manifest.baked[b.id] = { file: `/assets/house/baked/${b.id}.jpg`, width: p.w, height: p.h, bytes: p.jpg.length, painted: true };
-      log.done(`${b.id} — the owner's painting, ${p.w}×${p.h}, ${bytes(p.jpg.length)}`);
-      continue;
-    }
     const file = path.join(OUT, 'baked', `${b.id}.png`);
     await write(file, b.png);
     manifest.baked[b.id] = { file: `/assets/house/baked/${b.id}.png`, width: b.w, height: b.h, bytes: b.png.length };
   }
-
-  // The owner's painting (9.3), as committed: projected onto the hall from
-  // where it was painted. Copied byte for byte, never re-encoded.
-  log.stage('house — the owner\'s painting');
-  const source = paintingSource();
-  const paint = readFileSync(source);
-  const ext = path.extname(source);
-  await write(path.join(OUT, `painting${ext}`), paint);
-  manifest.painting = { file: `/assets/house/painting${ext}`, size: PAINTING.size, bytes: paint.length };
-  log.done(`painting — ${rel(source)}, ${bytes(paint.length)}`);
 
   await writeJson(path.join(OUT, 'manifest.json'), manifest);
   log.done(`manifest → ${rel(path.join(OUT, 'manifest.json'))}`);

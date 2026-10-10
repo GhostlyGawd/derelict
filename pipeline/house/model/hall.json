@@ -1,13 +1,6 @@
 {
-  "style": "flat orthographic texture, seamless, painterly hand painted retro horror game texture, dark, damp, muted green cast",
-  "negative": "text, letters, words, signature, people, face, perspective, room, scene, horizon, furniture, door, window, lamp, light fixture, books, objects, bright, saturated, neon, photo, blurry, border, frame",
-  "steps": 30,
-  "guidance": 5.5,
-  "strength": {
-    "wall": 0.6,
-    "floor": 0.35,
-    "ceiling": 0.35
-  },
+  "style": "painterly hand painted retro horror game texture, dark, damp, muted green cast, flat, seamless",
+  "negative": "text, letters, words, people, face, perspective, room, objects, frame, border, photo, blurry",
   "hud": [
     [
       0,
@@ -23,15 +16,182 @@
     ]
   ],
   "hudPrompt": "worn grey green wooden floorboards and damp stains at the foot of a wall",
-  "prompts": {
-    "wall": "damp stained plaster wall texture, peeling paint, mould, tide marks, flat",
-    "floor": "worn old wooden floorboards texture seen straight down, damp stains, dirt, flat",
-    "ceiling": "dark sooty old wooden ceiling boards texture, very dark, damp, flat"
-  },
-  "seed": {
-    "wall": "plaster",
-    "floor": "floor",
-    "ceiling": "ceiling"
-  },
-  "tile": 2
+  "swatches": {
+    "plaster": {
+      "plane": {
+        "origin": [
+          -0.76,
+          0.5,
+          0.1
+        ],
+        "u": [
+          1,
+          0,
+          0
+        ],
+        "v": [
+          0,
+          1,
+          0
+        ],
+        "size": [
+          0.5,
+          1.8
+        ]
+      },
+      "texMetres": 2.8,
+      "size": [
+        512,
+        512
+      ],
+      "prompt": "damp stained green plaster wall, brush strokes",
+      "grow": {
+        "block": 40,
+        "band": 12,
+        "strength": 0.65,
+        "seed": 11
+      }
+    },
+    "floor": {
+      "plane": {
+        "origin": [
+          -1.6,
+          0,
+          1.5
+        ],
+        "u": [
+          1,
+          0,
+          0
+        ],
+        "v": [
+          0,
+          0,
+          -1
+        ],
+        "size": [
+          0.85,
+          0.6
+        ]
+      },
+      "texMetres": 2,
+      "size": [
+        512,
+        512
+      ],
+      "prompt": "worn pale damp floor, brush strokes",
+      "grow": {
+        "block": 48,
+        "band": 14,
+        "strength": 0.65,
+        "seed": 12
+      }
+    },
+    "door": {
+      "plane": {
+        "origin": [
+          -1.52,
+          1.36,
+          0
+        ],
+        "u": [
+          1,
+          0,
+          0
+        ],
+        "v": [
+          0,
+          1,
+          0
+        ],
+        "size": [
+          0.46,
+          0.74
+        ]
+      },
+      "texMetres": 1,
+      "size": [
+        256,
+        256
+      ],
+      "prompt": "dark green painted old wood, vertical grain",
+      "grow": {
+        "block": 40,
+        "band": 8,
+        "strength": 0.6,
+        "seed": 13
+      }
+    },
+    "wood": {
+      "plane": {
+        "origin": [
+          -1.52,
+          1.36,
+          0
+        ],
+        "u": [
+          1,
+          0,
+          0
+        ],
+        "v": [
+          0,
+          1,
+          0
+        ],
+        "size": [
+          0.46,
+          0.74
+        ]
+      },
+      "texMetres": 1,
+      "size": [
+        256,
+        256
+      ],
+      "prompt": "dark old wood, vertical grain",
+      "grow": {
+        "block": 32,
+        "band": 8,
+        "strength": 0.6,
+        "seed": 14
+      }
+    },
+    "rug": {
+      "plane": {
+        "origin": [
+          -0.66,
+          0.006,
+          2.14
+        ],
+        "u": [
+          1,
+          0,
+          0
+        ],
+        "v": [
+          0,
+          0,
+          -1
+        ],
+        "size": [
+          1.92,
+          1.4
+        ]
+      },
+      "texMetres": 1.92,
+      "size": [
+        256,
+        256
+      ],
+      "prompt": "woven patterned runner rug, ochre and dark green diamonds",
+      "grow": {
+        "quilt": false,
+        "axes": "v",
+        "band": 10,
+        "strength": 0.55,
+        "seed": 15
+      }
+    }
+  }
 }

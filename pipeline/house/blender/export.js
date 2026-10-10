@@ -165,9 +165,11 @@ export async function exportScene(textureDir) {
  */
 export const LIGHT_SOURCES = [
   'src/house/layout.js', 'src/house/level.js', 'src/house/dress.js', 'src/house/rooms.js',
-  'src/house/things.js', 'src/house/furniture.js', 'src/house/charts.js', 'src/house/surfaces.js',
+  'src/house/things.js', 'src/house/furniture.js', 'src/house/joinery.js', 'src/house/charts.js', 'src/house/surfaces.js',
   'pipeline/house/textures.js', 'pipeline/house/style.js', 'pipeline/lib/paint.js', 'pipeline/lib/raster.js',
   'pipeline/house/blender/export.js', 'pipeline/house/blender/bake.py',
+  // The surfaces grown from the owner's painting give the house its colours.
+  'pipeline/house/concept/swatches.json',
 ];
 
 export function sourceHash() {

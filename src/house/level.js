@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { BLOCKERS, SPACES, STAIRS, STAIRWELL, UPPER, WALLS, WALL_THICKNESS } from './layout.js';
+import { HANDRAIL, placeRun, post, soft } from './joinery.js';
 import { worldUV } from './surfaces.js';
 
 const T = WALL_THICKNESS;
@@ -103,26 +104,32 @@ export function buildHouse(surfaces) {
     }
   }
 
-  // ---- The stairs: a ramp of treads, and the boxes under them ----
+  // ---- The stairs, as the painting has them: a nosed tread over a riser at
+  // every step, with a closed string up the open side. Drawn, never collided
+  // with: the floor under the player is the ramp in floorAt, and the treads
+  // are what it looks like. The space under the flight is boxed in, as a
+  // staircase against a wall is.
   const steps = 15;
   const rise = (STAIRS.top - STAIRS.bottom) / steps;
   const run = (STAIRS.z[1] - STAIRS.z[0]) / steps;
+  const SX0 = STAIRS.x[0];
+  const SX1 = STAIRS.x[1];
   for (let i = 0; i < steps; i++) {
-    // Each tread is drawn, never collided with: the floor under the player is
-    // the ramp in floorAt, and the treads are what it looks like.
     const z1 = STAIRS.z[1] - i * run;
-    box(mat.stairs, STAIRS.x[0], STAIRS.x[1], 0, (i + 1) * rise, z1 - run, z1, false);
-    // A nosing on each tread, proud of the riser below it, so the flight reads
-    // as steps under the lamp rather than as a stack of boxes.
-    box(mat.banister, STAIRS.x[0] - 0.03, STAIRS.x[1], (i + 1) * rise - 0.035, (i + 1) * rise, z1 - run, z1 + 0.03, false);
+    const top = (i + 1) * rise;
+    // The riser, set back under the nosing.
+    group.add(soft(mat.stairs, SX0, SX1, top - rise, top - 0.03, z1 - 0.025, z1 - 0.005, 0.003));
+    // The tread, its nosing proud of the riser and rounded.
+    group.add(soft(mat.banister, SX0 - 0.02, SX1, top - 0.03, top, z1 - run, z1 + 0.025, 0.012));
+    // The boxed-in space under the step.
+    box(mat.stairs, SX0, SX1, 0, top - rise, z1 - run, z1 - 0.005, false);
   }
-  // The string: a board up the open side, under the nosings, from the floor
-  // at the foot to the stairhead.
+  // The string: a deep board up the open side, the steps housed in it.
   {
-    const deep = 0.28;
+    const deep = 0.32;
     const len = Math.hypot(STAIRS.z[1] - STAIRS.z[0], STAIRS.top - STAIRS.bottom);
-    const string = new THREE.Mesh(new THREE.BoxGeometry(0.04, deep, len + deep), mat.banister);
-    string.position.set(STAIRS.x[0] - 0.02, (STAIRS.top + STAIRS.bottom) / 2 - deep / 2 + 0.05, (STAIRS.z[0] + STAIRS.z[1]) / 2);
+    const string = soft(mat.banister, -0.025, 0.025, -deep / 2, deep / 2, -len / 2 - 0.15, len / 2 + 0.15, 0.008);
+    string.position.set(SX0 - 0.03, (STAIRS.top + STAIRS.bottom) / 2 + 0.09, (STAIRS.z[0] + STAIRS.z[1]) / 2);
     string.rotation.x = Math.atan2(STAIRS.top - STAIRS.bottom, STAIRS.z[1] - STAIRS.z[0]);
     group.add(string);
   }
@@ -152,41 +159,44 @@ export function buildHouse(surfaces) {
   for (const b of BLOCKERS) colliders.push({ minX: b.x[0], maxX: b.x[1], minY: b.y[0], maxY: b.y[1], minZ: b.z[0], maxZ: b.z[1] });
   const railX = (BLOCKERS[0].x[0] + BLOCKERS[0].x[1]) / 2;
   const RAIL = 0.9;
-  const post = (z, y0, y1, w = 0.09) => box(mat.banister, railX - w / 2, railX + w / 2, y0, y1, z - w / 2, z + w / 2, false);
-  // A turned baluster: a square block at the foot and a thinner shaft with a
-  // swelling partway up, which is what reads as turned at this resolution.
-  const baluster = (z, y0, y1) => {
-    post(z, y0, y0 + 0.12, 0.055);
-    post(z, y0 + 0.12, y1, 0.035);
-    post(z, y0 + 0.24, y0 + 0.36, 0.05);
-  };
-  // The open banister: from a newel post at the foot of the flight, a
-  // baluster to every tread under a sloping rail, to a post against the hall's
-  // back wall. Past that line the flight runs between walls, and the rail
-  // there is a handrail on the wall. It once ran on up to the stairhead,
-  // through the slot's wall, and came out of it into the gallery upstairs.
+  // The open banister, as the painting's: plain square balusters standing on
+  // the string, one to a tread, under a moulded handrail, from a tall square
+  // newel post with a capped top at the foot of the flight to a half post
+  // against the hall's back wall. Past that line the flight runs between
+  // walls, and the rail there is a handrail on the wall. It once ran on up to
+  // the stairhead, through the slot's wall, and came out of it into the
+  // gallery upstairs.
   const zFoot = BLOCKERS[0].z[1];
   const zHead = STAIRS.z[0];
   const zBack = T / 2 + 0.05;
   const stairY = (z) => Math.min(STAIRS.top, Math.max(0, ((STAIRS.z[1] - z) / (STAIRS.z[1] - STAIRS.z[0])) * (STAIRS.top - STAIRS.bottom)));
-  for (let z = zFoot - 0.2; z > zBack + 0.05; z -= run) baluster(z, stairY(z), stairY(z) + RAIL);
-  post(zFoot, 0, stairY(zFoot) + RAIL + 0.15, 0.11);
-  post(zFoot, stairY(zFoot) + RAIL + 0.15, stairY(zFoot) + RAIL + 0.22, 0.15);
-  post(zBack, 0, stairY(zBack) + RAIL + 0.1, 0.1);
-  const sloped = (x, z0, z1, rise, w, h) => {
+  const stand = (obj, x, y, z) => {
+    obj.position.set(x, y, z);
+    group.add(obj);
+    return obj;
+  };
+  for (let z = zFoot - 0.18; z > zBack + 0.06; z -= run) {
+    const y0 = stairY(z) + 0.1;
+    stand(post(mat.banister, 0.036, stairY(z) + RAIL - y0), railX, y0, z);
+  }
+  const newelTop = stairY(zFoot) + RAIL + 0.12;
+  stand(post(mat.banister, 0.11, newelTop, { cap: 0.15, capH: 0.06 }), railX, 0, zFoot);
+  stand(post(mat.banister, 0.09, stairY(zBack) + RAIL + 0.06), railX, 0, zBack);
+  const sloped = (x, z0, z1, rise, profile) => {
     const y0 = stairY(z0) + rise;
     const y1 = stairY(z1) + rise;
     const len = Math.hypot(z0 - z1, y1 - y0);
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(w, h, len), mat.banister);
-    rail.position.set(x, (y0 + y1) / 2, (z0 + z1) / 2);
-    rail.rotation.x = Math.atan2(y1 - y0, z0 - z1);
-    group.add(rail);
+    const dir = [0, (y1 - y0) / len, (z1 - z0) / len];
+    // Across the rail is sideways; out from it is up, square to the slope.
+    const up = [0, (z0 - z1) / len, (y1 - y0) / len].map((v) => -v);
+    const w = profile.at(-1)[0];
+    group.add(placeRun(mat.banister, profile, len, [x - w / 2, y0, z0], dir, [1, 0, 0], up));
   };
-  sloped(railX, zFoot, zBack, RAIL, 0.08, 0.06);
+  sloped(railX, zFoot, zBack, RAIL, HANDRAIL);
   // The handrail on the wall, on brackets, from the back wall to the head.
   const wallX = STAIRS.x[0] - 0.02;
-  sloped(wallX, -T / 2, zHead, RAIL - 0.05, 0.045, 0.045);
-  for (let z = -0.4; z > zHead; z -= 0.9) box(mat.banister, STAIRWELL.x[0] - 0.05, wallX, stairY(z) + RAIL - 0.12, stairY(z) + RAIL - 0.08, z - 0.02, z + 0.02, false);
+  sloped(wallX, -T / 2, zHead, RAIL - 0.05, HANDRAIL);
+  for (let z = -0.4; z > zHead; z -= 0.9) box(mat.banister, STAIRWELL.x[0] - 0.05, wallX, stairY(z) + RAIL - 0.12, stairY(z) + RAIL - 0.04, z - 0.02, z + 0.02, false);
 
   return { group, colliders };
 }

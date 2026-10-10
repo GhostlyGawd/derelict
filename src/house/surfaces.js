@@ -41,9 +41,7 @@ export async function loadSurfaces(base = '/assets/house/manifest.json') {
   grade.magFilter = THREE.LinearFilter;
   grade.minFilter = THREE.LinearFilter;
   grade.generateMipmaps = false;
-  // The owner's painting (9.3), for the projector; filtered as a picture is.
-  const painting = manifest.painting ? await loader.loadAsync(manifest.painting.file) : null;
-  return { manifest, tex, grade, painting, materials: materials(tex, manifest.live || { rug: 1 }) };
+  return { manifest, tex, grade, materials: materials(tex, manifest.live || { rug: 1 }) };
 }
 
 function materials(tex, live) {

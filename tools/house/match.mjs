@@ -37,8 +37,6 @@ await page.addStyleTag({ content: '#hud, #ring, #touch { display: none !importan
 const view = await page.evaluate(
   ([pos, yaw, pitch, fov, plain]) => {
     const g = window.__house;
-    // For the overlay, the hall's own geometry: the painting is switched off.
-    if (!plain && g.projection) g.projection.uniforms.pMatrix.value.multiplyScalar(0);
     const render = g.grade.render.bind(g.grade);
     g.grade.render = (s, c) => render(s, c, null);
     if (fov) {

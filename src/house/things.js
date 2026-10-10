@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
 import { chest, piece, place, table, tint as paint } from './furniture.js';
+import { panelDoor } from './joinery.js';
 import { CLOCK, CONTAINERS, DOORS, GROUND, ITEMS, NOTES, UPPER, WALL_THICKNESS, openingFor } from './layout.js';
 
 /**
@@ -44,33 +45,44 @@ function makeDoor(def, group, mat) {
   pivot.position.set(hx, wall.y, hz);
   group.add(pivot);
   const material = mat ? mat.door.clone() : new THREE.MeshLambertMaterial({ color: def.lock ? 0x5a3a28 : 0x6a5038 });
-  const leaf = new THREE.Mesh(new THREE.BoxGeometry(w, h, LEAF), material);
   // The leaf's own frame: it runs along local -hinge·x from the pivot, so the
-  // closed door spans the opening when the pivot is turned to the wall.
-  leaf.position.set(-def.hinge * (w / 2), h / 2, 0);
+  // closed door spans the opening when the pivot is turned to the wall. It is
+  // a panelled door, as the painting's are (joinery.js): two tall fielded
+  // panels, or for the front door upright boards below and glass above.
+  const leaf = mat
+    ? panelDoor(material, {
+        w,
+        h,
+        t: LEAF,
+        night: mat.night,
+        rows: def.panes ? [{ f: 0.52, boards: true }, { f: 0.48, glass: true }] : [{ f: 0.44 }, { f: 0.56 }],
+        panes: def.panes ? [2, 2] : undefined,
+      })
+    : new THREE.Mesh(new THREE.BoxGeometry(w, h, LEAF), material);
+  if (mat) leaf.position.set(-def.hinge * (w / 2), 0, 0);
+  else leaf.position.set(-def.hinge * (w / 2), h / 2, 0);
   pivot.add(leaf);
-  // The front door has small panes in its upper half, with the night behind
-  // them, as in the reference.
-  if (def.panes && mat) {
-    const [cols, rows] = def.panes;
-    const pw = (w * 0.62) / cols;
-    const ph = (h * 0.34) / rows;
-    for (let c = 0; c < cols; c++) {
-      for (let r = 0; r < rows; r++) {
-        for (const side of [-1, 1]) {
-          const pane = new THREE.Mesh(new THREE.PlaneGeometry(pw * 0.86, ph * 0.86), mat.night);
-          pane.position.set(-def.hinge * (w * 0.19 + pw * (c + 0.5)), h * 0.58 + ph * (r + 0.5), side * (LEAF / 2 + 0.002));
-          if (side < 0) pane.rotation.y = Math.PI;
-          leaf.add(pane);
-          pane.position.x -= leaf.position.x;
-          pane.position.y -= leaf.position.y;
-        }
-      }
-    }
+  const leafMeshes = [];
+  leaf.traverse((o) => o.isMesh && o.material === material && leafMeshes.push(o));
+  // A brass knob on a round rose, both faces.
+  const brass = new THREE.MeshLambertMaterial({ color: 0xb09a60 });
+  const knob = new THREE.Group();
+  for (const s of [-1, 1]) {
+    const rose = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.008, 12), brass);
+    rose.rotation.x = Math.PI / 2;
+    rose.position.z = s * (LEAF / 2 + 0.004);
+    knob.add(rose);
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.026, 12, 8), brass);
+    ball.position.z = s * (LEAF / 2 + 0.05);
+    knob.add(ball);
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.012, 0.045, 8), brass);
+    neck.rotation.x = Math.PI / 2;
+    neck.position.z = s * (LEAF / 2 + 0.025);
+    knob.add(neck);
   }
-  const knob = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.16), new THREE.MeshLambertMaterial({ color: 0xb09a60 }));
-  knob.position.set(-def.hinge * (w - 0.1), 1.0, 0);
+  knob.position.set(-def.hinge * (w - 0.075), 1.0, 0);
   pivot.add(knob);
+  const knobMeshes = knob.children;
 
   // Closed: local -hinge·x lies along the wall toward the opening's middle.
   // Open: it lies along swing·n, a quarter turn about the hinge.
@@ -122,9 +134,9 @@ function makeDoor(def, group, mat) {
     heldBy: def.heldBy || null,
     open: false,
     t: 0,
-    meshes: [leaf, knob],
+    meshes: mat ? [...leafMeshes, ...knobMeshes] : [leaf, ...knobMeshes],
     point: mid,
-    highlight: tint([leaf]),
+    highlight: tint(mat ? leafMeshes.slice(0, 1) : [leaf]),
     canUse: () => !state.open,
     colliders: () => [withY(state.open ? openBox() : closedBox())],
     update(dt) {
