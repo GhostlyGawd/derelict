@@ -131,6 +131,28 @@ jobs:
       # Phase 8. The other half of the frame budget: absolute frame times from
       # the owner's own phone, read out of the committed traces and broken down
       # by compartment and event. Reported, never gated.
+      # Phase 9. Everything is drawn once while the game loads; nothing may
+      # compile or upload after the title, where it would be a stall on a phone.
+      - name: Playtest — nothing compiles after the title
+        run: node tools/warm.mjs http://127.0.0.1:4173/
+
+      # Phase 9, the house. Two floors and the stairs between them: every place
+      # can be walked back from, and the stairs are the only way up or down.
+      - name: House — two floors hold
+        run: node tools/house/floors.mjs http://127.0.0.1:4173/
+
+      - name: House — the loop is ordered, and the house can be left
+        run: node tools/house/chain.mjs http://127.0.0.1:4173/
+
+      - name: House — no monkey can break it
+        run: node tools/house/monkey.mjs http://127.0.0.1:4173/
+
+      # The look as numbers (9.4.5): fixed views of the house, through the real
+      # surfaces, light and grade, held to the style target measured from the
+      # owner's reference.
+      - name: House — the house holds its style
+        run: node tools/house/style.mjs http://127.0.0.1:4173/
+
       - name: Report — frame times on the owner's phone
         run: node tools/profile.mjs http://127.0.0.1:4173/
 

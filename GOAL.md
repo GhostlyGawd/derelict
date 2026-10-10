@@ -51,9 +51,481 @@ The owner asked for something creative after two phases of instruments: *"a
 resident evil style level matching this architecture and look … a model of
 this house and the rooms and second story … a 10 minute tech demo with
 interactivity and lore."* The reference is one image the owner supplied: a
-damp entry hall at night, described in 9.3. It is not committed to the
-repository, and the house is our own, built in its manner. It is not a copy
-of the house in the picture.
+damp entry hall at night, described in 9.3. The owner painted it, and on
+10 October 2026 made it a source of the house: it is committed, and the
+entry hall is built from it, its own paint projected onto a hall laid to its
+perspective, so that the start of the run is the painting in three
+dimensions. The rest of the house is our own, built in the same hand (see
+*The owner's painting, as a source* below). (The owner asked for the hall to
+be a 1:1 recreation on seeing milestone 2; the draft had said the house would
+not copy the picture, and until 10 October nothing in it was committed,
+traced or sampled.)
+
+**What the build changed in this section, and why.** Written as each
+milestone lands, ahead of or with the code, as every phase has.
+
+*Milestone 0, the backlog.* The 195 ms hitch was shaders compiling the first
+time a room lit up. Everything is now drawn once, on the canvas, while the game
+loads. A first attempt drew to an off-screen target, and its programs were a
+different variant from the canvas's, so a few still compiled later.
+`tools/warm.mjs` looks round every space in every chain state and fails if a
+program, texture or geometry appears after the title: 15, 26 and 133 now, from
+10, 42 and 127 growing in play before. The scanner is placed in the room
+between the stick and the buttons, scaled down if it has to be, and
+`tools/mobile.mjs` checks it on seven screens with both the scanner and a
+carried cell.
+
+*Milestone 1, two storeys.* The player stands on `floorAt`, colliders are
+measured from the feet, and the ship leaves both at y = 0.
+`tools/house/floors.mjs` went red with the landing's banister taken out, a fall
+into the stairwell caught as a move with no way back, and green with it in.
+The ship's service worker no longer answers `/house/` with the ship's page,
+which it would have, and the house is not in the ship's precache.
+
+*Milestone 2, the loop.* Four things the build found:
+
+- **The interact ray went through walls.** The ship's ray tests only the
+  things it can use, never the rooms. On the ship nothing usable is within
+  reach of another room, so it never showed. In the house, the tin key's box
+  upstairs could be opened from the dining room through the ceiling. The chain
+  harness found it on its first run. The ray now stops at whatever it is given
+  as solid. The house gives it its shell, and the ship gives it nothing and
+  behaves as before.
+- **Upstairs forks.** The study key and the tin key can be found in either
+  order, which 9.3's step 4 always allowed. The loop table now names what each
+  step `needs` rather than relying on its row order, and the chain harness
+  proves each step against its needs.
+- **A door leaf caught a shoulder.** An open door's leaf stood 8 mm into its
+  own doorway on the hinge side. A player cutting the corner caught on its
+  edge and was pushed straight back. The monkey's autopilot stuck there for a
+  whole run. The leaf now sits behind the hinge line. The front door opens
+  outward, because opening inward it swept the place the player starts.
+- **The monkey's brain did not carry over.** Its input layer and its hostile
+  bursts did, unchanged. Its planner knew one floor, two stances, cells and
+  switches, and the house has its own (`tools/lib/monkey-house.js`). This is
+  the kind of finding 9.2 asks to be recorded.
+
+*The owner's first look at milestone 2, 9 October 2026.* It went badly, and
+two of the reasons are bugs the instruments should have caught:
+
+- **The owner walked past the gate.** The house kept its own player radius,
+  0.30 m, while the player moves at the ship's 0.34 m. Every proof in
+  `tools/house/` proved a thinner player than the one that plays. At the top
+  of the stairs the real one rests against the gate and the banister at once.
+  The collision code found a rounding error's overlap with the banister, and
+  "resolved" it by the shorter way out, which was north through the gate, 78
+  cm in one frame. That put the owner upstairs before the clock, and then
+  stranded them there behind a gate that only opens from the other side.
+  The house now takes the player's body from the ship, and in the house
+  touching is not overlapping. `tools/house/chain.mjs` walks the gate and
+  every locked door with 120 hostile tries each and requires nothing to get
+  through. It is shown to fail with the fix turned off.
+- **The gate at the top of the stairs made no sense.** It was a black slab
+  in greybox. The owner chose to keep the stairs open, as they are in the
+  picture, and to have the clock unlatch a door at the head of the stairs
+  instead. 9.3 says so.
+- **Grey was not what the owner expected to see.** The build order put the
+  look at milestone 3. The owner's reading of milestone 2 was that "none of
+  this looks anything like the concept art", and that they wanted the hall to
+  be a 1:1 recreation of it. That is now the brief for milestone 3, and the
+  header of this section says so.
+- **The ship has the same latent push.** Removing it on the ship as well made
+  both of the owner's recorded ship runs diverge in Corridor B's squeeze,
+  where those runs went through with it happening. It is left as it is on the
+  ship, because the ship is not to change in this phase, and recorded here
+  as a finding for a later one.
+
+*Milestone 3, the entry hall.* The hall was re-laid to the reference's
+composition. The flight now runs on past the back wall's line into a slot in
+the ceiling, the front door is in the right-hand wall just short of the stair
+foot, and a gallery beside the stairwell reaches the bedroom. The field of
+view is wider than the ship's (80° against 72°), because the reference shows
+the window at the left edge and the front door at the right. The style
+engine's first findings were its own bugs: a damp spread that grew on every
+pass and soaked the wall black, and a fractional blur radius that read the
+wetness field between cells. Both were caught by looking at the generated
+plaster before it went on a wall. The lamp is a downward cone with a faint
+glow up, because a bare bulb lit the ceiling brightest of anything, and the
+reference's ceiling is nearly black.
+
+Dressing the hall broke two proofs, and both were real. The hall's chair,
+placed where the reference has it, stood in the parlour doorway, and the floor
+proof found the parlour and its note unreachable. And the line past which the
+run ends was a line across the whole plan, so walking to the kitchen stove
+ended the game. The chain harness found that one by accident. Its hostile
+walks at the study door start in the kitchen, and they ended the run on its
+first pass, which left its second pass, the self-test, a house that no longer
+moved. The line now holds only beside the hall, and the floor proof fails any
+place inside the house that counts as out of it. It is shown to fail on the
+old line. The self-test's walks now also turn back and lean on the door, as a
+player trying to get through would.
+
+The monkey then found three more, all from re-laying the house, and all now in
+`tools/traces/monkey-house/` or fixed in the layout. With the study door open,
+its leaf and the study's note table left a gap narrower than the player, so
+the study could be entered and its desk never reached. The floor proof had
+passed it, because the desk is within arm's reach of the doorway. And the slot
+the stairs climb through had side walls a few centimetres proud of the
+banister on one side and of the hall's wall on the other, so a player climbing
+with a shoulder to either one had their head inside the slot's edge. The
+banister now runs to a newel post at the foot of the flight, as in the
+reference, and the stairs are climbed from the front. The handheld is the
+battery lantern 9.4.4 asked for, held with its face to the player as the
+device in the reference is: a grille, a gauge and a handle, built in engine
+and kept clear of the touch buttons by the scanner's rule.
+
+*The owner's look at milestone 3, 9 October 2026.* "The hall reads much
+better." Three things did not. The drawers floated: each was a plain box
+pushed half into its wall, with no legs, no plinth and nothing under it, so it
+read as hanging in the air. The upstairs wall clipped: the flight's handrail
+and balusters kept rising past the hall's ceiling, into the wall of the slot
+the stairs climb through, and came out of it into the gallery. And the style
+is not yet the picture, and nothing past the hall was dressed. The look bar
+stays open. The open banister now runs from the newel post to the hall's back
+wall, and above that a handrail runs on the wall. Every drawer and box is a
+piece of furniture standing in its room. Milestone 4, dressing the rest of the
+house, follows on in the same pull request, with the style pushed further in
+the hall at the same time rather than signed first: the owner can judge the
+hall better among dressed rooms than alone.
+
+*Milestone 4, the rest of the house.* Every room is furnished from a kit of
+parametric pieces (`src/house/furniture.js`): chests, tables, chairs, beds, a
+wardrobe, bookcases, a fireplace, a range, a sink, a bath and a basin, lamps,
+pictures and rugs. Each stands on legs or a plinth, and each casts a soft
+shadow onto the floor, so it reads as touching the ground. The rooms are
+placed in `src/house/rooms.js`. Every room has its own paint over the plaster.
+The dining room and the study have a wooden wainscot, and the kitchen and the
+bathroom are tiled to a dado. The tile is the tenth surface texture: the night
+outside is its own asset class in 9.7, so the box holds. Every outside wall
+that faces a room has a window onto the night.
+
+Placing the furniture was where the proofs bit. The monkey's autopilot plans
+with ten centimetres to spare round the player, and it could not get past the
+kitchen table, round the dining table to the clock, or out of a corner the
+parlour's bookcase made, all of which a player of the real size could. Each
+was re-laid with room to spare rather than the planner's margin cut. The
+bedroom was re-laid whole, with the bed's head under the window and its
+drawers on the north wall. The monkey also found a fault in itself. Its
+synthetic touches landed on fractional pixels, the recorder keeps a tenth of
+one, and a replay's look drifted from the run it was recorded from. Its
+touches now land on whole pixels, as a screen's do.
+
+The style harness now looks at every room, thirteen views in all, and it made
+the lighting. Its first verdict was that every room past the hall was far
+darker than the target and short of highlights and tones. Each room had a dim
+lamp that lit it flat, and lit its neighbours through the walls. Every hanging
+lamp is now a cone down from its shade, as the hall's is, so a room has a pool
+of light and dark corners. The night fills the shadows blue, the plaster's
+palette runs from yellow-green to grey-blue as the reference's walls do, and
+old tiles no longer all match. The frame gains a vignette, as the reference's
+has. No tolerance was loosened.
+
+*The owner's play of milestone 4, 9 October 2026.* The drawers still floated
+when opened: a drawer was only its front, and pulled out it was a plank in the
+air. Every drawer is now a box, with sides, a back, a bottom and a dark
+inside, that slides out on its runners. The rooms were crowded and oddly
+placed. A second armchair, three chairs, the passage table and a bookcase are
+gone, the kitchen table stands against a wall, and the two notes that lay on
+tables in the middle of rooms are on tables against a wall instead. The
+textures still do not look like the reference, and the next step is the
+owner's to choose. A paint filter over the whole frame (a Kuwahara filter, in
+the grade pass) was tried and is left off: at a strength a phone can afford it
+barely changes the frame.
+
+*Baked surfaces, chosen by the owner on 9 October 2026.* Asked how to come
+closer to the reference without an image model, the owner chose to bake light
+and grime into each surface, after a look at prior art: games of the
+reference's era carried their light, shadow and dirt in every surface, where a
+tiled texture lit live carries none of it. Each wall, floor and ceiling of a
+room gets its own texture, drawn by the pipeline from the surface generators
+and then lit by a ray tracer (three-mesh-bvh, MIT, a build-time dependency
+only) from the room's own lamp, with ambient occlusion in its corners. Grime
+is placed by the house's own geometry: damp rising from the floor, streaks
+under sills and from the ceiling, dirt along the skirting, hand marks round
+door handles and boards worn pale along the paths between doors. Each texture
+is then painted over at build time, with a Kuwahara filter and brush strokes
+laid along its contours, which costs nothing at run time. It is proved on the
+entry hall first, as the look was.
+
+The first bake looked like nothing had changed, and for a while it seemed the
+grime was too faint. It was the photograph: the style harness only rewrites
+its pictures when it is asked to (`--shots`), and the picture being judged was
+from before the bake. Its numbers had been taken from the new frame all along.
+Once the frame was looked at, the grime was faint as well. The bake now gives
+every surface a mid-sized mottle of lighter and darker paint and wood, larger
+stains with harder edges on the walls, and wet patches on the boards off the
+paths people walk. All thirteen views stay inside the target.
+
+*The owner's first trace of the house, 9 October 2026,* committed as
+`tools/traces/house/owner-2026-10-09-m4.json`. It is a whole run on the
+phone: 115 s, out of the front door, 17 ms a frame at the median and 18 at the
+95th percentile, with one frame of 62 ms. That is far short of ten minutes,
+and it is not the bar: the owner knew the house, and there is no story in it
+yet. It did not replay. It left its recording at frame 690, the first look
+after the first note, because the note reader was put away by a DOM click,
+which arrives on the wall clock and is not in a trace. Replay never put the
+note away, so every touch after it was read as a reader's. The reader now lets
+every touch and click through to the view, and a tap off the buttons is taken
+on the next frame as an input. The same trace then replays at all 230
+checkpoints and ends where the owner did. `tools/house/monkey.mjs` replays
+every owner trace of the house and requires exactly that. They have their own
+folder, because the ship's replay and profiler read every trace beside
+them.
+The owner's second, on the baked house, 10 October 2026
+(`owner-2026-10-10-baked.json`): 86 s to the front door, 17 ms at the median,
+18 at the 95th percentile and 55 at worst, three frames over 33 ms. It replays
+at all 172 checkpoints.
+
+*Blender and a tuner, chosen by the owner on 9 October 2026.* The baked hall
+lit better and still did not look like the picture. The owner asked whether
+the look could be optimised mathematically, and whether a real tool such as
+Blender could do the work. The gap is detail more than colour, and the
+reference is a painted picture from one fixed camera, so exact parity is not
+on offer. Two things close it, and the owner took both:
+
+- **Blender, pinned, at build time only.** Blender 4.2 LTS, free, scripted
+  and run without a window, bakes each surface's light with a path tracer:
+  light that bounces, soft shadows and moonlight from the windows, where the
+  first bake had direct light and an occlusion guess. It is still all code:
+  the house is built by our generators and exported to Blender, and Blender
+  is told by a script what to light and how. No image model is involved.
+  Blender's output is not promised byte for byte across machines, so its
+  light maps are committed as sources beside the pipeline, with a hash of
+  everything that went into them. The pipeline composes them with the
+  generated surfaces and grime, deterministically, and fails if a light map
+  is stale against the source files it was baked from. Neither CI nor the deploy
+  runs Blender. Each source is baked as its own layer (the lamp's cone, its
+  glow, and the night through the windows), so the look can weigh them
+  afterwards without baking again: light adds. If the light and the tuner
+  leave the shell reading flat, Blender's scripted modelling, wear and
+  bevels on the shell, is the next step, and it comes back to the owner
+  first.
+
+As built, the same day. Blender bakes the hall in about 90 s at 1024
+samples. The light maps are kept as RGBE in ordinary PNGs (three 8-bit
+mantissas and a shared exponent), because 16-bit PNGs did not survive the
+image library round trip. The stale check is shown to fail: touching
+`bake.py` without baking again stops the pipeline with the remedy. The tuner
+ran three passes and taught three things:
+
+- **The tuner will remove the look if it is allowed to.** On numbers alone
+  it turned the brush strokes and the mottle to nothing and the damp up to
+  hard-edged camouflage. The statistics were closer and the picture was
+  worse. The paint knobs now have a floor: the tuner may weaken the painted
+  look the owner asked for, and never remove it. The damp's edges were
+  softened by hand.
+- **The grade is not the hall's to turn.** Tuned on the hall, it took four
+  other rooms out of their palette. It is no longer a knob.
+- **Neither is every rug.** The rug knob darkened every rug in the house,
+  so the hall's runner has its own material.
+
+The score fell from 96 to 41. Every one of the thirteen views stays inside
+9.4.5's target, and the hall's reference view is inside its regions as
+well. The regions are still the farthest numbers. The reference's front-door
+wall is lit far brighter than ours, and its rug far darker. Those come from
+how the picture was painted, not from a knob, and are the owner's to judge.
+
+*Every room baked, 9 October 2026.* The owner said to continue, so every
+room was baked the same way: 67 walls, floors and ceilings across twelve
+spaces. Blender bakes them in about eleven minutes, the light maps committed
+as sources come to 14 MB, and the baked surfaces the game loads come to
+2.0 MB. The pipeline's own part takes about five minutes, most of it the
+occlusion traced for the grime. Three things changed to get there:
+
+- **A room's paint and dado are in its bake.** The game paints a room's
+  walls with a lining 4 to 12 mm in front of the plaster (`LININGS`, now
+  shared by the game and the bake). A wall's baked skin stands 14 mm off the
+  plaster, in front of it, and carries the paint, the wainscot or the tile
+  in its colour. The dado's rail still stands proud of the skin.
+- **Light is baked per room.** Each surface is baked in four layers: its own
+  room's lamp cones, its own room's glows, the light that spills in from every
+  other room, and the night through the windows. Every lamp comes from the
+  lights the game itself builds.
+- **Each room has its own look.** Baked at neutral settings, eight rooms
+  were far darker than the target, and 24 checks failed. The tuner gained a
+  room mode: it turns one room's light and exposure against that room's own
+  view, and never the hall's shared knobs. Tuned room by room, every view is
+  inside the target again. The kitchen needed its exposure ceiling raised:
+  its walls stand outside its lamp's cone and get only the edge of it.
+
+Two things read wrong in the rooms and are left for the owner's look. The
+kitchen's and bathroom's tiled floors carry the same wet blotches as the
+boards, and the walls' mottle reads heavy in places.
+
+*The deploy that would not build, 9 October 2026.* Every Vercel preview from
+the Blender commit on failed in about twenty seconds, while CI passed. The
+owner fetched the log: the pipeline had called the light stale. The staleness
+check hashed the exported scene, the house's triangles and colours as
+numbers, and Vercel's build machines computed those numbers a hair
+differently from every other machine tried (three Node versions here, and
+CI). The check now hashes the committed source files the light is baked from
+(`LIGHT_SOURCES` in `pipeline/house/blender/export.js`), which are the same
+bytes everywhere. The committed light was confirmed to belong to the same
+scene under the old hash before it was stamped with the new one, and the
+check is shown to fail again when one of those files changes.
+- **A tuner.** The knobs that make the look (exposure, grime, damp, wear,
+  paint and the grade) live in one table, and a tool turns them to bring
+  fixed views of the hall closer to the reference. It scores regions of the
+  frame, a grid over the view, by the same statistics 9.4.5 already uses,
+  and never by pixels: the target stays numbers measured from the picture,
+  and nothing of the picture is committed. The style harness gains the
+  regional target and judges it on the hall's reference view.
+
+*The owner's painting, as a source, chosen by the owner on 10 October 2026.*
+Asked why the house still was not the picture, the answer was that most of
+what makes it is painted detail, and code imitating a painter makes marks of
+the same family, never those marks. The owner then said the picture is their
+own concept art, and chose to commit it and build from it, and to allow a free
+image model run locally. So the house now has two kinds of source beside its
+generators:
+
+- **The painting** (`pipeline/house/concept/`), committed as the owner's own
+  art, with the device and the two panels in its corners masked out as the
+  HUD they are. A camera is matched to it and the hall is re-laid to its
+  perspective. (It was first projected onto the hall; that was taken out the
+  same day, below, and the painting is now the source of the house's
+  materials.)
+- **A local image model, for what the painting does not show:** the sides of
+  things seen edge-on, what stands behind the sideboard, and every other
+  room. It is free and openly licensed, runs on the build machine only, by its
+  own script (as Blender does), and is never asked for a picture from words
+  alone: it is always given the owner's painting, or a surface cut from it,
+  and asked to extend it. Its output is not byte-for-byte across machines, so
+  it is committed as a source with a hash of its inputs, as the light maps
+  are, and neither CI nor the deploy runs it.
+
+This lifts Amendment 1 for the house, and only in those two ways. The ship,
+and everything in the house that is not a surface (geometry, sound, the
+grade, the night, the type), is still made by code alone.
+
+As built, the same day. The painting's camera was found from the picture
+itself: its back wall, read against the game's 80° field of view and the
+player's eye of 1.62 m, puts the wall 3.54 m away, and its passage vanishes
+where that eye's horizon falls. The painting keeps its verticals upright, so
+its camera is level with its lens shifted up (`PAINTING` in layout.js), and
+the player starts there, looking a little down. The hall was re-laid to that
+camera, with the painting's edges laid over the render (`tools/house/match.mjs`)
+until its doors, arch, window, stairs, lamp, sideboard and chair stood where it
+paints them. It is wider (5.07 m), its stairs start nearer (z = 1.15), and the
+front door is narrower (0.88 m).
+
+Two of those moves broke proofs, and both were real. The parlour door, where
+the painting has it, ran into the passage's side wall, so it opened onto
+0.9 m; the passage's west wall now stands 20 cm further east downstairs. And
+the arch, at the painting's width, left the monkey's autopilot two
+centimetres; it is 1.12 m. The floor proof and the chain harness passed
+throughout, because a real player fits; the monkey did not, and the house
+was re-laid rather than its margin cut. The owner's two traces start where
+the player no longer stands, and are retired from the gate to
+`tools/traces/house/retired/`, kept as evidence, as phase 7 retired traces
+from an older input layer.
+
+The projector is a few lines in every material (`src/house/projection.js`):
+the painting is thrown from the painter's eye, a depth map drawn from there
+decides what the painter could see, and the frame's grade lets the painting
+through untouched, since it already carries its own. A door is projected as
+it stands shut, so its paint swings with it. From where the player starts,
+the frame is the painting.
+
+The model is Stable Diffusion 1.5's inpainting weights (CreativeML
+OpenRAIL-M), run on the CPU by `npm run paint:fill`: about three minutes a
+512-pixel window. It paints the painting's corners out first, where the
+painting shows the device and the two panels that are the game's own HUD.
+Then the hall's six walls, floor and ceiling are unwrapped from the painting
+at 128 texels a metre (`pipeline/house/model/unwrap.js`): every texel the
+painter saw square on, unblocked, keeps the painting's pixel, which is about
+half the back wall, a third of the floor and a sixth of the rest. The model
+paints the remainder in 512-pixel windows round the painting's own paint.
+Its first run was wrong in three ways, all found by looking: it painted
+lighter and greener than the painting, it painted a floor as a room with a
+rug and a pile of books in it, and a ceiling as a ceiling with a lamp. Each
+unseen texel is now seeded with the house's own generated surface (boards,
+plaster) in the painting's colours, and the model repaints that seed rather
+than inventing from words: walls freely, floors and ceilings only lightly.
+Then the pipeline holds what it painted to the painting's colour on that
+surface, by each channel's mean and spread (`compose.js`), deterministically,
+so that can be turned without running the model again.
+
+Three more things were found by walking round. The painted lamp is bigger
+than the shade was, and its edge landed on the ceiling as a ghost; the shade
+is now the painting's size. The projector painted the passage's side walls,
+which the painter saw through the arch almost edge-on, as long smears. A
+first fix, painting nothing past the back wall but what faced the painter
+square, took the painting off the arch and the stairwell as seen from the
+start. Now a surface the painting covers with fewer than 25 to 45 of its
+pixels a metre keeps its own texture, and fades to it only as the player
+walks the first two metres off the painter's spot: from the spot itself the
+frame is the painting, and nowhere else is anything smeared. And the
+style harness's hall view is now the painting's own camera, where it matches
+the target by construction.
+
+Two of the style harness's checks were out. The hall seen toward the
+stairs and back toward the window had its 95th-percentile luminance at 0.058
+and 0.059, under the floor of 0.080, because those views looked at the dark
+parts of the owner's own painting and away from its bright ones.
+
+*The owner's look at the projected hall, 10 October 2026.* "It doesn't look
+like an actual game. It just looks really buggy and weird … like you painted
+over it 2D from the front view and stretched it out." That is what a
+projection is, from anywhere but the painter's spot, and it was the wrong
+lever: it asked the surface to carry shape the model did not have. A flat
+box will not read as a panelled door from the side whatever is painted on
+it. And the owner asked the right question: why was the house not modelled
+to the painting's shapes? It was, but crudely, out of boxes. So, chosen by
+the owner the same day:
+
+- **The hall is modelled to the painting's shapes.** Panelled doors with
+  raised fielded panels in moulded frames, architraves and skirting run from
+  moulding profiles, an arch with a curved soffit, stairs with nosed treads,
+  risers and a string, turned balusters and a turned newel post under a
+  shaped handrail, a window with its frame, sill and glazing bars, the
+  sideboard with its panelled doors and moulded top, and the lamp turned as
+  the painting has it. All of it is code, so it stays byte for byte.
+- **Its materials are cut from the painting.** The painting is unwrapped
+  square-on as before, and clean patches of its plaster, boards, door wood
+  and rug are made into repeating textures, so the house wears the owner's
+  own paint on every surface, the right way up and at its real size, from
+  wherever it is seen. The model only mends their seams.
+- **The projection is taken out.** The hall keeps the layout matched to the
+  painting. From where the player starts it will no longer be a copy of the
+  picture; it is a modelled room built from the picture's shapes and
+  materials, lit by Blender as every other room is.
+
+As built, the same day. The joinery is `src/house/joinery.js`: every door in
+the house is now stiles and rails round fielded panels in a bead (the front
+door upright boards below and glazing above), every door and arch has a
+moulded architrave, the hall a moulded skirting, the stairs nosed treads over
+risers in a deep string, square balusters on it under a moulded handrail, a
+capped newel, and the lamp a turned enamel shade. The cabinet has a plinth,
+a moulded top, drawers and panelled doors; the chair legs, stretchers and a
+railed back; the bag hangs on a peg; every curtain falls in folds.
+
+The materials are five swatches cut from the painting square-on
+(`pipeline/house/model/swatch.js`): a pier of the back wall's plaster, the
+floor beside the rug, a panel of the back door's boards (as door and wood),
+and the runner. Each is grown to its texture's size by image quilting, the
+painting's own paint rearranged, and the model only repaints a band where it
+wraps (`swatches.py`); about ten minutes on the CPU (`npm run paint:fill`).
+They are committed with a hash of their sources, and the light maps are
+stale against them. Painted shading carries its own relief, so their normal
+maps are flat. Three things were found by looking: the first rug cut ran
+past the painted rug's edges and past the painting's frame, the board grain
+read as stripes on every frame and rail (wood is calmed to half its contrast
+and door wood to 70%), and the bake's own mottle and damp laid camouflage
+over plaster that already carries the painting's (mottle 0.5 → 0.15, damp
+1.2 → 0.45). The hall's runner no longer has the tuner's darkening.
+
+Every room now wears these materials, and eight of the style harness's
+checks are out: five views have fewer distinct colours than the floor
+(229 to 285 against 305), the dining room's and kitchen's brightest pixels
+are over the ceiling (0.35 and 0.45 against 0.32), each room's exposure
+having been tuned for the generated textures, and two regions of the hall's
+reference view are lit brighter than the painting there. Re-tuning the rooms
+follows if the owner takes this direction; no tolerance is loosened.
+
+For now, doors open and stay open, and a key is spent at its door. On a
+phone the key ring sits at the top left, because the stick holds the bottom
+left.
 
 **This phase does not touch the ship.** DERELICT stays exactly as signed:
 the same level, the same chain, the same guardrails, the same harnesses and the
@@ -63,8 +535,9 @@ same traces. Everything this section lifts, it lifts for the house only.
 
 A second, separate demo on the same engine and the same pipeline: a two-storey
 house at night, about ten minutes long, with locked doors, keys and notes, and
-a story the house tells about itself. There is no combat and nothing to fight,
-and every asset is generated by code.
+a story the house tells about itself. There is no combat and nothing to fight.
+Its surfaces come from the owner's own painting, and everything else is
+generated by code.
 
 ## 9.2 What phase 9 demonstrates
 
@@ -132,8 +605,9 @@ proved ordered. Here the machines are locks and the state is keys:
 2. **Downstairs, open.** The parlour and the kitchen. A drawer gives the first
    key, which opens the dining room.
 3. **The clock.** In the dining room a clock is stopped. A note elsewhere gives
-   the hour, and setting it opens the way upstairs, past a gate on the
-   landing.
+   the hour, and setting it unlatches the door at the head of the stairs. The
+   stairs themselves are open, as in the picture. You can climb them early
+   and find that door shut, and that is the point of the climb.
 4. **Upstairs.** The bedroom holds the study key. The child's room holds what
    the study's lock asks for.
 5. **The study.** The last of the story, and the front door's key.
@@ -222,6 +696,14 @@ still holds.
 - **Night outside.** The windows look out on a generated night: dark sky,
   rain, the black shapes of trees. You see it from inside before you ever go
   out, which is why the views-out rule is lifted for the house (9.5).
+- **Baked surfaces.** Each wall, floor and ceiling of a room carries its own
+  texture with the room's light, shadow and grime baked in and painted over,
+  drawn by the pipeline from the surface generators. Built and lit at build
+  time, deterministic, and shown unlit at run time, as the era's games did.
+  The furniture and doors stay lit live by the same lamp. The light is baked by
+  Blender, pinned at 4.2 LTS and run only by `npm run bake:light`, and its
+  maps are committed with a hash of their inputs; everything after the light
+  is composed by the pipeline, byte for byte.
 - **The handheld.** The bottom-right device in the reference becomes the
   house's viewmodel, an old battery lantern. That settles backlog item 1
   (9.4.7) in a new form: it is placed against the touch buttons and the
@@ -282,14 +764,32 @@ the image is copied or committed. At 448 × 299:
 | Distinct colours at 15-bit | 763 |
 
 The house is held to these within tolerances the build sets on the entry hall
-and records here before it dresses another room. The numbers describe a look.
+and records here before it dresses another room. Set on 9 October 2026, on
+three views of the hall, and held since milestone 4 by every room, thirteen
+views in all (`tools/house/style.mjs`):
+
+| | Tolerance | Every view |
+|---|---|---|
+| Median luminance | ×0.4 to ×3 of the target | in |
+| 95th-percentile luminance | ×0.5 to ×2 | in |
+| Share where green dominates | ±0.12 | in |
+| Mean saturation | ±0.15 | in |
+| Fine detail | ×0.5 to ×2 | in |
+| Distinct 15-bit colours | ×0.4 to ×2.5 | in |
+| Each region's mean luminance, a 4 × 3 grid on the reference view (added with the tuner) | ×0.25 to ×4 | in |
+| Each region's mean saturation, the same grid | ±0.2 | in |
+
+The reference view's mean colour is 43, 48, 27 against the reference's
+35, 46, 27. A tolerance is not loosened to let a change through. The numbers describe a look.
 They are not a picture to match pixel for pixel, and the house's own rooms
 will differ from the reference in every detail.
 
-Rejected: an image model to paint the textures (the owner chose code), which
-would lift Amendment 1 and end byte-for-byte builds. Sampling or tracing the
-reference, which would make the house a copy. A style that lives only in
-prose, which is how the ship's worked and why it would not stretch to this.
+Rejected at first: an image model to paint the textures, and sampling or
+tracing the reference, which would make the house a copy. Both were taken up
+on 10 October 2026, once the owner said the reference is their own painting
+(see *The owner's painting, as a source*). A style that lives only in prose,
+which is how the ship's worked and why it would not stretch to this, stays
+rejected: the target above still holds every room.
 
 ### 9.4.6 The story
 
@@ -346,9 +846,11 @@ still applies to DERELICT exactly as written.
 saving (it is ten minutes long), settings menus, procedural generation,
 physically-based rendering, cutscenes, and jump scares, which 9.4.3 defines.
 
-**Every asset is still generated by code.** Amendment 1 holds for the house
-without exception. That holds for the reference image too: nothing in it is
-traced, sampled or imported.
+**Every asset is still generated by code, with two exceptions the owner
+chose.** The owner's painting is a source of the house's surfaces, and a free
+local image model extends it where it shows nothing. Neither reaches the
+ship, and neither is ever asked for a picture that does not start from the
+owner's.
 
 ## 9.6 Definition of done
 
@@ -362,9 +864,9 @@ traced, sampled or imported.
 | **Every note can be reached and read.** Each note is on the critical path or reachable from it, and at the reader's size its type clears the pixel floor on a phone in portrait. | Claude — the chain harness and `tools/legible.mjs` |
 | **Every asset is consumed.** Every generated texture, model, sound and the colour grade is observed in use during a full run of the house. | Claude — the consumption gate, on the house |
 | **It fits its budgets.** The house's frame against its own stripped frame inside 1.9×, its bytes to title gated at its own measured figure plus 15%, and no shader compiles after the title. | Claude — `tools/framecost.mjs`, `tools/weight.mjs`, and the new compile check |
-| **Still generated end to end.** A clean checkout reproduces every house asset byte-for-byte. | The existing determinism gate |
+| **Still generated end to end.** A clean checkout reproduces every house asset byte-for-byte from the committed sources (the owner's painting, Blender's light maps and the image model's output among them), and no light map or model output is stale against the sources it was made from. | The existing determinism gate, and the pipeline's staleness check |
 | **The house holds its style.** Fixed views of every room score within the stated tolerance of the style target in 9.4.5: value, cast, saturation, detail and palette. | Claude — the style harness, in CI |
-| **The entry hall reads as the reference.** The damp, the wood, the green and the one lamp, in our own house. | **The owner**, at the first milestone |
+| **The entry hall reads as the reference.** From where the player starts: the layout, the damp, the wood, the green and the one lamp, recreated. | **The owner**, at the first milestone |
 | **The house is frightening without a monster.** | **The owner** |
 | **The story lands.** | **The owner** |
 | **About ten minutes, cold.** A first play without knowing the house runs eight to twelve minutes. | **The owner**, with a trace, which the profiler times |
@@ -373,8 +875,10 @@ traced, sampled or imported.
 ## 9.7 The box
 
 One new level, a separate demo of about ten spaces on two floors. At most ten
-new surface textures, fourteen new models and twelve new sounds. Two new asset
-classes: the colour grade and the night outside. The style engine is
+new surface textures, fourteen new models and twelve new sounds. Three new
+asset classes: the colour grade, the night outside, and baked surfaces, one
+per wall, floor and ceiling of a dressed room, drawn from those ten surfaces
+(added in the build, 9 October 2026). The style engine is
 generator code, not an asset, and the style harness is one new instrument. One new movement capability,
 stairs, and no new movement verb. One new piece of interface, the note reader,
 and one new HUD element, the key ring.

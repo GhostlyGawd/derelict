@@ -1,0 +1,577 @@
+{
+  "textures": {
+    "plaster": {
+      "file": "/assets/house/textures/plaster.png",
+      "normal": "/assets/house/textures/plaster_n.png",
+      "size": 512,
+      "bytes": 110308,
+      "painted": true
+    },
+    "floor": {
+      "file": "/assets/house/textures/floor.png",
+      "normal": "/assets/house/textures/floor_n.png",
+      "size": 512,
+      "bytes": 96425,
+      "painted": true
+    },
+    "ceiling": {
+      "file": "/assets/house/textures/ceiling.png",
+      "normal": "/assets/house/textures/ceiling_n.png",
+      "size": 256,
+      "bytes": 28515
+    },
+    "door": {
+      "file": "/assets/house/textures/door.png",
+      "normal": "/assets/house/textures/door_n.png",
+      "size": 256,
+      "bytes": 30709,
+      "painted": true
+    },
+    "wood": {
+      "file": "/assets/house/textures/wood.png",
+      "normal": "/assets/house/textures/wood_n.png",
+      "size": 256,
+      "bytes": 32700,
+      "painted": true
+    },
+    "rug": {
+      "file": "/assets/house/textures/rug.png",
+      "normal": "/assets/house/textures/rug_n.png",
+      "size": 256,
+      "bytes": 57564,
+      "painted": true
+    },
+    "curtain": {
+      "file": "/assets/house/textures/curtain.png",
+      "normal": "/assets/house/textures/curtain_n.png",
+      "size": 128,
+      "bytes": 11709
+    },
+    "night": {
+      "file": "/assets/house/textures/night.png",
+      "normal": "/assets/house/textures/night_n.png",
+      "size": 256,
+      "bytes": 45104
+    },
+    "paper": {
+      "file": "/assets/house/textures/paper.png",
+      "normal": "/assets/house/textures/paper_n.png",
+      "size": 128,
+      "bytes": 16162
+    },
+    "picture": {
+      "file": "/assets/house/textures/picture.png",
+      "normal": "/assets/house/textures/picture_n.png",
+      "size": 128,
+      "bytes": 8151
+    },
+    "tile": {
+      "file": "/assets/house/textures/tile.png",
+      "normal": "/assets/house/textures/tile_n.png",
+      "size": 256,
+      "bytes": 57429
+    }
+  },
+  "grade": {
+    "file": "/assets/house/grade.png",
+    "size": 16,
+    "bytes": 12094
+  },
+  "baked": {
+    "hall-z0-p": {
+      "file": "/assets/house/baked/hall-z0-p.png",
+      "width": 238,
+      "height": 179,
+      "bytes": 55187
+    },
+    "hall-z4.6-n": {
+      "file": "/assets/house/baked/hall-z4.6-n.png",
+      "width": 312,
+      "height": 179,
+      "bytes": 71097
+    },
+    "hall-x-2.67-p": {
+      "file": "/assets/house/baked/hall-x-2.67-p.png",
+      "width": 282,
+      "height": 179,
+      "bytes": 61683
+    },
+    "hall-x2.4-n": {
+      "file": "/assets/house/baked/hall-x2.4-n.png",
+      "width": 282,
+      "height": 179,
+      "bytes": 66631
+    },
+    "hall-floor": {
+      "file": "/assets/house/baked/hall-floor.png",
+      "width": 324,
+      "height": 294,
+      "bytes": 147186
+    },
+    "hall-ceiling": {
+      "file": "/assets/house/baked/hall-ceiling.png",
+      "width": 324,
+      "height": 294,
+      "bytes": 14891
+    },
+    "parlour-z0-n": {
+      "file": "/assets/house/baked/parlour-z0-n.png",
+      "width": 352,
+      "height": 179,
+      "bytes": 68138
+    },
+    "parlour-x-6.4-p": {
+      "file": "/assets/house/baked/parlour-x-6.4-p.png",
+      "width": 179,
+      "height": 179,
+      "bytes": 11655
+    },
+    "parlour-z-3-p": {
+      "file": "/assets/house/baked/parlour-z-3-p.png",
+      "width": 352,
+      "height": 179,
+      "bytes": 63240
+    },
+    "parlour-x-0.7-n": {
+      "file": "/assets/house/baked/parlour-x-0.7-n.png",
+      "width": 179,
+      "height": 179,
+      "bytes": 26760
+    },
+    "parlour-floor": {
+      "file": "/assets/house/baked/parlour-floor.png",
+      "width": 365,
+      "height": 192,
+      "bytes": 122755
+    },
+    "parlour-ceiling": {
+      "file": "/assets/house/baked/parlour-ceiling.png",
+      "width": 365,
+      "height": 192,
+      "bytes": 16061
+    },
+    "passage-z0-n": {
+      "file": "/assets/house/baked/passage-z0-n.png",
+      "width": 102,
+      "height": 179,
+      "bytes": 21241
+    },
+    "passage-z-6-p": {
+      "file": "/assets/house/baked/passage-z-6-p.png",
+      "width": 102,
+      "height": 179,
+      "bytes": 15295
+    },
+    "passage-x-0.7-p": {
+      "file": "/assets/house/baked/passage-x-0.7-p.png",
+      "width": 371,
+      "height": 179,
+      "bytes": 101244
+    },
+    "passage-x1.1-n": {
+      "file": "/assets/house/baked/passage-x1.1-n.png",
+      "width": 371,
+      "height": 179,
+      "bytes": 97370
+    },
+    "passage-floor": {
+      "file": "/assets/house/baked/passage-floor.png",
+      "width": 115,
+      "height": 384,
+      "bytes": 75948
+    },
+    "passage-ceiling": {
+      "file": "/assets/house/baked/passage-ceiling.png",
+      "width": 115,
+      "height": 384,
+      "bytes": 6157
+    },
+    "study-z0-n": {
+      "file": "/assets/house/baked/study-z0-n.png",
+      "width": 243,
+      "height": 179,
+      "bytes": 52956
+    },
+    "study-x2.4-p": {
+      "file": "/assets/house/baked/study-x2.4-p.png",
+      "width": 179,
+      "height": 179,
+      "bytes": 33474
+    },
+    "study-x6.4-n": {
+      "file": "/assets/house/baked/study-x6.4-n.png",
+      "width": 179,
+      "height": 179,
+      "bytes": 28271
+    },
+    "study-z-3-p": {
+      "file": "/assets/house/baked/study-z-3-p.png",
+      "width": 243,
+      "height": 179,
+      "bytes": 44501
+    },
+    "study-floor": {
+      "file": "/assets/house/baked/study-floor.png",
+      "width": 256,
+      "height": 192,
+      "bytes": 65451
+    },
+    "study-ceiling": {
+      "file": "/assets/house/baked/study-ceiling.png",
+      "width": 256,
+      "height": 192,
+      "bytes": 32304
+    },
+    "dining-z-6-p": {
+      "file": "/assets/house/baked/dining-z-6-p.png",
+      "width": 352,
+      "height": 179,
+      "bytes": 64667
+    },
+    "dining-x-6.4-p": {
+      "file": "/assets/house/baked/dining-x-6.4-p.png",
+      "width": 179,
+      "height": 179,
+      "bytes": 22819
+    },
+    "dining-z-3-n": {
+      "file": "/assets/house/baked/dining-z-3-n.png",
+      "width": 352,
+      "height": 179,
+      "bytes": 76841
+    },
+    "dining-x-0.7-n": {
+      "file": "/assets/house/baked/dining-x-0.7-n.png",
+      "width": 179,
+      "height": 179,
+      "bytes": 29719
+    },
+    "dining-floor": {
+      "file": "/assets/house/baked/dining-floor.png",
+      "width": 365,
+      "height": 192,
+      "bytes": 132088
+    },
+    "dining-ceiling": {
+      "file": "/assets/house/baked/dining-ceiling.png",
+      "width": 365,
+      "height": 192,
+      "bytes": 35472
+    },
+    "kitchen-z-6-p": {
+      "file": "/assets/house/baked/kitchen-z-6-p.png",
+      "width": 326,
+      "height": 179,
+      "bytes": 46292
+    },
+    "kitchen-x6.4-n": {
+      "file": "/assets/house/baked/kitchen-x6.4-n.png",
+      "width": 179,
+      "height": 179,
+      "bytes": 37496
+    },
+    "kitchen-z-3-n": {
+      "file": "/assets/house/baked/kitchen-z-3-n.png",
+      "width": 326,
+      "height": 179,
+      "bytes": 78570
+    },
+    "kitchen-x1.1-p": {
+      "file": "/assets/house/baked/kitchen-x1.1-p.png",
+      "width": 179,
+      "height": 179,
+      "bytes": 31979
+    },
+    "kitchen-floor": {
+      "file": "/assets/house/baked/kitchen-floor.png",
+      "width": 339,
+      "height": 192,
+      "bytes": 132198
+    },
+    "kitchen-ceiling": {
+      "file": "/assets/house/baked/kitchen-ceiling.png",
+      "width": 339,
+      "height": 192,
+      "bytes": 23365
+    },
+    "stairhead-z-2.9-p": {
+      "file": "/assets/house/baked/stairhead-z-2.9-p.png",
+      "width": 64,
+      "height": 166,
+      "bytes": 1412
+    },
+    "stairhead-floor": {
+      "file": "/assets/house/baked/stairhead-floor.png",
+      "width": 77,
+      "height": 38,
+      "bytes": 3389
+    },
+    "stairhead-ceiling": {
+      "file": "/assets/house/baked/stairhead-ceiling.png",
+      "width": 77,
+      "height": 38,
+      "bytes": 109
+    },
+    "landing-z-2.9-n": {
+      "file": "/assets/house/baked/landing-z-2.9-n.png",
+      "width": 64,
+      "height": 166,
+      "bytes": 12191
+    },
+    "landing-z-6-p": {
+      "file": "/assets/house/baked/landing-z-6-p.png",
+      "width": 198,
+      "height": 166,
+      "bytes": 51433
+    },
+    "landing-x-0.9-p": {
+      "file": "/assets/house/baked/landing-x-0.9-p.png",
+      "width": 186,
+      "height": 166,
+      "bytes": 46728
+    },
+    "landing-x2.4-n": {
+      "file": "/assets/house/baked/landing-x2.4-n.png",
+      "width": 186,
+      "height": 166,
+      "bytes": 46378
+    },
+    "landing-floor": {
+      "file": "/assets/house/baked/landing-floor.png",
+      "width": 211,
+      "height": 198,
+      "bytes": 79465
+    },
+    "landing-ceiling": {
+      "file": "/assets/house/baked/landing-ceiling.png",
+      "width": 211,
+      "height": 198,
+      "bytes": 8830
+    },
+    "gallery-z0-n": {
+      "file": "/assets/house/baked/gallery-z0-n.png",
+      "width": 122,
+      "height": 166,
+      "bytes": 23627
+    },
+    "gallery-x-0.9-p": {
+      "file": "/assets/house/baked/gallery-x-0.9-p.png",
+      "width": 173,
+      "height": 166,
+      "bytes": 25533
+    },
+    "gallery-floor": {
+      "file": "/assets/house/baked/gallery-floor.png",
+      "width": 134,
+      "height": 186,
+      "bytes": 27748
+    },
+    "gallery-ceiling": {
+      "file": "/assets/house/baked/gallery-ceiling.png",
+      "width": 134,
+      "height": 186,
+      "bytes": 1764
+    },
+    "bedroom-z0-n": {
+      "file": "/assets/house/baked/bedroom-z0-n.png",
+      "width": 339,
+      "height": 166,
+      "bytes": 85510
+    },
+    "bedroom-x-6.4-p": {
+      "file": "/assets/house/baked/bedroom-x-6.4-p.png",
+      "width": 179,
+      "height": 166,
+      "bytes": 43324
+    },
+    "bedroom-x-0.9-n": {
+      "file": "/assets/house/baked/bedroom-x-0.9-n.png",
+      "width": 179,
+      "height": 166,
+      "bytes": 28775
+    },
+    "bedroom-z-3-p": {
+      "file": "/assets/house/baked/bedroom-z-3-p.png",
+      "width": 339,
+      "height": 166,
+      "bytes": 76096
+    },
+    "bedroom-floor": {
+      "file": "/assets/house/baked/bedroom-floor.png",
+      "width": 352,
+      "height": 192,
+      "bytes": 110389
+    },
+    "bedroom-ceiling": {
+      "file": "/assets/house/baked/bedroom-ceiling.png",
+      "width": 352,
+      "height": 192,
+      "bytes": 57859
+    },
+    "child-z-6-p": {
+      "file": "/assets/house/baked/child-z-6-p.png",
+      "width": 339,
+      "height": 166,
+      "bytes": 59504
+    },
+    "child-x-6.4-p": {
+      "file": "/assets/house/baked/child-x-6.4-p.png",
+      "width": 179,
+      "height": 166,
+      "bytes": 25517
+    },
+    "child-x-0.9-n": {
+      "file": "/assets/house/baked/child-x-0.9-n.png",
+      "width": 179,
+      "height": 166,
+      "bytes": 31626
+    },
+    "child-z-3-n": {
+      "file": "/assets/house/baked/child-z-3-n.png",
+      "width": 339,
+      "height": 166,
+      "bytes": 59896
+    },
+    "child-floor": {
+      "file": "/assets/house/baked/child-floor.png",
+      "width": 352,
+      "height": 192,
+      "bytes": 86633
+    },
+    "child-ceiling": {
+      "file": "/assets/house/baked/child-ceiling.png",
+      "width": 352,
+      "height": 192,
+      "bytes": 34374
+    },
+    "bathroom-z-6-p": {
+      "file": "/assets/house/baked/bathroom-z-6-p.png",
+      "width": 243,
+      "height": 166,
+      "bytes": 33274
+    },
+    "bathroom-x6.4-n": {
+      "file": "/assets/house/baked/bathroom-x6.4-n.png",
+      "width": 186,
+      "height": 166,
+      "bytes": 30341
+    },
+    "bathroom-x2.4-p": {
+      "file": "/assets/house/baked/bathroom-x2.4-p.png",
+      "width": 186,
+      "height": 166,
+      "bytes": 23538
+    },
+    "bathroom-z-2.9-n": {
+      "file": "/assets/house/baked/bathroom-z-2.9-n.png",
+      "width": 243,
+      "height": 166,
+      "bytes": 38750
+    },
+    "bathroom-floor": {
+      "file": "/assets/house/baked/bathroom-floor.png",
+      "width": 256,
+      "height": 198,
+      "bytes": 75122
+    },
+    "bathroom-ceiling": {
+      "file": "/assets/house/baked/bathroom-ceiling.png",
+      "width": 256,
+      "height": 198,
+      "bytes": 5585
+    }
+  },
+  "target": {
+    "meanSrgb": [
+      35,
+      46,
+      27
+    ],
+    "luminance": {
+      "p5": 0.006,
+      "p50": 0.015,
+      "p95": 0.159
+    },
+    "greenDominant": 0.96,
+    "saturation": 0.45,
+    "detail": 10,
+    "colours15": 763,
+    "regions": [
+      {
+        "mean": 0.016,
+        "p50": 0.0104,
+        "saturation": 0.427,
+        "detail": 6.1
+      },
+      {
+        "mean": 0.0318,
+        "p50": 0.0084,
+        "saturation": 0.437,
+        "detail": 7.2
+      },
+      {
+        "mean": 0.0225,
+        "p50": 0.0072,
+        "saturation": 0.446,
+        "detail": 4.7
+      },
+      {
+        "mean": 0.0294,
+        "p50": 0.0129,
+        "saturation": 0.388,
+        "detail": 8
+      },
+      {
+        "mean": 0.0177,
+        "p50": 0.0131,
+        "saturation": 0.453,
+        "detail": 8.1
+      },
+      {
+        "mean": 0.02,
+        "p50": 0.0153,
+        "saturation": 0.431,
+        "detail": 6
+      },
+      {
+        "mean": 0.0127,
+        "p50": 0.0091,
+        "saturation": 0.456,
+        "detail": 5.3
+      },
+      {
+        "mean": 0.0567,
+        "p50": 0.0222,
+        "saturation": 0.423,
+        "detail": 11.1
+      },
+      {
+        "mean": 0.0884,
+        "p50": 0.0542,
+        "saturation": 0.424,
+        "detail": 7.9
+      },
+      {
+        "mean": 0.0385,
+        "p50": 0.023,
+        "saturation": 0.491,
+        "detail": 10.5
+      },
+      {
+        "mean": 0.0456,
+        "p50": 0.0272,
+        "saturation": 0.489,
+        "detail": 11.1
+      },
+      {
+        "mean": 0.1403,
+        "p50": 0.0888,
+        "saturation": 0.419,
+        "detail": 11.5
+      }
+    ]
+  },
+  "live": {
+    "rug": 1
+  }
+}

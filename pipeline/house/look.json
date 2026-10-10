@@ -1,0 +1,144 @@
+{
+  "grime": {
+    "mottle": 0.15,
+    "dirt": 0,
+    "dirtColour": [
+      0.012,
+      0.016,
+      0.008
+    ],
+    "damp": 0.45,
+    "dampColour": [
+      0.01,
+      0.015,
+      0.006
+    ],
+    "tide": 0.5,
+    "tideColour": [
+      0.006,
+      0.008,
+      0.004
+    ],
+    "soot": 1,
+    "sootColour": [
+      0.004,
+      0.004,
+      0.003
+    ],
+    "wear": 1
+  },
+  "paint": {
+    "kuwahara": 2,
+    "strokes": 0.6
+  },
+  "grade": {
+    "keep": 0.55,
+    "lift": 1.2,
+    "ramp": 1
+  },
+  "live": {
+    "rug": 1.0
+  },
+  "rooms": {
+    "hall": {
+      "exposure": 3,
+      "light": {
+        "cone": 0.84,
+        "glow": 1.691,
+        "night": 20,
+        "others": 1
+      },
+      "fill": 11.2
+    },
+    "default": {
+      "exposure": 1,
+      "light": {
+        "cone": 1,
+        "glow": 1,
+        "others": 1,
+        "night": 1
+      },
+      "fill": 1
+    },
+    "parlour": {
+      "exposure": 3.258,
+      "light": {
+        "cone": 1.766,
+        "glow": 1,
+        "others": 1,
+        "night": 20
+      },
+      "fill": 16
+    },
+    "dining": {
+      "exposure": 4.056,
+      "light": {
+        "cone": 2.014,
+        "glow": 1,
+        "others": 1,
+        "night": 20
+      },
+      "fill": 16
+    },
+    "kitchen": {
+      "exposure": 14.66,
+      "light": {
+        "cone": 0.2,
+        "glow": 1,
+        "others": 1,
+        "night": 20
+      },
+      "fill": 1.8
+    },
+    "study": {
+      "exposure": 2.858,
+      "light": {
+        "cone": 1,
+        "glow": 2.198,
+        "others": 1,
+        "night": 20
+      },
+      "fill": 10.6
+    },
+    "passage": {
+      "exposure": 3.405,
+      "light": {
+        "cone": 0.646,
+        "glow": 1,
+        "others": 1,
+        "night": 5
+      },
+      "fill": 16
+    },
+    "landing": {
+      "exposure": 4.056,
+      "light": {
+        "cone": 0.591,
+        "glow": 1,
+        "others": 1,
+        "night": 3
+      },
+      "fill": 16
+    },
+    "bedroom": {
+      "exposure": 3.405,
+      "light": {
+        "cone": 1,
+        "glow": 2.014,
+        "others": 1,
+        "night": 20
+      },
+      "fill": 16
+    },
+    "child": {
+      "exposure": 2.014,
+      "light": {
+        "cone": 1,
+        "glow": 1.419,
+        "others": 1,
+        "night": 0.75
+      },
+      "fill": 7.4
+    }
+  }
+}
