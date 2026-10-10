@@ -214,6 +214,17 @@ for (const file of owners) {
   );
 }
 
+// Runs recorded on a hall that has since been re-laid start somewhere the
+// player no longer stands, and cannot replay. They are kept as evidence of
+// how the owner played, and retired from the gate, as phase 7 retired traces
+// from an older input layer.
+try {
+  const retired = readdirSync(path.resolve('tools/traces/house/retired')).filter((f) => f.endsWith('.json'));
+  if (retired.length) console.log(`  retired, recorded on an older hall: ${retired.join(', ')}`);
+} catch {
+  /* none */
+}
+
 console.log(`\n  regression traces (${regressions.length})`);
 for (const file of regressions) {
   const trace = JSON.parse(readFileSync(path.join(REGRESSIONS, file), 'utf8'));

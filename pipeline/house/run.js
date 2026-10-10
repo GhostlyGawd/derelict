@@ -9,6 +9,9 @@ import { normalMapFrom } from '../lib/normal.js';
 import { STYLE_BIBLE_HOUSE, TARGET } from './style.js';
 import { BAKED_ROOMS, bakeRooms, readLook } from './bake.js';
 import { HOUSE_TEXTURES, gradeLut } from './textures.js';
+import { paintedCharts, paintingSource } from './model/run.js';
+import { PAINTING } from '../../src/house/layout.js';
+import { readFileSync } from 'node:fs';
 
 /**
  * The house's asset pipeline (phase 9). Its own manifest, beside the ship's,
@@ -65,11 +68,32 @@ async function main() {
 
   log.stage(`house — baked surfaces (${BAKED_ROOMS.join(', ')})`);
   const baked = await bakeRooms(path.join(OUT, 'textures'), (c, w, h, n) => log.done(`${c.id} — ${w}×${h}, ${bytes(n)}`));
+  // The hall's charts are the owner's painting, unwrapped and filled by the
+  // model (9.3): committed, and copied byte for byte in place of the bake.
+  const painted = paintedCharts();
   for (const b of baked) {
+    if (painted[b.id]) {
+      const jpg = readFileSync(painted[b.id]);
+      const { width, height } = await sharp(jpg).metadata();
+      await write(path.join(OUT, 'baked', `${b.id}.jpg`), jpg);
+      manifest.baked[b.id] = { file: `/assets/house/baked/${b.id}.jpg`, width, height, bytes: jpg.length, painted: true };
+      log.done(`${b.id} — painted, ${width}×${height}, ${bytes(jpg.length)}`);
+      continue;
+    }
     const file = path.join(OUT, 'baked', `${b.id}.png`);
     await write(file, b.png);
     manifest.baked[b.id] = { file: `/assets/house/baked/${b.id}.png`, width: b.w, height: b.h, bytes: b.png.length };
   }
+
+  // The owner's painting (9.3), as committed: projected onto the hall from
+  // where it was painted. Copied byte for byte, never re-encoded.
+  log.stage('house — the owner\'s painting');
+  const source = paintingSource();
+  const paint = readFileSync(source);
+  const ext = path.extname(source);
+  await write(path.join(OUT, `painting${ext}`), paint);
+  manifest.painting = { file: `/assets/house/painting${ext}`, size: PAINTING.size, bytes: paint.length };
+  log.done(`painting — ${rel(source)}, ${bytes(paint.length)}`);
 
   await writeJson(path.join(OUT, 'manifest.json'), manifest);
   log.done(`manifest → ${rel(path.join(OUT, 'manifest.json'))}`);

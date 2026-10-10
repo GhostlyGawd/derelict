@@ -16,7 +16,17 @@ export function bakedSkins(surfaces) {
     for (const c of chartsFor(s.id)) {
       const map = surfaces.tex[`baked:${c.id}`];
       if (!map) continue;
-      const material = new THREE.MeshBasicMaterial({ map, side: THREE.DoubleSide });
+      // A hall chart unwrapped from the owner's painting (9.3) is a picture,
+      // not a texture: filtered as one, clear of the fog the painting already
+      // has, and passed through the grade untouched (projection.js).
+      const painted = !!surfaces.manifest.baked[c.id]?.painted;
+      if (painted) {
+        map.magFilter = THREE.LinearFilter;
+        map.minFilter = THREE.LinearFilter;
+        map.needsUpdate = true;
+      }
+      const material = new THREE.MeshBasicMaterial({ map, side: THREE.DoubleSide, fog: !painted });
+      material.userData.painted = painted;
       group.add(skin(c, material));
     }
   }

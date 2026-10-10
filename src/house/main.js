@@ -15,6 +15,7 @@ import { loadSurfaces } from './surfaces.js';
 import { NIGHT_FILL, dressHouse } from './dress.js';
 import { createGrade } from './grade.js';
 import { buildHandheld } from './handheld.js';
+import { createProjection } from './projection.js';
 import { bakedSkins } from './baked.js';
 import { ITEMS, LOOP, PLAYER_HEIGHT, PLAYER_RADIUS, RING_SIZE, SPACES, SPAWN, floorAt, isOut, spaceAt } from './layout.js';
 import * as LAYOUT from './layout.js';
@@ -128,9 +129,15 @@ class House {
     // (dress.js and rooms.js), and a little night that comes in everywhere.
     this.scene.add(new THREE.HemisphereLight(NIGHT_FILL.sky, NIGHT_FILL.ground, NIGHT_FILL.intensity));
     this.grade = createGrade(this.view, this.surfaces.grade);
+    // The owner's painting, thrown onto the hall from where it was painted.
+    if (this.surfaces.painting) {
+      this.projection = createProjection(this.view.renderer, this.scene, this.surfaces.painting);
+      this.projection.install(this.doors.map((d) => d.meshes[0]));
+    }
     this.handheld = buildHandheld(this.surfaces);
 
     this.player.reset(SPAWN.pos, SPAWN.yaw);
+    this.player.pitch = SPAWN.pitch ?? 0;
     this.hud.setLoading(1, 'Ready');
     this.hud.hide('loading');
     this.hud.show('title');

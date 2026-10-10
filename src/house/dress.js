@@ -168,7 +168,7 @@ function windows(box, group, mat) {
  * and ceiling from the same lamp the game lights the furniture with.
  */
 export const HALL_LAMP = {
-  at: [0.1, 2.5, 2.3],
+  at: [0.36, 2.5, 1.55],
   colour: 0xe6f0c4,
   // The shade sends the light down: a cone onto the rug and the walls, and
   // only a little glow up, so the ceiling stays dark as in the reference.
@@ -210,22 +210,22 @@ function hall(box, group, mat, colliders, lights) {
 
   // ---- Joists across the ceiling, stopping at the stair slot: shallow, so
   // the ceiling reads as dark boards over the hall, not as a beam in the view ----
-  for (const z of [0.55, 1.75, 2.95, 4.15]) box(mat.wood, -2.3, STAIRWELL.x[0], 2.72, 2.8, z - 0.06, z + 0.06);
+  for (const z of [0.55, 1.75, 2.95, 4.15]) box(mat.wood, -2.57, z > STAIRWELL.z[1] ? 2.3 : STAIRWELL.x[0], 2.72, 2.8, z - 0.06, z + 0.06);
 
   // ---- Skirting round the hall ----
   const SK = 0.13;
-  box(mat.wood, -2.3, -2.27, 0, SK, 0.1, 4.5);
-  box(mat.wood, -2.3, 2.3, 0, SK, 4.47, 4.5);
-  box(mat.wood, 2.27, 2.3, 0, SK, 2.5, 4.5);
-  box(mat.wood, -2.3, -2.13, 0, SK, 0.1, 0.13);
-  box(mat.wood, -1.0, -0.6, 0, SK, 0.1, 0.13);
-  box(mat.wood, 0.81, 1.15, 0, SK, 0.1, 0.13);
+  box(mat.wood, -2.57, -2.54, 0, SK, 0.1, 4.5);
+  box(mat.wood, -2.57, 2.3, 0, SK, 4.47, 4.5);
+  box(mat.wood, 2.27, 2.3, 0, SK, 2.08, 4.5);
+  box(mat.wood, -2.57, -1.92, 0, SK, 0.1, 0.13);
+  box(mat.wood, -0.8, -0.22, 0, SK, 0.1, 0.13);
+  box(mat.wood, 0.82, 1.15, 0, SK, 0.1, 0.13);
 
   // ---- The runner, from near the door to the arch ----
   {
-    const width = 1.8;
+    const width = 2.2;
     const from = 4.45;
-    const to = 0.35;
+    const to = 0.74;
     const len = from - to;
     const geo = new THREE.PlaneGeometry(width, len);
     geo.rotateX(-Math.PI / 2);
@@ -233,57 +233,56 @@ function hall(box, group, mat, colliders, lights) {
     const uv = geo.attributes.uv;
     for (let i = 0; i < uv.count; i++) uv.setY(i, uv.getY(i) * (len / 1.9));
     const rug = new THREE.Mesh(geo, mat.hallRug ?? mat.rug);
-    rug.position.set(0.1, 0.006, (from + to) / 2);
+    rug.position.set(0.3, 0.006, (from + to) / 2);
     group.add(rug);
   }
 
-  // ---- The sideboard, under the window, nearest the player ----
+  // ---- The sideboard against the left wall, short of the window, where the painting has it ----
   {
-    const x0 = -2.3;
-    const x1 = -1.82;
-    const z0 = 3.15;
-    const z1 = 4.4;
-    box(mat.wood, x0, x1 - 0.02, 0, 0.82, z0 + 0.03, z1 - 0.03, { solid: true });
-    box(mat.wood, x0, x1, 0.82, 0.86, z0, z1);
+    const x0 = -2.57;
+    const x1 = -1.9;
+    const z0 = 0.95;
+    const z1 = 2.4;
+    box(mat.wood, x0, x1 - 0.02, 0, 0.72, z0 + 0.03, z1 - 0.03, { solid: true });
+    box(mat.wood, x0, x1, 0.72, 0.76, z0, z1);
     // Two doors in its front, picked out by their edges.
-    for (const z of [z0 + 0.06, (z0 + z1) / 2 + 0.01]) box(mat.door, x1 - 0.025, x1 - 0.005, 0.1, 0.74, z, z + (z1 - z0) / 2 - 0.08);
+    for (const z of [z0 + 0.06, (z0 + z1) / 2 + 0.01]) box(mat.door, x1 - 0.025, x1 - 0.005, 0.1, 0.64, z, z + (z1 - z0) / 2 - 0.08);
     // A jug on top.
     const jug = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.24, 8), mat.wood);
-    jug.position.set(-2.05, 0.98, 3.55);
+    jug.position.set(-2.3, 0.88, 1.35);
     group.add(jug);
   }
 
-  // ---- The chair beside the left door, its back to the wall, clear of the doorway ----
+  // ---- The chair in the corner beside the left door, under the hanging ----
   {
-    const cx = -2.05;
-    const cz = 1.45;
+    const cx = -2.22;
+    const cz = 0.36;
     const s = 0.21;
     box(mat.wood, cx - s, cx + s, 0.42, 0.46, cz - s, cz + s);
     for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
       box(mat.wood, cx + dx * (s - 0.03) - 0.02, cx + dx * (s - 0.03) + 0.02, 0, 0.42, cz + dz * (s - 0.03) - 0.02, cz + dz * (s - 0.03) + 0.02);
     }
-    box(mat.wood, cx - s, cx - s + 0.04, 0.46, 0.92, cz - s, cz + s);
+    box(mat.wood, cx - s, cx + s, 0.46, 0.92, cz - s, cz - s + 0.04);
     colliders.push({ minX: cx - s, maxX: cx + s, minY: 0, maxY: 0.92, minZ: cz - s, maxZ: cz + s });
   }
 
   // ---- A picture on the right-hand wall, over the foot of the stairs ----
   {
     const x = 2.29;
-    const y = 2.05;
-    const z = 1.1;
-    box(mat.wood, x - 0.03, x, y - 0.36, y + 0.36, z - 0.27, z + 0.27);
-    const art = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.62), mat.picture);
+    const y = 1.98;
+    const z = 1.05;
+    box(mat.wood, x - 0.03, x, y - 0.38, y + 0.38, z - 0.19, z + 0.19);
+    const art = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 0.64), mat.picture);
     art.rotation.y = -Math.PI / 2;
     art.position.set(x - 0.032, y, z);
     group.add(art);
   }
 
-  // ---- Something woven, hung on the left wall between the window and the door ----
+  // ---- Something woven, hung on the back wall in the corner beside the left door ----
   {
     const ornament = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.72), mat.rug);
-    ornament.rotation.y = Math.PI / 2;
-    ornament.position.set(-2.28, 1.55, 1.25);
+    ornament.position.set(-2.3, 1.6, 0.115);
     group.add(ornament);
-    box(mat.wood, -2.29, -2.26, 1.92, 1.95, 1.0, 1.5);
+    box(mat.wood, -2.55, -2.05, 1.97, 2.0, 0.1, 0.13);
   }
 }

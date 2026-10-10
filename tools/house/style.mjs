@@ -81,11 +81,19 @@ console.log('The house against its style target:');
 for (const view of VIEWS) {
   await page.evaluate((v) => {
     const g = window.__house;
-    g.player.position.set(v.pos[0], v.y || 0, v.pos[1]);
+    // The reference view is the painting's own camera: where it was painted
+    // from, level, with its lens shifted as the painting's is (PAINTING).
+    const P = v.painting ? g.layout.PAINTING : null;
+    g.camera.clearViewOffset();
+    g.player.position.set(P ? P.pos[0] : v.pos[0], v.y || 0, P ? P.pos[2] : v.pos[1]);
     g.player.velocity.set(0, 0, 0);
-    g.player.yaw = v.yaw;
-    g.player.pitch = v.pitch;
+    g.player.yaw = P ? P.yaw : v.yaw;
+    g.player.pitch = P ? 0 : v.pitch;
     for (let i = 0; i < 4; i++) g.stepForTest(1 / 60);
+    if (P) {
+      g.camera.setViewOffset(innerWidth, innerHeight, (0.5 - P.axis[0]) * innerWidth, (0.5 - P.axis[1]) * innerHeight, innerWidth, innerHeight);
+      g.stepForTest(1 / 60);
+    }
   }, view);
   const png = await page.screenshot();
   const { data, info } = await sharp(png).resize(448, 299, { fit: 'fill', kernel: 'cubic' }).removeAlpha().raw().toBuffer({ resolveWithObject: true });

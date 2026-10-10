@@ -58,7 +58,7 @@ const LAMPS_BY_ROOM = (() => {
 // ---- The house, as something to trace rays against ----------------------------
 
 /** Every static surface of the house: shell, dressing, furniture. Not the doors, which open. */
-function houseBVH() {
+export function houseBVH({ clear = new Set(['shade', 'lampshade', 'night', 'paper']) } = {}) {
   const mats = new Proxy({}, {
     get(t, k) {
       if (typeof k !== 'string') return undefined;
@@ -73,8 +73,7 @@ function houseBVH() {
   root.add(things.group);
   const moving = new Set();
   for (const d of things.doors) for (const m of d.meshes) m.traverse((o) => moving.add(o));
-  // Things that give light or let it through do not block it.
-  const clear = new Set(['shade', 'lampshade', 'night', 'paper']);
+  // Things that give light or let it through do not block it (by default).
   root.updateMatrixWorld(true);
   const parts = [];
   root.traverse((o) => {

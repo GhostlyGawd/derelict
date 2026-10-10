@@ -36,6 +36,10 @@ const MAX_EVALS = at > 0 ? Number(process.argv[at + 1]) : 160;
 const DRY = process.argv.includes('--dry');
 const r = process.argv.indexOf('--room');
 const ROOM = r > 0 ? process.argv[r + 1] : 'hall';
+// The hall is the owner's painting (9.3): its look is the painting's, and
+// there is nothing of it left to tune. Its shared knobs still reach the rugs
+// and the grime of every other room, as they did.
+if (ROOM === 'hall') throw new Error('the hall is the owner\'s painting now; tune another room with --room <id>');
 const VIEWS = ALL_VIEWS.filter((v) => v.room === ROOM);
 if (!VIEWS.length) throw new Error(`no style view judges the room "${ROOM}"`);
 

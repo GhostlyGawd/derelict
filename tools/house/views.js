@@ -1,10 +1,10 @@
 /**
- * The views, and what each is held to. The hall from where the player starts
- * is the reference's own view; the others are the hall's other ways of being
+ * The views, and what each is held to. The hall from where the player starts,
+ * through the painting's own camera, is the reference's own view; the others are the hall's other ways of being
  * seen. `room` is the room each view judges, and the tuner turns.
  */
 export const VIEWS = [
-  { room: 'hall', name: 'hall, from the door (the reference view)', pos: [0.05, 4.1], yaw: 0, pitch: -0.06, regions: true },
+  { room: 'hall', name: 'hall, from where it was painted (the reference view)', painting: true, regions: true },
   { room: 'hall', name: 'hall, toward the stairs', pos: [-1.2, 3.2], yaw: -0.55, pitch: 0.05 },
   { room: 'hall', name: 'hall, back toward the window', pos: [0.6, 0.9], yaw: 2.4, pitch: -0.05 },
   // Every other room, from its doorway, as a player first sees it (9.6).

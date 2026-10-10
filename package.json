@@ -11,6 +11,7 @@
     "pipeline": "node pipeline/run.js all && node pipeline/house/run.js",
     "pipeline:house": "node pipeline/house/run.js",
     "bake:light": "node pipeline/house/blender/run.js",
+    "paint:fill": "node pipeline/house/model/run.js",
     "pipeline:textures": "node pipeline/run.js textures",
     "pipeline:models": "node pipeline/run.js models",
     "pipeline:audio": "node pipeline/run.js audio",

@@ -86,13 +86,19 @@ const FRAG = /* glsl */ `
   }
 
   void main() {
-    vec3 c = toSrgb(paint > 0.5 ? painted(vUv) : texture2D(src, vUv).rgb);
+    vec4 frame = texture2D(src, vUv);
+    vec3 c = toSrgb(paint > 0.5 ? painted(vUv) : frame.rgb);
+    // Where the owner's painting is shown (projection.js) it already carries
+    // its own vignette and grade: alpha says how much of the pixel is
+    // painting, and that much passes through untouched.
+    vec3 raw = c;
     // The reference's frame darkens toward its corners, as an old lens and an
     // old monitor both did. Applied before the grade, so the corners fall
     // down the same green ramp as everything else that is dark.
     vec2 d = (vUv - 0.5) * vec2(1.0, 0.85);
     c *= 1.0 - smoothstep(0.32, 0.8, length(d)) * 0.45;
     c = mix(c, grade(c), strength);
+    c = mix(raw, c, clamp(frame.a, 0.0, 1.0));
     // Fifteen-bit colour, dithered.
     float levels = 31.0;
     c = floor(c * levels + bayer(gl_FragCoord.xy) / 16.0) / levels;

@@ -51,13 +51,15 @@ The owner asked for something creative after two phases of instruments: *"a
 resident evil style level matching this architecture and look … a model of
 this house and the rooms and second story … a 10 minute tech demo with
 interactivity and lore."* The reference is one image the owner supplied: a
-damp entry hall at night, described in 9.3. It is not committed to the
-repository. The entry hall is recreated from it as closely as code-made art
-allows: its layout, proportions, props, palette and light, as seen from where
-the player starts. The rest of the house is our own, built in the same manner.
-Every surface is still drawn by code. Nothing in the image is traced, sampled
-or imported. (The owner asked for the hall to be a 1:1 recreation on seeing
-milestone 2; the draft had said the house would not copy the picture.)
+damp entry hall at night, described in 9.3. The owner painted it, and on
+10 October 2026 made it a source of the house: it is committed, and the
+entry hall is built from it, its own paint projected onto a hall laid to its
+perspective, so that the start of the run is the painting in three
+dimensions. The rest of the house is our own, built in the same hand (see
+*The owner's painting, as a source* below). (The owner asked for the hall to
+be a 1:1 recreation on seeing milestone 2; the draft had said the house would
+not copy the picture, and until 10 October nothing in it was committed,
+traced or sampled.)
 
 **What the build changed in this section, and why.** Written as each
 milestone lands, ahead of or with the code, as every phase has.
@@ -369,6 +371,63 @@ check is shown to fail again when one of those files changes.
   and nothing of the picture is committed. The style harness gains the
   regional target and judges it on the hall's reference view.
 
+*The owner's painting, as a source, chosen by the owner on 10 October 2026.*
+Asked why the house still was not the picture, the answer was that most of
+what makes it is painted detail, and code imitating a painter makes marks of
+the same family, never those marks. The owner then said the picture is their
+own concept art, and chose to commit it and build from it, and to allow a free
+image model run locally. So the house now has two kinds of source beside its
+generators:
+
+- **The painting** (`pipeline/house/concept/`), committed as the owner's own
+  art, with the device and the two panels in its corners masked out as the
+  HUD they are. A camera is matched to it, the hall is re-laid to its
+  perspective, and its paint is projected onto the hall's surfaces and
+  furniture from that camera and baked into their textures. From where the
+  player starts, the hall is the painting. Its light is the painting's own,
+  so the hall is not lit by Blender on top of it.
+- **A local image model, for what the painting does not show:** the sides of
+  things seen edge-on, what stands behind the sideboard, and every other
+  room. It is free and openly licensed, runs on the build machine only, by its
+  own script (as Blender does), and is never asked for a picture from words
+  alone: it is always given the owner's painting, or a surface cut from it,
+  and asked to extend it. Its output is not byte-for-byte across machines, so
+  it is committed as a source with a hash of its inputs, as the light maps
+  are, and neither CI nor the deploy runs it.
+
+This lifts Amendment 1 for the house, and only in those two ways. The ship,
+and everything in the house that is not a surface (geometry, sound, the
+grade, the night, the type), is still made by code alone.
+
+As built, the same day. The painting's camera was found from the picture
+itself: its back wall, read against the game's 80° field of view and the
+player's eye of 1.62 m, puts the wall 3.54 m away, and its passage vanishes
+where that eye's horizon falls. The painting keeps its verticals upright, so
+its camera is level with its lens shifted up (`PAINTING` in layout.js), and
+the player starts there, looking a little down. The hall was re-laid to that
+camera, with the painting's edges laid over the render (`tools/house/match.mjs`)
+until its doors, arch, window, stairs, lamp, sideboard and chair stood where it
+paints them. It is wider (5.07 m), its stairs start nearer (z = 1.15), and the
+front door is narrower (0.88 m).
+
+Two of those moves broke proofs, and both were real. The parlour door, where
+the painting has it, ran into the passage's side wall, so it opened onto
+0.9 m; the passage's west wall now stands 20 cm further east downstairs. And
+the arch, at the painting's width, left the monkey's autopilot two
+centimetres; it is 1.12 m. The floor proof and the chain harness passed
+throughout, because a real player fits; the monkey did not, and the house
+was re-laid rather than its margin cut. The owner's two traces start where
+the player no longer stands, and are retired from the gate to
+`tools/traces/house/retired/`, kept as evidence, as phase 7 retired traces
+from an older input layer.
+
+The projector is a few lines in every material (`src/house/projection.js`):
+the painting is thrown from the painter's eye, a depth map drawn from there
+decides what the painter could see, and the frame's grade lets the painting
+through untouched, since it already carries its own. A door is projected as
+it stands shut, so its paint swings with it. From where the player starts,
+the frame is the painting.
+
 For now, doors open and stay open, and a key is spent at its door. On a
 phone the key ring sits at the top left, because the stick holds the bottom
 left.
@@ -381,8 +440,9 @@ same traces. Everything this section lifts, it lifts for the house only.
 
 A second, separate demo on the same engine and the same pipeline: a two-storey
 house at night, about ten minutes long, with locked doors, keys and notes, and
-a story the house tells about itself. There is no combat and nothing to fight,
-and every asset is generated by code.
+a story the house tells about itself. There is no combat and nothing to fight.
+Its surfaces come from the owner's own painting, and everything else is
+generated by code.
 
 ## 9.2 What phase 9 demonstrates
 
@@ -629,10 +689,12 @@ The reference view's mean colour is 43, 48, 27 against the reference's
 They are not a picture to match pixel for pixel, and the house's own rooms
 will differ from the reference in every detail.
 
-Rejected: an image model to paint the textures (the owner chose code), which
-would lift Amendment 1 and end byte-for-byte builds. Sampling or tracing the
-reference, which would make the house a copy. A style that lives only in
-prose, which is how the ship's worked and why it would not stretch to this.
+Rejected at first: an image model to paint the textures, and sampling or
+tracing the reference, which would make the house a copy. Both were taken up
+on 10 October 2026, once the owner said the reference is their own painting
+(see *The owner's painting, as a source*). A style that lives only in prose,
+which is how the ship's worked and why it would not stretch to this, stays
+rejected: the target above still holds every room.
 
 ### 9.4.6 The story
 
@@ -689,9 +751,11 @@ still applies to DERELICT exactly as written.
 saving (it is ten minutes long), settings menus, procedural generation,
 physically-based rendering, cutscenes, and jump scares, which 9.4.3 defines.
 
-**Every asset is still generated by code.** Amendment 1 holds for the house
-without exception. That holds for the reference image too: nothing in it is
-traced, sampled or imported.
+**Every asset is still generated by code, with two exceptions the owner
+chose.** The owner's painting is a source of the house's surfaces, and a free
+local image model extends it where it shows nothing. Neither reaches the
+ship, and neither is ever asked for a picture that does not start from the
+owner's.
 
 ## 9.6 Definition of done
 
@@ -705,7 +769,7 @@ traced, sampled or imported.
 | **Every note can be reached and read.** Each note is on the critical path or reachable from it, and at the reader's size its type clears the pixel floor on a phone in portrait. | Claude — the chain harness and `tools/legible.mjs` |
 | **Every asset is consumed.** Every generated texture, model, sound and the colour grade is observed in use during a full run of the house. | Claude — the consumption gate, on the house |
 | **It fits its budgets.** The house's frame against its own stripped frame inside 1.9×, its bytes to title gated at its own measured figure plus 15%, and no shader compiles after the title. | Claude — `tools/framecost.mjs`, `tools/weight.mjs`, and the new compile check |
-| **Still generated end to end.** A clean checkout reproduces every house asset byte-for-byte from the committed sources, Blender's light maps among them, and no light map is stale against the house it was baked from. | The existing determinism gate, and the pipeline's staleness check |
+| **Still generated end to end.** A clean checkout reproduces every house asset byte-for-byte from the committed sources (the owner's painting, Blender's light maps and the image model's output among them), and no light map or model output is stale against the sources it was made from. | The existing determinism gate, and the pipeline's staleness check |
 | **The house holds its style.** Fixed views of every room score within the stated tolerance of the style target in 9.4.5: value, cast, saturation, detail and palette. | Claude — the style harness, in CI |
 | **The entry hall reads as the reference.** From where the player starts: the layout, the damp, the wood, the green and the one lamp, recreated. | **The owner**, at the first milestone |
 | **The house is frightening without a monster.** | **The owner** |

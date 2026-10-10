@@ -59,7 +59,7 @@ const ok = (name, pass, detail = '') => {
           { id: 'stair-door', start: () => [1.65 + (rnd() - 0.5) * 0.5, 0, 1.9], yaw: 0, climb: 150, aim: [1.8, -4.5], through: (p) => p.y > 2.99 && p.z < -3.0 },
           { id: 'dining-door', start: () => [0.1 + rnd() * 0.5, 0, -4.5 + (rnd() - 0.5) * 0.8], yaw: Math.PI / 2, climb: 0, aim: [-2.5, -4.5], through: (p) => p.x < -1.0 && p.z < -3.0 },
           { id: 'study-door', start: () => [4 + (rnd() - 0.5) * 0.8, 0, -3.5 - rnd() * 0.5], yaw: Math.PI, climb: 0, aim: [4, -1.5], through: (p) => p.z > -2.9 },
-          { id: 'front-door', start: () => [1.6 + rnd() * 0.3, 0, 1.95 + (rnd() - 0.5) * 0.6], yaw: -Math.PI / 2, climb: 0, aim: [3.6, 1.95], through: (p) => p.x > 2.5 },
+          { id: 'front-door', start: () => [1.6 + rnd() * 0.3, 0, 1.59 + (rnd() - 0.5) * 0.5], yaw: -Math.PI / 2, climb: 0, aim: [3.6, 1.59], through: (p) => p.x > 2.5 },
         ];
         const out = {};
         for (const b of barriers) {
