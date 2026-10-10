@@ -187,16 +187,17 @@ function hall(box, group, mat, colliders, lights) {
     const cord = new THREE.Mesh(new THREE.BoxGeometry(0.015, 2.8 - LAMP[1] - 0.08, 0.015), mat.wood);
     cord.position.set(LAMP[0], (2.8 + LAMP[1] + 0.08) / 2, LAMP[2]);
     group.add(cord);
-    // A coolie shade: wide and shallow, lit white underneath, with a small cap
-    // where the cord meets it and the bulb hanging just below its rim.
-    const shade = new THREE.Mesh(new THREE.ConeGeometry(0.21, 0.07, 16, 1, true), mat.shade);
+    // A coolie shade, the size the painting has it: wide and shallow, lit
+    // white underneath, with a small cap where the cord meets it and the bulb
+    // hanging just inside its rim.
+    const shade = new THREE.Mesh(new THREE.ConeGeometry(0.255, 0.17, 16, 1, true), mat.shade);
     shade.position.set(LAMP[0], LAMP[1], LAMP[2]);
     group.add(shade);
     const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.05, 10), mat.wood);
-    cap.position.set(LAMP[0], LAMP[1] + 0.06, LAMP[2]);
+    cap.position.set(LAMP[0], LAMP[1] + 0.1, LAMP[2]);
     group.add(cap);
     const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 6), mat.shade);
-    bulb.position.set(LAMP[0], LAMP[1] - 0.05, LAMP[2]);
+    bulb.position.set(LAMP[0], LAMP[1] - 0.06, LAMP[2]);
     group.add(bulb);
     const { down: d, glow: gl, colour } = HALL_LAMP;
     const down = new THREE.SpotLight(colour, d.intensity, d.distance, d.angle, d.penumbra, d.decay);
