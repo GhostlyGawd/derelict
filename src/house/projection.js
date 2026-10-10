@@ -13,8 +13,10 @@ export { FACING, paintingCamera };
  */
 const SEEN = [0.0, 0.05];
 
-/** The hall's back wall, at the passage side of it: beyond here the painting is far and small. */
-const BEYOND = -0.25;
+/** The painting's pixels per metre of surface below which it smears, from 25 (none) to 45 (all). */
+const DENSE = [25, 45];
+/** How far the player walks off the painter's spot, in metres, while a thin smear fades to the surface's own texture. */
+const HOME = [0.3, 2.5];
 
 /**
  * The owner's painting, projected onto the hall (9.3, the owner's painting as
@@ -61,6 +63,8 @@ export function createProjection(renderer, scene, texture) {
     pDepth: { value: depth.depthTexture },
     pMatrix: { value: matrix },
     pEye: { value: camera.position.clone() },
+    // The painting's focal length in its own pixels.
+    pFocal: { value: H / 2 / Math.tan(THREE.MathUtils.degToRad(PAINTING.fov) / 2) },
   };
 
   const patched = new WeakSet();
@@ -113,6 +117,7 @@ export function createProjection(renderer, scene, texture) {
           uniform sampler2D pPaint;
           uniform sampler2D pDepth;
           uniform vec3 pEye;
+          uniform float pFocal;
           uniform float pRaw;
           uniform vec3 pBase;
           varying vec4 vPaintClip;
@@ -142,10 +147,14 @@ export function createProjection(renderer, scene, texture) {
               vec3 toEye = normalize(pEye - vPaintPos);
               float facing = abs(dot(n, toEye));
               w = near * smoothstep(${SEEN[0].toFixed(3)}, ${SEEN[1].toFixed(3)}, facing);
-              // Past the hall's back wall the painter saw the passage through
-              // the arch, small and edge-on: only what faced them square is
-              // theirs, or its walls would be smeared down the passage.
-              if (vPaintPos.z < ${BEYOND.toFixed(3)}) w *= smoothstep(0.8, 0.9, facing);
+              // How many of the painting's pixels fall on a metre of this
+              // surface. Thin (far, or edge-on: the passage's walls through
+              // the arch) it is a smear once the player walks off the
+              // painter's spot, and the surface keeps its own texture; from
+              // the spot itself, everything is the painting.
+              float density = pFocal * facing / max(distance(pEye, vPaintPos), 0.01);
+              float near2 = 1.0 - smoothstep(${HOME[0].toFixed(2)}, ${HOME[1].toFixed(2)}, distance(cameraPosition, pEye));
+              w *= max(smoothstep(${DENSE[0].toFixed(1)}, ${DENSE[1].toFixed(1)}, density), near2);
             }
             if (w > 0.0) {
               vec3 paint = texture2D(pPaint, vec2(puv.x, puv.y)).rgb * (diffuse / pBase);
