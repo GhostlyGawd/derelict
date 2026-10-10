@@ -381,11 +381,10 @@ generators:
 
 - **The painting** (`pipeline/house/concept/`), committed as the owner's own
   art, with the device and the two panels in its corners masked out as the
-  HUD they are. A camera is matched to it, the hall is re-laid to its
-  perspective, and its paint is projected onto the hall's surfaces and
-  furniture from that camera and baked into their textures. From where the
-  player starts, the hall is the painting. Its light is the painting's own,
-  so the hall is not lit by Blender on top of it.
+  HUD they are. A camera is matched to it and the hall is re-laid to its
+  perspective. (It was first projected onto the hall; that was taken out the
+  same day, below, and the painting is now the source of the house's
+  materials.)
 - **A local image model, for what the painting does not show:** the sides of
   things seen edge-on, what stands behind the sideboard, and every other
   room. It is free and openly licensed, runs on the build machine only, by its
@@ -460,11 +459,37 @@ frame is the painting, and nowhere else is anything smeared. And the
 style harness's hall view is now the painting's own camera, where it matches
 the target by construction.
 
-Two of the style harness's checks are out, and are the owner's to judge
-rather than a tolerance to loosen. The hall seen toward the stairs and back
-toward the window has its 95th-percentile luminance at 0.058 and 0.059,
-under the floor of 0.080, because those views look at the dark parts of the
-owner's own painting and away from its bright ones.
+Two of the style harness's checks were out. The hall seen toward the
+stairs and back toward the window had its 95th-percentile luminance at 0.058
+and 0.059, under the floor of 0.080, because those views looked at the dark
+parts of the owner's own painting and away from its bright ones.
+
+*The owner's look at the projected hall, 10 October 2026.* "It doesn't look
+like an actual game. It just looks really buggy and weird … like you painted
+over it 2D from the front view and stretched it out." That is what a
+projection is, from anywhere but the painter's spot, and it was the wrong
+lever: it asked the surface to carry shape the model did not have. A flat
+box will not read as a panelled door from the side whatever is painted on
+it. And the owner asked the right question: why was the house not modelled
+to the painting's shapes? It was, but crudely, out of boxes. So, chosen by
+the owner the same day:
+
+- **The hall is modelled to the painting's shapes.** Panelled doors with
+  raised fielded panels in moulded frames, architraves and skirting run from
+  moulding profiles, an arch with a curved soffit, stairs with nosed treads,
+  risers and a string, turned balusters and a turned newel post under a
+  shaped handrail, a window with its frame, sill and glazing bars, the
+  sideboard with its panelled doors and moulded top, and the lamp turned as
+  the painting has it. All of it is code, so it stays byte for byte.
+- **Its materials are cut from the painting.** The painting is unwrapped
+  square-on as before, and clean patches of its plaster, boards, door wood
+  and rug are made into repeating textures, so the house wears the owner's
+  own paint on every surface, the right way up and at its real size, from
+  wherever it is seen. The model only mends their seams.
+- **The projection is taken out.** The hall keeps the layout matched to the
+  painting. From where the player starts it will no longer be a copy of the
+  picture; it is a modelled room built from the picture's shapes and
+  materials, lit by Blender as every other room is.
 
 For now, doors open and stay open, and a key is spent at its door. On a
 phone the key ring sits at the top left, because the stick holds the bottom
