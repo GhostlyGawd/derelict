@@ -73,32 +73,6 @@ export function paintedCharts() {
   return s ? Object.fromEntries(s.charts.map((id) => [id, path.join(CHARTS, `${id}.jpg`)])) : {};
 }
 
-/**
- * The hall's charts as the game shows them: the painting exactly where the
- * painter saw it, and the model's paint everywhere else, held to the
- * painting's colour on that surface (colour.js). Deterministic: the pipeline
- * does this, from the committed painting and the model's committed output.
- */
-export async function composePainted() {
-  const files = paintedCharts();
-  if (!Object.keys(files).length) return [];
-  const { unwrapHall } = await import('./unwrap.js');
-  const { matchMasked, targets } = await import('./colour.js');
-  const unwrapped = await unwrapHall(paintingSource());
-  const target = targets(unwrapped);
-  const out = [];
-  for (const u of unwrapped) {
-    const { data } = await sharp(files[u.chart.id]).removeAlpha().raw().toBuffer({ resolveWithObject: true });
-    const rgb = matchMasked(data, u, target.get(u.chart.id));
-    for (let i = 0; i < u.w * u.h; i++) if (u.kept[i]) for (let k = 0; k < 3; k++) rgb[i * 3 + k] = u.rgb[i * 3 + k];
-    const jpg = await sharp(Buffer.from(rgb), { raw: { width: u.w, height: u.h, channels: 3 } })
-      .jpeg({ quality: 88, chromaSubsampling: '4:4:4', mozjpeg: false })
-      .toBuffer();
-    out.push({ id: u.chart.id, w: u.w, h: u.h, jpg });
-  }
-  return out;
-}
-
 async function main() {
   const python = process.env.MODEL_PYTHON || 'python3';
   const job = JSON.parse(readFileSync(path.join(HERE, 'hall.json'), 'utf8'));

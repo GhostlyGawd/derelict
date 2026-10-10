@@ -9,7 +9,8 @@ import { normalMapFrom } from '../lib/normal.js';
 import { STYLE_BIBLE_HOUSE, TARGET } from './style.js';
 import { BAKED_ROOMS, bakeRooms, readLook } from './bake.js';
 import { HOUSE_TEXTURES, gradeLut } from './textures.js';
-import { composePainted, paintingSource } from './model/run.js';
+import { composePainted } from './model/compose.js';
+import { paintingSource } from './model/run.js';
 import { PAINTING } from '../../src/house/layout.js';
 import { readFileSync } from 'node:fs';
 

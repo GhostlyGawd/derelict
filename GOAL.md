@@ -428,6 +428,39 @@ through untouched, since it already carries its own. A door is projected as
 it stands shut, so its paint swings with it. From where the player starts,
 the frame is the painting.
 
+The model is Stable Diffusion 1.5's inpainting weights (CreativeML
+OpenRAIL-M), run on the CPU by `npm run paint:fill`: about three minutes a
+512-pixel window. It paints the painting's corners out first, where the
+painting shows the device and the two panels that are the game's own HUD.
+Then the hall's six walls, floor and ceiling are unwrapped from the painting
+at 128 texels a metre (`pipeline/house/model/unwrap.js`): every texel the
+painter saw square on, unblocked, keeps the painting's pixel, which is about
+half the back wall, a third of the floor and a sixth of the rest. The model
+paints the remainder in 512-pixel windows round the painting's own paint.
+Its first run was wrong in three ways, all found by looking: it painted
+lighter and greener than the painting, it painted a floor as a room with a
+rug and a pile of books in it, and a ceiling as a ceiling with a lamp. Each
+unseen texel is now seeded with the house's own generated surface (boards,
+plaster) in the painting's colours, and the model repaints that seed rather
+than inventing from words: walls freely, floors and ceilings only lightly.
+Then the pipeline holds what it painted to the painting's colour on that
+surface, by each channel's mean and spread (`compose.js`), deterministically,
+so that can be turned without running the model again.
+
+Three more things were found by walking round. The painted lamp is bigger
+than the shade was, and its edge landed on the ceiling as a ghost; the shade
+is now the painting's size. The projector painted the passage's side walls,
+which the painter saw through the arch almost edge-on, as long smears; past
+the back wall only what faced the painter square takes the painting. And the
+style harness's hall view is now the painting's own camera, where it matches
+the target by construction.
+
+Two of the style harness's checks are out, and are the owner's to judge
+rather than a tolerance to loosen. The hall seen toward the stairs and back
+toward the window has its 95th-percentile luminance at 0.063 and 0.059,
+under the floor of 0.080, because those views look at the dark parts of the
+owner's own painting and away from its bright ones.
+
 For now, doors open and stay open, and a key is spent at its door. On a
 phone the key ring sits at the top left, because the stick holds the bottom
 left.

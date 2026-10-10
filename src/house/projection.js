@@ -13,6 +13,9 @@ export { FACING, paintingCamera };
  */
 const SEEN = [0.0, 0.05];
 
+/** The hall's back wall, at the passage side of it: beyond here the painting is far and small. */
+const BEYOND = -0.25;
+
 /**
  * The owner's painting, projected onto the hall (9.3, the owner's painting as
  * a source).
@@ -139,6 +142,10 @@ export function createProjection(renderer, scene, texture) {
               vec3 toEye = normalize(pEye - vPaintPos);
               float facing = abs(dot(n, toEye));
               w = near * smoothstep(${SEEN[0].toFixed(3)}, ${SEEN[1].toFixed(3)}, facing);
+              // Past the hall's back wall the painter saw the passage through
+              // the arch, small and edge-on: only what faced them square is
+              // theirs, or its walls would be smeared down the passage.
+              if (vPaintPos.z < ${BEYOND.toFixed(3)}) w *= smoothstep(0.8, 0.9, facing);
             }
             if (w > 0.0) {
               vec3 paint = texture2D(pPaint, vec2(puv.x, puv.y)).rgb * (diffuse / pBase);
