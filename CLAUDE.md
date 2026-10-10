@@ -450,14 +450,19 @@ so that can be turned without running the model again.
 Three more things were found by walking round. The painted lamp is bigger
 than the shade was, and its edge landed on the ceiling as a ghost; the shade
 is now the painting's size. The projector painted the passage's side walls,
-which the painter saw through the arch almost edge-on, as long smears; past
-the back wall only what faced the painter square takes the painting. And the
+which the painter saw through the arch almost edge-on, as long smears. A
+first fix, painting nothing past the back wall but what faced the painter
+square, took the painting off the arch and the stairwell as seen from the
+start. Now a surface the painting covers with fewer than 25 to 45 of its
+pixels a metre keeps its own texture, and fades to it only as the player
+walks the first two metres off the painter's spot: from the spot itself the
+frame is the painting, and nowhere else is anything smeared. And the
 style harness's hall view is now the painting's own camera, where it matches
 the target by construction.
 
 Two of the style harness's checks are out, and are the owner's to judge
 rather than a tolerance to loosen. The hall seen toward the stairs and back
-toward the window has its 95th-percentile luminance at 0.063 and 0.059,
+toward the window has its 95th-percentile luminance at 0.058 and 0.059,
 under the floor of 0.080, because those views look at the dark parts of the
 owner's own painting and away from its bright ones.
 
