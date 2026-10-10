@@ -58,6 +58,7 @@ export async function unwrapHall(paintingFile) {
     const h = Math.max(8, Math.round(c.height * PAINT_DENSITY));
     const rgb = new Uint8Array(w * h * 3);
     const mask = new Uint8Array(w * h);
+    const kept = new Uint8Array(w * h);
     const lift = c.kind === 'wall' ? 0.014 : 0.004;
     const n = new THREE.Vector3(...c.normal);
     let seen = 0;
@@ -91,10 +92,13 @@ export async function unwrapHall(paintingFile) {
         }
         // What the painting gives firmly is kept; the rest is the model's to paint.
         mask[i] = weight > 0.6 ? 0 : 255;
-        if (weight > 0.6) seen++;
+        if (weight > 0.6) {
+          kept[i] = 1;
+          seen++;
+        }
       }
     }
-    out.push({ chart: c, w, h, rgb, mask, seen: seen / (w * h) });
+    out.push({ chart: c, w, h, rgb, mask, kept, seen: seen / (w * h) });
   }
   return out;
 }

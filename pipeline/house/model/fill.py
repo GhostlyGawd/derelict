@@ -10,6 +10,11 @@ file to write. The picture is painted in 512 px windows, each with the kept
 paint all round it as the guide, and every window after the first sees what
 the ones before it painted. Only masked pixels change, with a feathered edge.
 
+Where a picture is seeded under its mask (the house's own surface, tinted
+to the painting), `strength` below 1 keeps that seed's shape (boards, plaster)
+and lets the model repaint it in the painting's hand, rather than inventing a
+scene from words.
+
 A picture with nothing kept at all (a wall the painter had behind them) is
 given a `donor`: a picture of the same kind of surface, set beside it in the
 window as the guide and cropped off afterwards, so it is painted in the
@@ -79,6 +84,7 @@ for k, item in enumerate(job["items"]):
                 mask_image=m,
                 num_inference_steps=job.get("steps", 30),
                 guidance_scale=job.get("guidance", 6.5),
+                strength=item.get("strength", 1.0),
                 generator=g,
                 height=WIN,
                 width=WIN,

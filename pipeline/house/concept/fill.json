@@ -1,0 +1,27 @@
+{
+  "hash": "c8c4246febe07533bb028062839384549af1486e412660e63ea9dd37c2029ff8",
+  "sources": [
+    "pipeline/house/concept/hall.jpg",
+    "pipeline/house/model/hall.json",
+    "pipeline/house/model/fill.py",
+    "pipeline/house/model/unwrap.js",
+    "pipeline/house/model/run.js",
+    "pipeline/house/bake.js",
+    "src/house/layout.js",
+    "src/house/level.js",
+    "src/house/dress.js",
+    "src/house/rooms.js",
+    "src/house/things.js",
+    "src/house/furniture.js",
+    "src/house/charts.js",
+    "src/house/projection.js"
+  ],
+  "charts": [
+    "hall-z0-p",
+    "hall-z4.6-n",
+    "hall-x-2.67-p",
+    "hall-x2.4-n",
+    "hall-floor",
+    "hall-ceiling"
+  ]
+}

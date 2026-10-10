@@ -9,7 +9,7 @@ import { normalMapFrom } from '../lib/normal.js';
 import { STYLE_BIBLE_HOUSE, TARGET } from './style.js';
 import { BAKED_ROOMS, bakeRooms, readLook } from './bake.js';
 import { HOUSE_TEXTURES, gradeLut } from './textures.js';
-import { paintedCharts, paintingSource } from './model/run.js';
+import { composePainted, paintingSource } from './model/run.js';
 import { PAINTING } from '../../src/house/layout.js';
 import { readFileSync } from 'node:fs';
 
@@ -70,14 +70,13 @@ async function main() {
   const baked = await bakeRooms(path.join(OUT, 'textures'), (c, w, h, n) => log.done(`${c.id} — ${w}×${h}, ${bytes(n)}`));
   // The hall's charts are the owner's painting, unwrapped and filled by the
   // model (9.3): committed, and copied byte for byte in place of the bake.
-  const painted = paintedCharts();
+  const painted = new Map((await composePainted()).map((p) => [p.id, p]));
   for (const b of baked) {
-    if (painted[b.id]) {
-      const jpg = readFileSync(painted[b.id]);
-      const { width, height } = await sharp(jpg).metadata();
-      await write(path.join(OUT, 'baked', `${b.id}.jpg`), jpg);
-      manifest.baked[b.id] = { file: `/assets/house/baked/${b.id}.jpg`, width, height, bytes: jpg.length, painted: true };
-      log.done(`${b.id} — painted, ${width}×${height}, ${bytes(jpg.length)}`);
+    const p = painted.get(b.id);
+    if (p) {
+      await write(path.join(OUT, 'baked', `${b.id}.jpg`), p.jpg);
+      manifest.baked[b.id] = { file: `/assets/house/baked/${b.id}.jpg`, width: p.w, height: p.h, bytes: p.jpg.length, painted: true };
+      log.done(`${b.id} — the owner's painting, ${p.w}×${p.h}, ${bytes(p.jpg.length)}`);
       continue;
     }
     const file = path.join(OUT, 'baked', `${b.id}.png`);

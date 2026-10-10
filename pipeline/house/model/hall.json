@@ -1,13 +1,16 @@
 {
-  "style": "dark painterly retro horror game interior at night, damp green cast, hand painted texture, muted",
-  "negative": "text, letters, words, people, face, modern, photo, blurry, frame, border, dot matrix, panel, device, speaker grille, furniture, door, window",
+  "style": "flat orthographic texture, seamless, painterly hand painted retro horror game texture, dark, damp, muted green cast",
+  "negative": "text, letters, words, signature, people, face, perspective, room, scene, horizon, furniture, door, window, lamp, light fixture, books, objects, bright, saturated, neon, photo, blurry, border, frame",
   "steps": 30,
-  "guidance": 6.5,
+  "guidance": 5.5,
+  "strength": 0.6,
   "hud": [[0, 752, 210, 896], [1124, 752, 1344, 896]],
   "hudPrompt": "worn grey green wooden floorboards and damp stains at the foot of a wall",
   "prompts": {
-    "wall": "flat damp stained green plaster wall, peeling paint, mould, tide marks, dark",
-    "floor": "worn grey green wooden floorboards seen from above, damp stains, dirt",
-    "ceiling": "dark sooty wooden ceiling boards seen from below, very dark, damp"
-  }
+    "wall": "damp stained plaster wall texture, peeling paint, mould, tide marks, flat",
+    "floor": "worn old wooden floorboards texture seen straight down, damp stains, dirt, flat",
+    "ceiling": "dark sooty old wooden ceiling boards texture, very dark, damp, flat"
+  },
+  "seed": { "wall": "plaster", "floor": "floor", "ceiling": "ceiling" },
+  "tile": 2
 }
