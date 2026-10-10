@@ -491,6 +491,38 @@ the owner the same day:
   picture; it is a modelled room built from the picture's shapes and
   materials, lit by Blender as every other room is.
 
+As built, the same day. The joinery is `src/house/joinery.js`: every door in
+the house is now stiles and rails round fielded panels in a bead (the front
+door upright boards below and glazing above), every door and arch has a
+moulded architrave, the hall a moulded skirting, the stairs nosed treads over
+risers in a deep string, square balusters on it under a moulded handrail, a
+capped newel, and the lamp a turned enamel shade. The cabinet has a plinth,
+a moulded top, drawers and panelled doors; the chair legs, stretchers and a
+railed back; the bag hangs on a peg; every curtain falls in folds.
+
+The materials are five swatches cut from the painting square-on
+(`pipeline/house/model/swatch.js`): a pier of the back wall's plaster, the
+floor beside the rug, a panel of the back door's boards (as door and wood),
+and the runner. Each is grown to its texture's size by image quilting, the
+painting's own paint rearranged, and the model only repaints a band where it
+wraps (`swatches.py`); about ten minutes on the CPU (`npm run paint:fill`).
+They are committed with a hash of their sources, and the light maps are
+stale against them. Painted shading carries its own relief, so their normal
+maps are flat. Three things were found by looking: the first rug cut ran
+past the painted rug's edges and past the painting's frame, the board grain
+read as stripes on every frame and rail (wood is calmed to half its contrast
+and door wood to 70%), and the bake's own mottle and damp laid camouflage
+over plaster that already carries the painting's (mottle 0.5 → 0.15, damp
+1.2 → 0.45). The hall's runner no longer has the tuner's darkening.
+
+Every room now wears these materials, and eight of the style harness's
+checks are out: five views have fewer distinct colours than the floor
+(229 to 285 against 305), the dining room's and kitchen's brightest pixels
+are over the ceiling (0.35 and 0.45 against 0.32), each room's exposure
+having been tuned for the generated textures, and two regions of the hall's
+reference view are lit brighter than the painting there. Re-tuning the rooms
+follows if the owner takes this direction; no tolerance is loosened.
+
 For now, doors open and stay open, and a key is spent at its door. On a
 phone the key ring sits at the top left, because the stick holds the bottom
 left.
