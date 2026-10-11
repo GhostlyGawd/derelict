@@ -51,7 +51,7 @@ const CHECK = `(g, frame) => { const r = window.__monkey.check(frame); return r 
 const FINISH = `async () => window.__monkey.finish({ cap: 20000 })`;
 
 /** One monkey run, recorded. */
-async function drive(seed, device) {
+async function drive(seed, device, { cap, partial = false } = {}) {
   const { context, page } = await deviceFor(browser, device, errors);
   if (device.pad) await page.addInitScript({ path: path.resolve('tools/lib/fakepad.js') });
   await boot(page, BASE, '?trace');
@@ -69,10 +69,11 @@ async function drive(seed, device) {
   const out = await page.evaluate(async (s) => {
     const g = window.__derelict;
     if (!g.input.usingTouch) g.input.locked = true;
-    const result = await window.__monkey.drive({ seed: s });
-    const trace = g.trace.export();
+    const result = await window.__monkey.drive({ seed: s.seed, ...(s.cap ? { cap: s.cap } : {}), keepRecording: s.partial });
+    // Part-way: the player is stuck and saves the run so far from the corner button.
+    const trace = s.partial ? g.trace.exportNow() : g.trace.export();
     return { result, trace };
-  }, seed);
+  }, { seed, cap, partial });
   await context.close();
   out.trace.synthetic = { seed, device: device.name };
   return out;
@@ -275,6 +276,22 @@ for (let n = 0; n < SEEDS.length; n++) {
     );
   }
 }
+// ---- A run saved part-way -----------------------------------------------------
+// A player who is stuck cannot reach the end card, so with ?trace the run so
+// far can be saved from anywhere in it. Cut mid-run, it must replay to exactly
+// where it was saved.
+console.log('\n  a run saved part-way');
+{
+  const device = DEVICES.find((d) => d.touch) || DEVICES[0];
+  const { trace } = await drive(SEEDS[0], device, { cap: 1500, partial: true });
+  const r = await watch(trace);
+  expect(
+    `saved at frame ${trace.final?.[0]} (${trace.final?.[1]}), it replays to the same place`,
+    trace.partial && !r.stopped && JSON.stringify(r.final) === JSON.stringify(trace.final),
+    r.stopped ? `stopped at ${r.stopped.frame}: ${r.stopped.reason}` : `saved ${JSON.stringify(trace.final)}, replayed ${JSON.stringify(r.final)}${divergence(trace.checkpoints, r.checkpoints)}`
+  );
+}
+
 console.log(`\n  hostile bursts thrown: ${[...kinds.entries()].map(([k, v]) => `${k} ${v}`).join(', ')}`);
 
 await browser.close();

@@ -76,6 +76,7 @@ export function dressRooms(mat) {
   kitchen(mat, put, hang);
   study(mat, put, light);
   passage(mat, put, hang);
+  stairhead(mat, put, light);
   landing(mat, put, hang);
   gallery(mat, put, hang);
   bedroom(mat, put, light);
@@ -238,6 +239,17 @@ function passage(mat, put, hang) {
 
 // ---- Upper -------------------------------------------------------------------
 
+/**
+ * The stairhead: a small wall lamp beside the door at the head of the stairs.
+ * Without it the head of the flight was black, and the shut door there read
+ * as nothing at all: the owner climbed into it and was stopped by the dark.
+ */
+function stairhead(mat, put, light) {
+  const y = UPPER;
+  put(thing(mat, 'sconce'), 2.3, y + 1.85, -2.62, W);
+  light(2.1, y + 1.95, -2.62, { colour: 0xe0cc90, intensity: 3.2, range: 5 });
+}
+
 /** The landing: a table with a vase, a picture, and a runner. */
 function landing(mat, put, hang) {
   const y = UPPER;
@@ -293,6 +305,6 @@ function bathroom(mat, put, hang) {
   put(bath(mat), 4.6, y, -5.9, N);
   put(basin(mat, { cracked: true }), 4.6, y, -3.0, S);
   // A towel on a rail.
-  put(thing(mat, 'towel-rail'), 2.5, y, -3.6, E);
+  put(thing(mat, 'towel-rail'), 2.5, y, -3.4, E);
   hang(4.4, y + 2.6, -4.45, { drop: 0.3, intensity: 6, angle: 1.4 });
 }

@@ -59,12 +59,41 @@ function casings(group, mat, models) {
       // Blender's frame, both faces of the wall, at the opening's middle. The
       // front door has a slim stop round it, not a broad architrave: the
       // painting's door fills its frame.
-      const params = { w: o.width, h: o.height, shape: o.kind, T, ...(o.casing === 'slim' ? { profile: 'slim' } : {}) };
+      // A broad architrave is 13.5 cm wide; where a wall meets this one
+      // closer to the opening than that, it would run into it, so the door
+      // there has the slim stop instead (the models harness, pieces behind a
+      // skin, found two that did).
+      const room = roomBeside(w, o);
+      // The stair door fills its wall from side to side: there is no wall
+      // either side of it for a frame to stand on.
+      if (room < 0.012) continue;
+      const slim = o.casing === 'slim' || room < 0.15;
+      // Where even the slim stop (5 cm) would run into the wall, it is made
+      // as narrow as the room there allows.
+      const fit = room < 0.055 ? Math.max(0.012, Math.round((room - 0.003) * 1000) / 1000) : null;
+      const params = { w: o.width, h: o.height, shape: o.kind, T, ...(slim ? { profile: 'slim' } : {}), ...(fit ? { fit } : {}) };
       const pos = w.axis === 'x' ? [w.at, w.y, o.center] : [o.center, w.y, w.at];
       const piece = want(models, 'casing', params, mat, { tag: `casing:${o.id}`, pos, turn: w.axis === 'x' ? Math.PI / 2 : 0 });
       if (piece) group.add(piece);
     }
   }
+}
+
+/** The room either side of an opening along its wall, to the nearest face of a wall that meets it. */
+function roomBeside(w, o) {
+  const lo = o.center - o.width / 2;
+  const hi = o.center + o.width / 2;
+  let room = Infinity;
+  for (const v of WALLS) {
+    if (v.axis === w.axis || v.y !== w.y) continue;
+    // A wall across this one: its line along this wall's run, and its run across this wall's line.
+    if (w.at < v.from - T / 2 || w.at > v.to + T / 2) continue;
+    for (const face of [v.at - T / 2, v.at + T / 2]) {
+      if (face <= lo) room = Math.min(room, lo - face);
+      if (face >= hi) room = Math.min(room, face - hi);
+    }
+  }
+  return room;
 }
 
 /** Fills each arch's top corners so the opening is round, as the reference's is: Blender's, its soffit curved (models.py). */
@@ -212,7 +241,7 @@ function hall(box, group, mat, colliders, lights, models) {
   put('clock', { radius: 0.065 }, [-2.24, 0.74, 1.4], Math.PI / 2);
   put('vase', { scale: 0.9 }, [-2.45, 0.74, 1.2]);
   // The chest stands end-on to the wall, nearer the viewer, its cloth over it.
-  put('chest', {}, [-2.16, 0, 1.85]);
+  put('chest', {}, [-2.11, 0, 1.85]);
   colliders.push({ minX: -2.57, maxX: -1.74, minY: 0, maxY: 0.55, minZ: 1.6, maxZ: 2.1 });
 
   // ---- A small hard chair against the back wall, under the bag ----
@@ -222,14 +251,17 @@ function hall(box, group, mat, colliders, lights, models) {
   // ---- A picture on the right-hand wall, over the foot of the stairs ----
   {
     // Blender's frame faces its +z: turned to face the room, off the wall's face at x = 2.3.
-    const frame = want(models, 'picture', { w: 0.28, h: 0.64, frame: 0.05 }, mat, { tag: 'picture', pos: [2.3, 1.98, 1.05], turn: -Math.PI / 2 });
+    // Clear of the front door's frame (the models harness): the door is wider
+    // than the painting draws it, so a player fits, and the picture hung where
+    // the painting has it overlapped the door's frame. Off the wall's skin.
+    const frame = want(models, 'picture', { w: 0.24, h: 0.6, frame: 0.05 }, mat, { tag: 'picture', pos: [2.282, 1.98, 0.74], turn: -Math.PI / 2 });
     if (frame) group.add(frame);
   }
 
   // ---- The woven bag on its crossed straps, hung on the back wall; a bell
   // push by the parlour door; and a rag dropped on the floor by the arch ----
   // As big as the painting shows it on the back wall: 0.43 m across, a metre with its loop.
-  put('bag', { tall: 1.4 }, [-2.25, 1.45, 0.1 + 0.075]);
+  put('bag', { tall: 1.4 }, [-2.29, 1.45, 0.1 + 0.075]);
   put('fixture', { scale: 2.4 }, [-0.55, 1.45, 0.1], 0, 'wall-fixture');
   put('rag', {}, [0.87, 0, 0.38], 0.6, 'floor-thing');
 }

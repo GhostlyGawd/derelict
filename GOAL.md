@@ -755,6 +755,50 @@ about 40 s. Six pitfalls were met on the way, and each is now held:
 - **The house is big.** The check that a cloth had blown away (a model over
   six metres) caught the shell, which is meant to be the size of the house.
 
+*The owner's play of everything modelled, 11 October 2026.* The owner was
+stopped at the head of the stairs, and asked for a way to save a trace from
+wherever they are, because a stuck player never reaches the end card. The
+textures still did not look good or match: the rug clipped, as if two rugs
+were blended; the hall's picture hung over the front door's frame; and the
+notice looked wrong. All of it was real, and none of it had been caught:
+
+- **The head of the stairs was a painted wall.** The stair door is as wide
+  as the stairhead, so its hole ran past the edge of the wall's baked chart.
+  The skin was drawn whole across the door, and the player met a wall with
+  nothing on it, in the dark. Holes are now held to their chart, and a
+  doorway or an arch is a notch in a skin's outline rather than a hole in it.
+  The stairhead had no light at all, and now has a small wall lamp.
+- **Every piece against a wall stood inside the wall's skin.** A wall's skin
+  stands 14 mm off the plaster, and the kit placed a piece's back on the
+  plaster. So the skin was drawn through every bookcase, chest and
+  picture, and a picture's canvas was behind the wall. Pieces now stand
+  18 mm off the face they are placed against. Every rug lay 4 to 8 mm up,
+  where the floor's skin is 4 mm up, and the two flickered through each
+  other. Rugs now lie clear of it.
+- **The picture hung over the front door's frame.** The door is wider than
+  the painting draws it, so a player fits through it, and the picture was hung
+  where the painting has it. It now hangs clear of the frame, and is smaller,
+  as the painting's is. The bag and the towel rail were over frames too.
+- **The notice was a flat cream rectangle.** It is now a sheet modelled by
+  Blender, pinned at the top and curling off the wall, as the painting's
+  does, in the painting's grey-green, with close rows of print. Every note is
+  modelled the same way. The enamel on the bath and the plates wore the
+  paper's texture, writing and all, and is now plain glaze.
+
+Each of these is now a check in the models harness, and each was shown
+failing before its fix: no baked skin may stand across a doorway or an arch,
+seen from both sides at three heights; no face of a piece may lie at or
+behind a baked skin; and nothing hung on a wall may overlap a door's or an
+arch's frame. A door frame that would run into a wall meeting its own is
+made slim, or as narrow as the room there allows, or left off where the
+door fills its wall from side to side.
+
+With `?trace`, a small SAVE TRACE button sits in the top corner in play, and
+SAVE TRACE SO FAR in the pause panel. It saves the run as it stands, cut at
+that frame, with where the player stands as the state replay must reach. Its
+touches never reach the game. The house monkey saves a run part-way and
+requires it to replay to exactly where it was saved.
+
 For now, doors open and stay open, and a key is spent at its door. On a
 phone the key ring sits at the top left, because the stick holds the bottom
 left.

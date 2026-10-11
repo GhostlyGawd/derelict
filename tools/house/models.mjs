@@ -39,7 +39,7 @@ const TOLERANCE = 0.12;
 /** Kinds as big as the house, which a cloth that blew away is not. */
 const HOUSE_SIZED = new Set(['shell']);
 /** Kinds that hang or stand on something else, so their origin is not the floor. */
-const OFF_THE_FLOOR = new Set(['lamp', 'bag', 'fixture', 'clock', 'vase', 'joist', 'window', 'curtains', 'picture', 'pendant', 'clock-hand']);
+const OFF_THE_FLOOR = new Set(['lamp', 'bag', 'fixture', 'clock', 'vase', 'joist', 'window', 'curtains', 'picture', 'pendant', 'clock-hand', 'note', 'sconce']);
 
 const browser = await chromium.launch({
   ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
@@ -92,6 +92,12 @@ for (const p of asked) {
   else clean++;
 }
 console.log(`  ok    ${clean} of ${asked.filter((p) => facts[p.id]).length} models clean`);
+
+console.log('\nEvery piece where it can be seen:');
+const { covered, under, hungOver } = await page.evaluate(() => ({ covered: window.__house.inventory.skinsOverOpenings(), under: window.__house.inventory.underSkins(), hungOver: window.__house.inventory.hungOverFrames() }));
+say(!covered.length, covered.length ? `a baked skin stands across ${covered.length} doorway view(s): ${covered.join('; ')}` : 'no baked skin stands across a doorway or an arch');
+say(!under.length, under.length ? `${under.length} piece(s) lie at or behind a baked skin, hidden by it or fighting it: ${under.join('; ')}` : 'nothing lies at or behind a baked skin');
+say(!hungOver.length, hungOver.length ? `${hungOver.length} thing(s) hung over a door's or an arch's frame: ${hungOver.join('; ')}` : "nothing hung on a wall overlaps a door's or an arch's frame");
 
 if (SHEET) {
   const T = 240;

@@ -62,7 +62,7 @@ export const layerOf = (lamp, room) => (lamp.room !== room ? 'others' : lamp.kin
 const SOURCE = {
   wall: ['plaster'], floor: ['floor'], ceiling: ['ceiling'], wood: ['wood'], door: ['door'], rug: ['rug'], hallRug: ['rug'],
   tile: ['tile'], curtain: ['curtain'], paper: ['paper'], picture: ['picture'], night: ['night'],
-  iron: ['wood', 0x34363a], enamel: ['paper', 0xe4e8d6],
+  iron: ['wood', 0x34363a], enamel: [null, 0xd4d8c6],
   knob: [null, 0xa08a50], black: [null, 0x060706], mirror: [null, 0x2a3832],
   shade: [null, 0xf2f4e6], lampshade: [null, 0xc8c088],
   glaze: [null, 0x3e5a34], cloth: ['curtain', 0xe8e6d8], wicker: ['wood', 0xb89a62], leather: ['wood', 0x6a5232],

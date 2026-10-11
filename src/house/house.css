@@ -79,3 +79,19 @@
   letter-spacing: 0.16em;
   opacity: 0.55;
 }
+
+/* With ?trace only: the run so far, saved from wherever the player is. Small
+   and out of the way, in the corner no thumb or panel uses. */
+#trace-now {
+  position: absolute;
+  right: max(12px, env(safe-area-inset-right));
+  top: max(12px, env(safe-area-inset-top));
+  z-index: 4;
+  padding: 6px 9px;
+  font: 10px/1 ui-monospace, 'Courier New', monospace;
+  letter-spacing: 0.1em;
+  color: #9ef094;
+  background: rgba(10, 20, 10, 0.7);
+  border: 1px solid #33402a;
+  opacity: 0.75;
+}

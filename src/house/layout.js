@@ -101,7 +101,8 @@ export const WALLS = [
   // The hall's back wall, which runs on as the front of the house, broken
   // where the stairs pass through it.
   { y: GROUND, h: 2.8, axis: 'z', at: 0, from: -6.4, to: 1.3, openings: [
-    { center: -1.36, width: 1.09, height: 2.42, id: 'parlour-door', kind: 'door' },
+    // A centimetre clear of the parlour's side wall, so its frame stands in front of that wall's skin.
+    { center: -1.37, width: 1.09, height: 2.42, id: 'parlour-door', kind: 'door' },
     { center: 0.3, width: 1.12, height: 2.45, id: 'arch', kind: 'arch' },
     { center: -4.4, width: 1.0, height: 1.4, sill: 0.9, id: 'parlour-window', kind: 'window' },
   ] },

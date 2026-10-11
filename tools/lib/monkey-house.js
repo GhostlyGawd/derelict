@@ -791,7 +791,7 @@
   }
 
   // ------------------------------------------------------------------- run
-  async function drive({ seed, hostileUntil = 4200, cap = 30000 }) {
+  async function drive({ seed, hostileUntil = 4200, cap = 30000, keepRecording = false }) {
     const rand = rng(seed);
     const log = [];
     let burst = null;
@@ -850,7 +850,8 @@
     }
     if (!reason && g.phase !== 'ended') reason = `the run did not end inside ${cap} frames (phase ${g.phase})`;
     letGo();
-    if (g.trace?.recording) g.trace.end();
+    // Left recording for a run saved part-way, as a stuck player saves it.
+    if (g.trace?.recording && !keepRecording) g.trace.end();
     return { reason, frame, log, phase: g.phase, cells: g.cells, replans: pilot.replans };
   }
 

@@ -196,21 +196,33 @@ function night(s, seed) {
   return r;
 }
 
+/**
+ * A notice, as the painting's: a cool grey-green sheet gone soft with damp,
+ * a heading, and close rows of print that never resolve into words, with the
+ * damp coming in from the top corner where it curls off the wall.
+ */
 function paper(s, seed) {
   const r = new Raster(s, seed);
   r.fill(P.paper);
-  r.mottle({ frequency: 5, amount: 0.12 });
-  damp(r, { source: (u, v) => (u < 0.12 || v > 0.86 ? 1 : 0), spread: 2, radius: 2, stain: [120, 110, 80], strength: 0.5, tides: 2, seed: seed + 2 });
-  // Lines of handwriting that never resolve into words.
+  r.mottle({ frequency: 6, amount: 0.1 });
+  damp(r, { source: (u, v) => (v < 0.08 || (u < 0.18 && v < 0.3) || v > 0.94 ? 1 : 0), spread: 2, radius: 2, stain: [96, 104, 84], strength: 0.45, tides: 2, seed: seed + 2 });
   const rand = rng(seed + 3);
-  for (let line = 0; line < 13; line++) {
-    const y = s * 0.12 + line * s * 0.062;
-    let x = s * 0.12 + rand() * 6;
-    const end = s * (0.75 + rand() * 0.15);
+  // The heading: one short heavy line, centred.
+  const hy = Math.round(s * 0.12);
+  const hw = s * 0.42;
+  for (let x = (s - hw) / 2; x < (s + hw) / 2; x++) for (let t = 0; t < 3; t++) if ((x | 0) % 9 < 7) r.set(x, hy + t, P.ink, 0.85);
+  // Rows of print, close and even, in words of a few letters.
+  for (let line = 0; line < 22; line++) {
+    const y = Math.round(s * 0.22 + line * s * 0.033);
+    let x = s * 0.1 + (line % 5 === 0 ? s * 0.05 : 0);
+    const end = s * (line % 7 === 6 ? 0.55 + rand() * 0.2 : 0.9);
     while (x < end) {
-      const w = 3 + rand() * 9;
-      for (let t = 0; t < w; t++) r.set(x + t, y + Math.sin((x + t) * 1.7) * 1.2, P.ink, 0.75);
-      x += w + 2 + rand() * 3;
+      const w = 3 + Math.floor(rand() * 7);
+      for (let t = 0; t < w && x + t < end; t++) {
+        r.set(x + t, y, P.ink, 0.7);
+        if (rand() < 0.5) r.set(x + t, y + 1, P.ink, 0.45);
+      }
+      x += w + 2;
     }
   }
   return r;

@@ -77,7 +77,17 @@ const hex = (c) => c.toString(16).padStart(6, '0');
  * Puts a piece in the house: its back-centre at (x, y, z), turned to `face`
  * (a yaw; 0 faces +z). Faces are quarter turns, so every collider stays a box.
  */
+/**
+ * How far a piece stands off the face it is placed against: clear of the
+ * baked skin over that face (charts.js, 14 mm off the plaster). Placed on
+ * the plaster itself, a bookcase's back and a picture's canvas were behind
+ * the skin, and the skin was drawn through the piece.
+ */
+export const OFF_THE_WALL = 0.018;
+
 export function place(parent, colliders, p, x, y, z, face) {
+  x += Math.sin(face) * OFF_THE_WALL;
+  z += Math.cos(face) * OFF_THE_WALL;
   p.group.position.set(x, y, z);
   p.group.rotation.y = face;
   parent.add(p.group);

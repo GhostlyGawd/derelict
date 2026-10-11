@@ -41,7 +41,10 @@ export function chartsFor(spaceId) {
       const o1 = o.center + o.width / 2;
       if (o1 <= a || o0 >= b) continue;
       const y0 = o.kind === 'window' ? o.sill : 0;
-      holes.push({ kind: o.kind, s0: o0 - a, s1: o1 - a, t0: y0, t1: y0 + o.height });
+      // Held to the chart: the stair door is as wide as the stairhead, and its
+      // hole once ran past the chart's edge, so the skin was drawn whole and
+      // painted a wall over the door at the head of the stairs.
+      holes.push({ kind: o.kind, s0: Math.max(0, o0 - a), s1: Math.min(b - a, o1 - a), t0: y0, t1: y0 + o.height });
     }
     const along = w.axis === 'x' ? [0, 0, 1] : [1, 0, 0];
     charts.push({
@@ -89,29 +92,36 @@ export function chartSize(c) {
  * the top, as the arch is.
  */
 export function skin(c, material) {
+  // A doorway or an arch stands on the floor, so it is a notch in the outline
+  // rather than a hole in it: a hole touching the outline, or as wide as it,
+  // is not one the triangulation keeps. A window is a hole.
+  const notches = c.holes.filter((h) => h.t0 <= 1e-4).sort((p, q) => p.s0 - q.s0);
+  const eps = 1e-4;
   const shape = new THREE.Shape();
-  shape.moveTo(0, 0);
-  shape.lineTo(c.width, 0);
+  const shoulder = (h) => (h.kind === 'arch' ? h.t1 - (h.s1 - h.s0) / 2 : h.t1);
+  if (notches[0] && notches[0].s0 <= eps) shape.moveTo(0, shoulder(notches[0]));
+  else shape.moveTo(0, 0);
+  for (const h of notches) {
+    if (h.s0 > eps) {
+      shape.lineTo(h.s0, 0);
+      shape.lineTo(h.s0, shoulder(h));
+    }
+    if (h.kind === 'arch') shape.absarc((h.s0 + h.s1) / 2, shoulder(h), (h.s1 - h.s0) / 2, Math.PI, 0, true);
+    else shape.lineTo(h.s1, h.t1);
+    if (h.s1 < c.width - eps) shape.lineTo(h.s1, 0);
+  }
+  if (!(notches.length && notches.at(-1).s1 >= c.width - eps)) shape.lineTo(c.width, 0);
   shape.lineTo(c.width, c.height);
   shape.lineTo(0, c.height);
-  shape.lineTo(0, 0);
+  shape.closePath();
   for (const h of c.holes) {
+    if (h.t0 <= 1e-4) continue;
     const path = new THREE.Path();
-    if (h.kind === 'arch') {
-      const r = (h.s1 - h.s0) / 2;
-      const mid = (h.s0 + h.s1) / 2;
-      path.moveTo(h.s0, h.t0);
-      path.lineTo(h.s1, h.t0);
-      path.lineTo(h.s1, h.t1 - r);
-      path.absarc(mid, h.t1 - r, r, 0, Math.PI, false);
-      path.lineTo(h.s0, h.t0);
-    } else {
-      path.moveTo(h.s0, h.t0);
-      path.lineTo(h.s1, h.t0);
-      path.lineTo(h.s1, h.t1);
-      path.lineTo(h.s0, h.t1);
-      path.lineTo(h.s0, h.t0);
-    }
+    path.moveTo(h.s0, h.t0);
+    path.lineTo(h.s1, h.t0);
+    path.lineTo(h.s1, h.t1);
+    path.lineTo(h.s0, h.t1);
+    path.lineTo(h.s0, h.t0);
     shape.holes.push(path);
   }
   const geo = new THREE.ShapeGeometry(shape, 12);

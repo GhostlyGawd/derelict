@@ -70,7 +70,8 @@ function materials(tex, live) {
     hallRug: phong('rug', { shininess: 2, normalScale: 0.4, color: new THREE.Color().setScalar(live.rug) }),
     tile: phong('tile', { shininess: 24, specular: 0x161812, normalScale: 0.6 }),
     curtain: new THREE.MeshLambertMaterial({ map: tex.curtain, side: THREE.DoubleSide }),
-    paper: new THREE.MeshLambertMaterial({ map: tex.paper, side: THREE.DoubleSide }),
+    // Old paper under a lamp reads grey-green in the painting, not lit cream.
+    paper: new THREE.MeshLambertMaterial({ map: tex.paper, color: 0x9ea896, side: THREE.DoubleSide }),
     picture: new THREE.MeshLambertMaterial({ map: tex.picture }),
     // The night is light from outside, not lit by the hall: unlit, and clear of
     // the fog, which belongs to the inside.
@@ -79,12 +80,14 @@ function materials(tex, live) {
     shade: new THREE.MeshBasicMaterial({ color: 0xf2f4e6, side: THREE.DoubleSide }),
     // A lamp's cloth shade with the bulb lit behind it.
     lampshade: new THREE.MeshBasicMaterial({ color: 0xc8c088, side: THREE.DoubleSide }),
-    // Brass, black iron, enamel and a mirror's glass: the generated wood and
-    // paper under other paint, so even these carry the house's grain.
+    // Brass, black iron, enamel and a mirror's glass: iron is the generated
+    // wood under black paint, so it carries the house's grain.
     knob: new THREE.MeshPhongMaterial({ color: 0xa08a50, shininess: 40, specular: 0x302810 }),
     black: new THREE.MeshLambertMaterial({ color: 0x060706 }),
     iron: new THREE.MeshPhongMaterial({ map: tex.wood, color: 0x34363a, shininess: 24, specular: 0x1a1c1a }),
-    enamel: new THREE.MeshPhongMaterial({ map: tex.paper, color: 0xe4e8d6, shininess: 40, specular: 0x2a2e26 }),
+    // Glossy enamel, plain: it once wore the paper's texture, and the bath and
+    // the plates carried a notice's lines of writing.
+    enamel: new THREE.MeshPhongMaterial({ color: 0xd4d8c6, shininess: 40, specular: 0x2a2e26 }),
     mirror: new THREE.MeshPhongMaterial({ color: 0x2a3832, shininess: 90, specular: 0x5a6a5a }),
     // For the pieces Blender models (models.js): a green glaze, a pale cloth,
     // wicker and leather, each the generated grain under its own colour.

@@ -35,6 +35,10 @@
         <div class="panel-dm items">—</div>
       </div>
 
+      <!-- With ?trace only: save the run so far, from anywhere in it, for a
+           player who is stuck and cannot reach the end card. -->
+      <button id="trace-now" type="button" class="hidden">SAVE TRACE</button>
+
       <!-- Phase 9: the note reader. Any interact puts it away. -->
       <div id="reader" class="overlay hidden">
         <div class="paper">
@@ -80,6 +84,7 @@
         <div class="panel">
           <h2>PAUSED</h2>
           <button id="resume" type="button">RESUME</button>
+          <button id="save-trace-now" type="button" class="hidden">SAVE TRACE SO FAR</button>
         </div>
       </div>
 

@@ -848,6 +848,10 @@ def casing(p):
     head, its corners mitred; an arch's runs up the jambs and round the arch."""
     w, h, T = p["w"], p["h"], p["T"]
     prof = SLIM if p.get("profile") == "slim" else ARCHITRAVE
+    if p.get("fit"):
+        # Narrowed to the room beside the opening, so it stops short of a wall that meets this one.
+        k = p["fit"] / max(a for a, _ in prof)
+        prof = [(a * k, o) for a, o in prof]
     W = max(a for a, _ in prof)
     # Across from the opening's edge outward: the back band is on the outer edge.
     prof = [(W - a, o) for a, o in prof][::-1]
@@ -1041,7 +1045,7 @@ def rag(name, seed=0):
         h = max(0, 0.05 - r * 0.35) + 0.012 * noise.noise(Vector((x * 30 + seed, y * 30, 0.5)))
         # Gathered toward the middle.
         k = 0.6 + 0.4 * (1 - min(1, r / 0.16))
-        v.co = Vector((x * k, y * k, max(0.002, h)))
+        v.co = Vector((x * k, y * k, max(0.01, h)))
     ob.data.materials.append(material("cloth"))
     ob["smooth"] = True
     return [ob]
@@ -1656,7 +1660,8 @@ def rug(p):
         for i in range(nx + 1):
             x = -w / 2 + w * i / nx
             edge = min(abs(abs(x) - w / 2), abs(abs(z) - l / 2))
-            y = 0.008 - (0.004 if edge < 0.02 else 0) + 0.002 * noise.noise(Vector((x * 3, z * 3, 7.1)))
+            # Clear of the floor's baked skin, 4 mm up: a pile at 8 mm flickered through it.
+            y = 0.014 - (0.002 if edge < 0.02 else 0) + 0.0015 * noise.noise(Vector((x * 3, z * 3, 7.1)))
             row.append(bm.verts.new(H(x, y, z)))
         grid.append(row)
     for j in range(nz):
@@ -1678,7 +1683,7 @@ def rug(p):
     obs = [ob]
     # The bound edge, all round, a little proud of the pile.
     for k, (x0, x1, z0, z1) in enumerate(((-w / 2, w / 2, -l / 2, -l / 2 + 0.02), (-w / 2, w / 2, l / 2 - 0.02, l / 2), (-w / 2, -w / 2 + 0.02, -l / 2, l / 2), (w / 2 - 0.02, w / 2, -l / 2, l / 2))):
-        obs.append(hbox(f"edge{k}", x0, x1, 0.0, 0.009, z0, z1, "rug#3a3020", r=0.003))
+        obs.append(hbox(f"edge{k}", x0, x1, 0.0, 0.016, z0, z1, "rug#3a3020", r=0.003))
     # The fringe: tassels at each end.
     for sz in (-1, 1):
         n = max(4, round(w / 0.04))
@@ -1686,7 +1691,7 @@ def rug(p):
             x = -w / 2 + 0.02 + (w - 0.04) * i / (n - 1)
             ln = 0.05 + 0.015 * noise.noise(Vector((x * 20, sz, 0.3)))
             z0, z1 = (l / 2, l / 2 + ln) if sz > 0 else (-l / 2 - ln, -l / 2)
-            obs.append(hbox(f"tassel{sz}{i}", x - 0.005, x + 0.005, 0.0, 0.004, z0, z1, "rug#b8b090", r=0))
+            obs.append(hbox(f"tassel{sz}{i}", x - 0.005, x + 0.005, 0.0, 0.011, z0, z1, "rug#b8b090", r=0))
     return obs
 
 
@@ -2027,6 +2032,69 @@ def arch_fill(p):
     return [ob]
 
 
+def note(p):
+    """A sheet of paper, facing the room (+z) with its back at z = 0: on a
+    wall it is pinned at its top corners and curls off the wall at the top,
+    as the painting's notice does; on a table it lies with its corners lifted.
+    Its texture is laid across the sheet as it would lie flat."""
+    w, h = p["w"], p["h"]
+    flat = p.get("flat", False)
+    nx, ny = 14, 18
+    bm = bmesh.new()
+    uvl = bm.loops.layers.uv.new()
+    grid = []
+    for j in range(ny + 1):
+        row = []
+        for i in range(nx + 1):
+            u, v = i / nx, j / ny
+            x, y = (u - 0.5) * w, (v - 0.5) * h
+            if flat:
+                # Corners lifted, a little cockle across it.
+                lift = 0.006 * (abs(2 * u - 1) * abs(2 * v - 1)) ** 2 + 0.0015 * math.sin(u * 7 + v * 3)
+            else:
+                # The top-left corner curls away from the wall, the rest lies on it.
+                corner = max(0.0, 1 - math.hypot(u, 1 - v) / 0.45)
+                top = max(0.0, (v - 0.82) / 0.18)
+                lift = 0.035 * corner ** 2 + 0.006 * top + 0.0015 * math.sin(u * 9 + v * 5)
+            row.append(bm.verts.new(H(x, y, 0.002 + max(0.0, lift))))
+        grid.append(row)
+    for j in range(ny):
+        for i in range(nx):
+            f = bm.faces.new((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]))
+            for lo, (ii, jj) in zip(f.loops, ((i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1))):
+                lo[uvl].uv = (ii / nx, jj / ny)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    sheet = new_object("sheet", bm, "paper")
+    apply(sheet, ("SOLIDIFY", {"thickness": 0.0008, "offset": -1}))
+    sheet["smooth"] = True
+    sheet["uvdone"] = True
+    obs = [sheet]
+    if not flat:
+        for sx in (-1, 1):
+            obs.append(hturn(f"pin{sx}", [(0.0, 0.0), (0.006, 0.0), (0.006, 0.003), (0.004, 0.005), (0.0, 0.006)], "brass", sx * (w / 2 - 0.025), h / 2 - 0.025, 0.004, 12, front=True))
+    return obs
+
+
+def sconce(p):
+    """A wall lamp, its back on the wall (z = 0) facing the room: a turned
+    back plate, a swan-neck arm, and a small frosted shade with the bulb lit
+    behind it."""
+    obs = [hturn("plate", [(0.0, 0.0), (0.05, 0.0), (0.052, 0.008), (0.04, 0.016), (0.0, 0.018)], "brass", 0, 0, 0.0, 20, front=True)]
+    path = [H(0, 0.02 * math.sin(math.pi * t / 10) + 0.06 * (t / 10) ** 2, 0.015 + 0.13 * t / 10) for t in range(11)]
+    arm = sweep("arm", [(0.006 * math.cos(k / 8 * 2 * math.pi), 0.006 * math.sin(k / 8 * 2 * math.pi)) for k in range(8)], path, "brass", closed=True)
+    arm["smooth"] = True
+    obs.append(arm)
+    obs.append(hturn("cup", [(0.0, 0.05), (0.018, 0.05), (0.022, 0.07), (0.0, 0.075)], "brass", 0, 0, 0.145, 16))
+    shade = lathe("shade", [(0.024, 0.07), (0.05, 0.1), (0.07, 0.15), (0.072, 0.16)], "lampshade", 24, cap=False)
+    shade.location = H(0, 0, 0.145)
+    shade["turned"] = True
+    orient(shade, (0, 0, 0.12), outward=True)
+    apply(shade, ("SOLIDIFY", {"thickness": 0.002}))
+    obs.append(shade)
+    obs.append(hturn("bulb", [(0.0, 0.07), (0.016, 0.075), (0.024, 0.1), (0.018, 0.125), (0.0, 0.13)], "shade", 0, 0, 0.145, 16))
+    return obs
+
+
 KIT = {
     "chest-carcass": chest_carcass,
     "drawer": drawer,
@@ -2058,6 +2126,8 @@ KIT = {
     "clock-hand": clock_hand,
     "shell": shell,
     "arch-fill": arch_fill,
+    "note": note,
+    "sconce": sconce,
 }
 
 

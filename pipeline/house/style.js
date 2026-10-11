@@ -66,7 +66,8 @@ export const PALETTE = {
   nightTop: [52, 60, 128],
   nightBottom: [24, 28, 70],
   branch: [8, 10, 18],
-  paper: [184, 174, 142],
+  // The painting's notice: a cool grey-green sheet, not a warm cream one.
+  paper: [168, 174, 156],
   ink: [52, 46, 36],
 };
 

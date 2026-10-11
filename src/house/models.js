@@ -76,7 +76,9 @@ export function want(models, kind, params, mat, opts = {}) {
   for (const k of ['id', 'kind']) if (k in params) throw new Error(`want(${kind}): a parameter may not be called "${k}"`);
   const id = modelId(kind, params);
   asked.set(id, { id, kind, ...params });
-  return place(models, id, mat, opts);
+  const copy = place(models, id, mat, opts);
+  if (copy) copy.userData.kind = kind;
+  return copy;
 }
 
 /**

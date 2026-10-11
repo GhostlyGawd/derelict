@@ -311,14 +311,26 @@ function makeClock(group, mat) {
 }
 
 function makeNote(def, group, mat) {
-  const paper = mat ? mat.paper.clone() : new THREE.MeshLambertMaterial({ color: 0xcfc8b0, side: THREE.DoubleSide });
   const [pw, ph] = def.size ?? (def.flat ? [0.21, 0.28] : [0.32, 0.44]);
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), paper);
   const [x, y, z] = def.at;
+  // Blender's sheet (models.py): pinned and curling off a wall, or lying with
+  // its corners lifted on a table. A flat plane without surfaces (a harness
+  // without assets).
+  const model = mat && want(null, 'note', { w: pw, h: ph, ...(def.flat ? { flat: true } : {}) }, mat, { tag: `note:${def.id}` });
+  let mesh;
+  let meshes;
+  if (model) {
+    mesh = model;
+    meshes = collect(model);
+    // Its paper lights under the crosshair on its own, not every note's.
+    for (const m of meshes) if (m.userData.slot === 'paper') m.material = m.material.clone();
+  } else {
+    mesh = new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), new THREE.MeshLambertMaterial({ color: 0xcfc8b0, side: THREE.DoubleSide }));
+    mesh.userData.notAPiece = 'paper';
+    meshes = [mesh];
+  }
   mesh.position.set(x, y, z);
   mesh.userData.inventory = `note:${def.id}`;
-  // Not a piece: a sheet of paper (the models harness).
-  mesh.userData.notAPiece = 'paper';
   if (def.flat) mesh.rotation.set(-Math.PI / 2, 0, def.face);
   else mesh.rotation.y = def.face;
   group.add(mesh);
@@ -328,10 +340,10 @@ function makeNote(def, group, mat) {
     title: def.title,
     text: def.text,
     read: false,
-    meshes: [mesh],
+    meshes,
     point: new THREE.Vector3(x, y, z),
     prompt: 'Read',
-    highlight: tint([mesh]),
+    highlight: tint(meshes.filter((m) => m.userData.slot !== 'brass')),
     canUse: () => true,
     colliders: () => [],
     update() {},

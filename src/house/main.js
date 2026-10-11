@@ -21,7 +21,7 @@ import * as LAYOUT from './layout.js';
 import { buildThings } from './things.js';
 import { closeUps, renderTags, texelScale } from './inventory.js';
 import { askedFor, loadModels } from './models.js';
-import { codeDrawn, modelFacts, shootModel } from './modelcheck.js';
+import { codeDrawn, hungOverFrames, modelFacts, shootModel, skinsOverOpenings, underSkins } from './modelcheck.js';
 import { paintingCamera } from './painter.js';
 
 // Wider than the ship's 72: the reference hall is seen through a wide lens,
@@ -85,6 +85,9 @@ class House {
       closeUps: (names) => closeUps(this.scene, names, LAYOUT.PAINTING.pos, SPACES),
       // The models harness (tools/house/models.mjs).
       codeDrawn: () => codeDrawn(this.scene),
+      skinsOverOpenings: () => skinsOverOpenings(this.scene),
+      underSkins: () => underSkins(this.scene),
+      hungOverFrames: () => hungOverFrames(this.scene),
       modelFacts: () => modelFacts(this.models),
       asked: () => askedFor(),
       shootModel: (id, turn, w, h) => {
@@ -108,6 +111,18 @@ class House {
     this.trace = traceRequested() ? new TraceRecorder(this, { inputVersion: INPUT_VERSION }) : null;
     if (this.trace) this.input.onPadChange = (raw) => this.trace.pad(raw);
     document.getElementById('save-trace')?.addEventListener('click', () => this.trace?.save());
+    // With ?trace, the run so far can be saved from anywhere in it: a corner
+    // button in play (a phone has no pause), and in the pause panel. Its
+    // touches stop here, so the game never takes them as a look.
+    const now = document.getElementById('trace-now');
+    if (this.trace && now) {
+      for (const type of ['touchstart', 'touchend', 'mousedown']) now.addEventListener(type, (e) => e.stopPropagation(), { passive: true });
+      now.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.trace.save({ now: true });
+      });
+    }
+    document.getElementById('save-trace-now')?.addEventListener('click', () => this.trace?.save({ now: true }));
     document.getElementById('start').addEventListener('click', () => this.#start());
     document.getElementById('resume').addEventListener('click', () => this.#resume());
     document.getElementById('restart').addEventListener('click', () => window.location.reload());
@@ -183,6 +198,7 @@ class House {
     this.trace?.begin();
     this.hud.setHudVisible(true);
     this.ringEl.classList.remove('hidden');
+    document.getElementById('trace-now')?.classList.toggle('hidden', !this.trace);
     this.ringEl.classList.toggle('touch', this.input.usingTouch);
     this.#resize();
     this.hud.setTouchVisible(this.input.usingTouch);
@@ -193,6 +209,7 @@ class House {
 
   #pause() {
     this.phase = 'paused';
+    document.getElementById('save-trace-now')?.classList.toggle('hidden', !this.trace);
     this.input.setEnabled(false);
     this.input.releasePointerLock();
     this.hud.show('paused');
@@ -393,6 +410,7 @@ class House {
     this.hud.setHudVisible(false);
     this.hud.setTouchVisible(false);
     this.ringEl.classList.add('hidden');
+    document.getElementById('trace-now')?.classList.add('hidden');
     this.#closeNote();
     this.trace?.end();
     document.getElementById('save-trace')?.classList.toggle('hidden', !this.trace);
