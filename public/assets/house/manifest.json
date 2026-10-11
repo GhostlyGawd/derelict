@@ -150,73 +150,73 @@
       "file": "/assets/house/baked/parlour-z0-n.png",
       "width": 352,
       "height": 179,
-      "bytes": 55550
+      "bytes": 66762
     },
     "parlour-x-6.4-p": {
       "file": "/assets/house/baked/parlour-x-6.4-p.png",
       "width": 179,
       "height": 179,
-      "bytes": 8554
+      "bytes": 10739
     },
     "parlour-z-3-p": {
       "file": "/assets/house/baked/parlour-z-3-p.png",
       "width": 352,
       "height": 179,
-      "bytes": 48647
+      "bytes": 62574
     },
     "parlour-x-0.7-n": {
       "file": "/assets/house/baked/parlour-x-0.7-n.png",
       "width": 179,
       "height": 179,
-      "bytes": 19810
+      "bytes": 26254
     },
     "parlour-floor": {
       "file": "/assets/house/baked/parlour-floor.png",
       "width": 365,
       "height": 192,
-      "bytes": 104706
+      "bytes": 117818
     },
     "parlour-ceiling": {
       "file": "/assets/house/baked/parlour-ceiling.png",
       "width": 365,
       "height": 192,
-      "bytes": 16026
+      "bytes": 26605
     },
     "passage-z0-n": {
       "file": "/assets/house/baked/passage-z0-n.png",
       "width": 102,
       "height": 179,
-      "bytes": 19854
+      "bytes": 24102
     },
     "passage-z-6-p": {
       "file": "/assets/house/baked/passage-z-6-p.png",
       "width": 102,
       "height": 179,
-      "bytes": 12148
+      "bytes": 14942
     },
     "passage-x-0.7-p": {
       "file": "/assets/house/baked/passage-x-0.7-p.png",
       "width": 371,
       "height": 179,
-      "bytes": 92860
+      "bytes": 110118
     },
     "passage-x1.1-n": {
       "file": "/assets/house/baked/passage-x1.1-n.png",
       "width": 371,
       "height": 179,
-      "bytes": 88960
+      "bytes": 105908
     },
     "passage-floor": {
       "file": "/assets/house/baked/passage-floor.png",
       "width": 115,
       "height": 384,
-      "bytes": 53895
+      "bytes": 63468
     },
     "passage-ceiling": {
       "file": "/assets/house/baked/passage-ceiling.png",
       "width": 115,
       "height": 384,
-      "bytes": 3573
+      "bytes": 10495
     },
     "study-z0-n": {
       "file": "/assets/house/baked/study-z0-n.png",
@@ -294,37 +294,37 @@
       "file": "/assets/house/baked/kitchen-z-6-p.png",
       "width": 326,
       "height": 179,
-      "bytes": 39318
+      "bytes": 34415
     },
     "kitchen-x6.4-n": {
       "file": "/assets/house/baked/kitchen-x6.4-n.png",
       "width": 179,
       "height": 179,
-      "bytes": 31530
+      "bytes": 29680
     },
     "kitchen-z-3-n": {
       "file": "/assets/house/baked/kitchen-z-3-n.png",
       "width": 326,
       "height": 179,
-      "bytes": 68773
+      "bytes": 61625
     },
     "kitchen-x1.1-p": {
       "file": "/assets/house/baked/kitchen-x1.1-p.png",
       "width": 179,
       "height": 179,
-      "bytes": 30091
+      "bytes": 22628
     },
     "kitchen-floor": {
       "file": "/assets/house/baked/kitchen-floor.png",
       "width": 339,
       "height": 192,
-      "bytes": 130501
+      "bytes": 115765
     },
     "kitchen-ceiling": {
       "file": "/assets/house/baked/kitchen-ceiling.png",
       "width": 339,
       "height": 192,
-      "bytes": 26447
+      "bytes": 22977
     },
     "stairhead-z-2.9-p": {
       "file": "/assets/house/baked/stairhead-z-2.9-p.png",
@@ -348,61 +348,61 @@
       "file": "/assets/house/baked/landing-z-2.9-n.png",
       "width": 64,
       "height": 166,
-      "bytes": 12401
+      "bytes": 13637
     },
     "landing-z-6-p": {
       "file": "/assets/house/baked/landing-z-6-p.png",
       "width": 198,
       "height": 166,
-      "bytes": 51402
+      "bytes": 55602
     },
     "landing-x-0.9-p": {
       "file": "/assets/house/baked/landing-x-0.9-p.png",
       "width": 186,
       "height": 166,
-      "bytes": 46228
+      "bytes": 49951
     },
     "landing-x2.4-n": {
       "file": "/assets/house/baked/landing-x2.4-n.png",
       "width": 186,
       "height": 166,
-      "bytes": 46559
+      "bytes": 50465
     },
     "landing-floor": {
       "file": "/assets/house/baked/landing-floor.png",
       "width": 211,
       "height": 198,
-      "bytes": 67998
+      "bytes": 73201
     },
     "landing-ceiling": {
       "file": "/assets/house/baked/landing-ceiling.png",
       "width": 211,
       "height": 198,
-      "bytes": 10141
+      "bytes": 13831
     },
     "gallery-z0-n": {
       "file": "/assets/house/baked/gallery-z0-n.png",
       "width": 122,
       "height": 166,
-      "bytes": 22785
+      "bytes": 36687
     },
     "gallery-x-0.9-p": {
       "file": "/assets/house/baked/gallery-x-0.9-p.png",
       "width": 173,
       "height": 166,
-      "bytes": 24474
+      "bytes": 45827
     },
     "gallery-floor": {
       "file": "/assets/house/baked/gallery-floor.png",
       "width": 134,
       "height": 186,
-      "bytes": 25704
+      "bytes": 37446
     },
     "gallery-ceiling": {
       "file": "/assets/house/baked/gallery-ceiling.png",
       "width": 134,
       "height": 186,
-      "bytes": 1988
+      "bytes": 6014
     },
     "bedroom-z0-n": {
       "file": "/assets/house/baked/bedroom-z0-n.png",
@@ -444,37 +444,37 @@
       "file": "/assets/house/baked/child-z-6-p.png",
       "width": 339,
       "height": 166,
-      "bytes": 45116
+      "bytes": 58075
     },
     "child-x-6.4-p": {
       "file": "/assets/house/baked/child-x-6.4-p.png",
       "width": 179,
       "height": 166,
-      "bytes": 18397
+      "bytes": 22781
     },
     "child-x-0.9-n": {
       "file": "/assets/house/baked/child-x-0.9-n.png",
       "width": 179,
       "height": 166,
-      "bytes": 26333
+      "bytes": 33425
     },
     "child-z-3-n": {
       "file": "/assets/house/baked/child-z-3-n.png",
       "width": 339,
       "height": 166,
-      "bytes": 43716
+      "bytes": 53646
     },
     "child-floor": {
       "file": "/assets/house/baked/child-floor.png",
       "width": 352,
       "height": 192,
-      "bytes": 77509
+      "bytes": 96118
     },
     "child-ceiling": {
       "file": "/assets/house/baked/child-ceiling.png",
       "width": 352,
       "height": 192,
-      "bytes": 34839
+      "bytes": 46788
     },
     "bathroom-z-6-p": {
       "file": "/assets/house/baked/bathroom-z-6-p.png",

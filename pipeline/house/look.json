@@ -61,14 +61,14 @@
       "fill": 1
     },
     "parlour": {
-      "exposure": 3.258,
+      "exposure": 9.31,
       "light": {
-        "cone": 1.766,
+        "cone": 0.876,
         "glow": 1,
         "others": 1,
         "night": 20
       },
-      "fill": 16
+      "fill": 14.4
     },
     "dining": {
       "exposure": 4.056,
@@ -81,14 +81,14 @@
       "fill": 16
     },
     "kitchen": {
-      "exposure": 14.66,
+      "exposure": 12.857,
       "light": {
         "cone": 0.2,
         "glow": 1,
         "others": 1,
         "night": 20
       },
-      "fill": 1.8
+      "fill": 0.2
     },
     "study": {
       "exposure": 2.858,
@@ -101,22 +101,22 @@
       "fill": 10.6
     },
     "passage": {
-      "exposure": 2.5,
+      "exposure": 5.495,
       "light": {
         "cone": 0.646,
         "glow": 1,
         "others": 1,
-        "night": 5
+        "night": 13
       },
-      "fill": 16
+      "fill": 15.2
     },
     "landing": {
-      "exposure": 4.056,
+      "exposure": 5.883,
       "light": {
-        "cone": 0.591,
+        "cone": 0.578,
         "glow": 1,
         "others": 1,
-        "night": 3
+        "night": 11
       },
       "fill": 16
     },
@@ -131,14 +131,24 @@
       "fill": 16
     },
     "child": {
-      "exposure": 2.014,
+      "exposure": 3.405,
       "light": {
         "cone": 1,
-        "glow": 1.419,
+        "glow": 1.691,
         "others": 1,
-        "night": 0.75
+        "night": 4
       },
-      "fill": 7.4
+      "fill": 16
+    },
+    "gallery": {
+      "exposure": 2.399,
+      "light": {
+        "cone": 2.014,
+        "glow": 1,
+        "others": 1,
+        "night": 13
+      },
+      "fill": 16
     }
   }
 }
