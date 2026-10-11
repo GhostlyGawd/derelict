@@ -12,6 +12,8 @@ import { SPACES } from './layout.js';
 export function bakedSkins(surfaces) {
   const group = new THREE.Group();
   group.name = 'baked';
+  // Not a piece: the light baked onto the shell (the models harness).
+  group.userData.notAPiece = 'baked skin';
   for (const s of SPACES) {
     for (const c of chartsFor(s.id)) {
       const map = surfaces.tex[`baked:${c.id}`];

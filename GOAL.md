@@ -681,6 +681,80 @@ painting shows it through the arch and as bright as its own view asks.
 `HOUSE_STALE_LIGHT=ok` lets the pipeline use the last baked light while a room
 is being laid out, with a warning; CI and the deploy never set it.
 
+*Everything modelled by Blender, chosen by the owner on 11 October 2026.*
+Having seen the first Blender pieces ("the base and the clock … look good"),
+the owner asked for every piece of the house to move to Blender: the stairs,
+the trim, the curtains, every room's furniture and the shell itself. And to
+dogfood the harness while doing it: what is learned about making a piece
+well, and every pitfall met on the way, becomes part of the tools, so it is
+not met twice. So:
+
+- **One registry, and a gate.** Every piece of the house asks for its model
+  by kind and size (`want` in `src/house/models.js`). `npm run model` builds
+  the house in Node, collects every request, and has Blender model each one.
+  The models harness (`tools/house/models.mjs`) fails if anything in the
+  house is still drawn by code, apart from what is not a piece: the baked
+  skins, the night in a pane, a note's sheet of paper, and the lights.
+- **The pitfalls, as checks.** Each one found so far is held by an
+  instrument, and each one found from here is added the same way:
+  - a material slot the game does not know (the lost names that put wood
+    on the lamp) fails the models harness;
+  - a closed piece whose faces point inward, or an open shell facing the
+    wrong way, fails it;
+  - a piece whose size is not the size it was asked for (the cloth that
+    blew off the chest and the one that slid off it) fails it;
+  - a texture at the wrong size fails the inventory's texture-scale check,
+    which already covers every surface;
+  - a piece out of its place in the painting fails the inventory;
+  - a hash over more than a source depends on (the swatches stale against
+    every wall) is a rule for every stamp: hash what the output is made
+    from, and no more;
+  - a width the autopilot cannot pass is the monkey's, as before.
+- **Every model on a sheet.** The models harness renders every piece alone,
+  from two sides, under the game's own materials, into one contact sheet
+  (`tools/shots/models.jpg`): Claude looks at it before every push, and the
+  owner gets it with every build. It is not a gate.
+- **In the order the hall shows them:** the stairs (treads, risers, the string
+  and the handrails), the trim (door and arch frames, skirting, windows, the
+  curtains, by Blender's cloth), every room's furniture, then the shell (the
+  walls with their reveals, the floors, the ceilings, the arch and the
+  slot). Each lands with every proof green except the look, which stays as
+  the spec above records it.
+
+As built, the same day. Everything is moved: 135 models, from the shell to
+the clock's hand, and the models harness finds nothing in the house drawn by
+code. The kit in `src/house/furniture.js` keeps where each piece stands, what
+it collides with and its shadow, and asks Blender for the rest; a drawer, the
+toy box's lid and the clock's hand are models of their own, because they
+move. Each model is one mesh to a material, so a bookcase is a handful of
+draws rather than one for every book. A slot can carry its own paint
+(`door#d8ccb8`), as the kit's tinted pieces did. The room linings stay as
+paint under the baked skins, which carry them. Blender models all of it in
+about 40 s. Six pitfalls were met on the way, and each is now held:
+
+- **A slant read as a fall through the floor.** A leg left turned in its node
+  was measured by the box round its turned box. Every part's placement is
+  now baked into its vertices before export.
+- **A join lost a part's texture.** A part built by a primitive and one built
+  by hand named their texture layers differently, and the join kept one, so
+  the other came out with every texel at one point. Every part's layer is
+  now named alike. The texture-scale check found it.
+- **A textured slot with no size.** The fireplace's breast wore the wall's
+  plaster at a metre a repeat, not 2.8, because the job named its size
+  `plaster`. A textured slot with no size now fails the model.
+- **Turned pieces sheared.** A lathe's texture ran up it by height rather
+  than along its surface, by a radius clamped at 2 cm, and by each vertex's
+  own radius rather than its face's, so a 5 mm flex wore its grain at four
+  times its size and a flared foot at twice. It now runs along the profile,
+  by the face's radius, and a sloping face is laid in its own plane. The
+  texture-scale check found all three.
+- **Islands evened out are not the right size.** A small bed's cover,
+  unwrapped and evened out, showed its cloth at up to 1.4 times. A sheet
+  laid flat is a rectangle, so its texture is laid from where each point is
+  on it.
+- **The house is big.** The check that a cloth had blown away (a model over
+  six metres) caught the shell, which is meant to be the size of the house.
+
 For now, doors open and stay open, and a key is spent at its door. On a
 phone the key ring sits at the top left, because the stick holds the bottom
 left.

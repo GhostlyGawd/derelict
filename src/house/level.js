@@ -1,9 +1,8 @@
 import * as THREE from 'three';
 
 import { BLOCKERS, SPACES, STAIRS, STAIRWELL, UPPER, WALLS, WALL_THICKNESS } from './layout.js';
-import { HANDRAIL, placeRun, post, soft } from './joinery.js';
-import { place as model } from './models.js';
-import { worldUV } from './surfaces.js';
+import { post } from './joinery.js';
+import { useModels, want } from './models.js';
 
 const T = WALL_THICKNESS;
 
@@ -21,6 +20,7 @@ const T = WALL_THICKNESS;
 export const RAIL = 0.9;
 
 export function buildHouse(surfaces, models = {}) {
+  useModels(models);
   const group = new THREE.Group();
   group.name = 'level';
   const colliders = [];
@@ -32,25 +32,19 @@ export function buildHouse(surfaces, models = {}) {
     stairs: surfaces.wood,
     banister: surfaces.wood,
   };
-  const isWall = (m) => m === mat.wall;
-
+  // The shell is Blender's (models.py, `shell`): every wall run, floor and
+  // ceiling is listed here, by the material it wears, and modelled there with
+  // its plaster arrises rounded. Only the colliders are built here.
+  const slot = (m) => (m === surfaces.tile ? 'tile' : m === mat.floor ? 'floor' : m === mat.ceiling ? 'ceiling' : 'wall');
+  const r3 = (v) => Math.round(v * 1000) / 1000;
+  const boxes = [];
+  const planes = [];
   const box = (material, x0, x1, y0, y1, z0, z1, solid = true) => {
-    const geo = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0);
-    const mesh = new THREE.Mesh(geo, material);
-    mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
-    const baseY = y0 >= UPPER - 0.25 ? UPPER : 0;
-    worldUV(mesh, isWall(material) ? { tile: 2.8, tileV: 2.8, baseY } : { tile: material === mat.ceiling ? 2 : 1 });
-    group.add(mesh);
+    boxes.push([slot(material), ...[x0, x1, y0, y1, z0, z1].map(r3)]);
     if (solid) colliders.push({ minX: x0, maxX: x1, minY: y0, maxY: y1, minZ: z0, maxZ: z1 });
-    return mesh;
   };
-  const plane = (material, x0, x1, z0, z1, y, up, tile = 2) => {
-    const geo = new THREE.PlaneGeometry(x1 - x0, z1 - z0);
-    geo.rotateX(up ? -Math.PI / 2 : Math.PI / 2);
-    const mesh = new THREE.Mesh(geo, material);
-    mesh.position.set((x0 + x1) / 2, y, (z0 + z1) / 2);
-    worldUV(mesh, { tile });
-    group.add(mesh);
+  const plane = (material, x0, x1, z0, z1, y, up) => {
+    planes.push([slot(material), ...[x0, x1, z0, z1, y].map(r3), up ? 1 : -1]);
   };
   /** A rectangle with another cut out of it, as up to four rectangles. */
   const minus = ([x0, x1], [z0, z1], hole) => {
@@ -70,7 +64,7 @@ export function buildHouse(surfaces, models = {}) {
   // ---- Floors and ceilings ----
   for (const s of SPACES) {
     // Most floors are boards; the kitchen and the bathroom are tiled, a metre to a repeat.
-    if (s.surface === 'tile') plane(surfaces.tile, s.x[0], s.x[1], s.z[0], s.z[1], s.y, true, 1);
+    if (s.surface === 'tile') plane(surfaces.tile, s.x[0], s.x[1], s.z[0], s.z[1], s.y, true);
     else plane(mat.floor, s.x[0], s.x[1], s.z[0], s.z[1], s.y, true);
     // Ground-floor ceilings stop where the stairwell opens above them.
     const roof = s.floor === 0 ? minus(s.x, s.z, STAIRWELL) : [[s.x, s.z]];
@@ -115,31 +109,12 @@ export function buildHouse(surfaces, models = {}) {
   // are what it looks like. The space under the flight is boxed in, as a
   // staircase against a wall is.
   const steps = 15;
-  const rise = (STAIRS.top - STAIRS.bottom) / steps;
   const run = (STAIRS.z[1] - STAIRS.z[0]) / steps;
   const SX0 = STAIRS.x[0];
   const SX1 = STAIRS.x[1];
-  const stairsFrom = group.children.length;
-  for (let i = 0; i < steps; i++) {
-    const z1 = STAIRS.z[1] - i * run;
-    const top = (i + 1) * rise;
-    // The riser, set back under the nosing.
-    group.add(soft(mat.stairs, SX0, SX1, top - rise, top - 0.03, z1 - 0.025, z1 - 0.005, 0.003));
-    // The tread, its nosing proud of the riser and rounded.
-    group.add(soft(mat.banister, SX0 - 0.02, SX1, top - 0.03, top, z1 - run, z1 + 0.025, 0.012));
-    // The boxed-in space under the step.
-    box(mat.stairs, SX0, SX1, 0, top - rise, z1 - run, z1 - 0.005, false);
-  }
-  // The string: a deep board up the open side, the steps housed in it.
-  {
-    const deep = 0.32;
-    const len = Math.hypot(STAIRS.z[1] - STAIRS.z[0], STAIRS.top - STAIRS.bottom);
-    const string = soft(mat.banister, -0.025, 0.025, -deep / 2, deep / 2, -len / 2 - 0.15, len / 2 + 0.15, 0.008);
-    string.position.set(SX0 - 0.03, (STAIRS.top + STAIRS.bottom) / 2 + 0.09, (STAIRS.z[0] + STAIRS.z[1]) / 2);
-    string.rotation.x = Math.atan2(STAIRS.top - STAIRS.bottom, STAIRS.z[1] - STAIRS.z[0]);
-    group.add(string);
-  }
-  for (let i = stairsFrom; i < group.children.length; i++) group.children[i].userData.inventory = 'stairs';
+  // Blender models the flight where it stands (pipeline/house/blender/models.py).
+  const flight = want(models, 'flight', { x: [SX0, SX1], z: STAIRS.z, top: STAIRS.top - STAIRS.bottom, steps }, surfaces, { tag: 'stairs' });
+  if (flight) group.add(flight);
   // The slot in the hall's ceiling the flight climbs through: its sides, from
   // the ceiling up to the upper floor's ceiling. They are colliders, so the
   // upper flight and the stairhead cannot be stepped off sideways.
@@ -163,6 +138,9 @@ export function buildHouse(surfaces, models = {}) {
   // they are not what is drawn. Drawn as a slab they read as a four-metre wall
   // standing in the hall. What is drawn is a banister: a handrail that follows
   // the stairs, on balusters, with a post at each end.
+  const shell = want(models, 'shell', { boxes, planes }, surfaces, { tag: 'shell' });
+  if (shell) group.add(shell);
+
   for (const b of BLOCKERS) colliders.push({ minX: b.x[0], maxX: b.x[1], minY: b.y[0], maxY: b.y[1], minZ: b.z[0], maxZ: b.z[1] });
   const railX = (BLOCKERS[0].x[0] + BLOCKERS[0].x[1]) / 2;
   // The open banister, as the painting's: plain square balusters standing on
@@ -181,33 +159,28 @@ export function buildHouse(surfaces, models = {}) {
     group.add(obj);
     return obj;
   };
-  const banisterFrom = group.children.length;
   // Blender's balusters and newel (pipeline/house/blender/models.py), or the
   // code's square posts where they are not there.
-  const turnedPost = (id, w, h, opts) => model(models, id, surfaces, { tag: id === 'newel' ? 'newel' : 'banister' }) ?? post(mat.banister, w, h, opts);
+  const turnedPost = (kind, w, h, opts, width) =>
+    want(models, kind, { height: Math.round(h * 1000) / 1000, ...(width ? { w: width } : {}) }, surfaces, { tag: kind === 'newel' && !width ? 'newel' : 'banister' }) ?? post(mat.banister, w, h, opts);
   for (let z = zFoot - 0.18; z > zBack + 0.06; z -= run) {
     const y0 = stairY(z) + 0.1;
     stand(turnedPost('baluster', 0.036, stairY(z) + RAIL - y0), railX, y0, z);
   }
   const newelTop = stairY(zFoot) + RAIL + 0.12;
   stand(turnedPost('newel', 0.11, newelTop, { cap: 0.15, capH: 0.06 }), railX, 0, zFoot).userData.inventory = 'newel';
-  stand(post(mat.banister, 0.09, stairY(zBack) + RAIL + 0.06), railX, 0, zBack);
-  const sloped = (x, z0, z1, rise, profile) => {
-    const y0 = stairY(z0) + rise;
-    const y1 = stairY(z1) + rise;
-    const len = Math.hypot(z0 - z1, y1 - y0);
-    const dir = [0, (y1 - y0) / len, (z1 - z0) / len];
-    // Across the rail is sideways; out from it is up, square to the slope.
-    const up = [0, (z0 - z1) / len, (y1 - y0) / len].map((v) => -v);
-    const w = profile.at(-1)[0];
-    group.add(placeRun(mat.banister, profile, len, [x - w / 2, y0, z0], dir, [1, 0, 0], up));
-  };
-  sloped(railX, zFoot, zBack, RAIL, HANDRAIL);
-  for (let i = banisterFrom; i < group.children.length; i++) group.children[i].userData.inventory ??= 'banister';
-  // The handrail on the wall, on brackets, from the back wall to the head.
+  stand(turnedPost('newel', 0.09, stairY(zBack) + RAIL + 0.06, {}, 0.09), railX, 0, zBack);
+  // The handrails, along the slope: on the balusters from the newel to the
+  // back wall, and on the wall, on brackets, from there to the head.
+  const rail = (x, z0, z1, rise, brackets = []) =>
+    want(models, 'handrail', { a: [x, stairY(z0) + rise, z0].map(r3), b: [x, stairY(z1) + rise, z1].map(r3), brackets }, surfaces, { tag: 'banister' });
+  const onBalusters = rail(railX, zFoot, zBack, RAIL);
+  if (onBalusters) group.add(onBalusters);
   const wallX = STAIRS.x[0] - 0.02;
-  sloped(wallX, -T / 2, zHead, RAIL - 0.05, HANDRAIL);
-  for (let z = -0.4; z > zHead; z -= 0.9) box(mat.banister, STAIRWELL.x[0] - 0.05, wallX, stairY(z) + RAIL - 0.12, stairY(z) + RAIL - 0.04, z - 0.02, z + 0.02, false);
+  const brackets = [];
+  for (let z = -0.4; z > zHead; z -= 0.9) brackets.push([r3(z), r3(stairY(z) + RAIL - 0.05)]);
+  const onWall = rail(wallX, -T / 2, zHead, RAIL - 0.05, brackets);
+  if (onWall) group.add(onWall);
 
   return { group, colliders };
 }

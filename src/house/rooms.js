@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 
-import { armchair, basin, bath, bed, bookcase, chair, chest, deadDoor, dresserBase, fireplace, pendant, picture, piece, place, range, rug, shelf, table, tableLamp, tint, wardrobe } from './furniture.js';
+import { armchair, basin, bath, bed, bookcase, chair, chest, deadDoor, dresserBase, fireplace, pendant, picture, place, range, rug, shelf, table, tableLamp, thing, tint, wardrobe } from './furniture.js';
 import { SPACES, UPPER, WALLS, WALL_THICKNESS } from './layout.js';
+import { want } from './models.js';
 import { worldUV } from './surfaces.js';
 
 /**
@@ -99,7 +100,20 @@ function line(group, mat, s, { paint, dado = 0, under: underName = null }) {
     const m = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.004, x1 - x0), y1 - y0, Math.max(0.004, z1 - z0)), material);
     m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
     worldUV(m, tile);
+    // Not a piece: a coat of paint on the wall, under the baked skin that carries it (the models harness).
+    m.userData.notAPiece = 'paint';
     group.add(m);
+  };
+  // The dado's rail, Blender's moulding (models.py), run along the wall from t0 to t1.
+  const rail = (w, face, side, t0, t1) => {
+    const length = Math.round((t1 - t0) * 1000) / 1000;
+    if (length < 0.05) return;
+    const at = face + side * 0.004;
+    const y = s.y + dado - 0.03;
+    // Its run is along its +x and its face toward its +z (dress.js, skirting).
+    const [pos, turn] = w.axis === 'x' ? [[at, y, side > 0 ? t1 : t0], (side * Math.PI) / 2] : [[side > 0 ? t0 : t1, y, at], side > 0 ? 0 : Math.PI];
+    const m = want(null, 'skirting', { length, profile: 'dado' }, mat, { tag: 'dado', pos, turn });
+    if (m) group.add(m);
   };
   for (const w of WALLS) {
     if (w.y !== s.y) continue;
@@ -140,22 +154,14 @@ function line(group, mat, s, { paint, dado = 0, under: underName = null }) {
     piece(cursor, b, s.y, s.y + s.h);
     // The rail on top of the dado, proud of everything under it.
     if (dado > 0) {
-      const r0 = face + side * 0.004;
-      const r1 = face + side * 0.04;
       let at = a;
       for (const c of cuts.sort((p, q) => p.a - q.a)) {
         if (c.b <= a || c.a >= b) continue;
         if (c.kind === 'window' && c.sill > dado + 0.05) continue;
-        if (c.a > at) {
-          if (w.axis === 'x') add(mat.wood, Math.min(r0, r1), Math.max(r0, r1), s.y + dado - 0.03, s.y + dado + 0.03, at, c.a, { tile: 1 });
-          else add(mat.wood, at, c.a, s.y + dado - 0.03, s.y + dado + 0.03, Math.min(r0, r1), Math.max(r0, r1), { tile: 1 });
-        }
+        if (c.a > at) rail(w, face, side, at, c.a);
         at = c.b;
       }
-      if (b > at) {
-        if (w.axis === 'x') add(mat.wood, Math.min(r0, r1), Math.max(r0, r1), s.y + dado - 0.03, s.y + dado + 0.03, at, b, { tile: 1 });
-        else add(mat.wood, at, b, s.y + dado - 0.03, s.y + dado + 0.03, Math.min(r0, r1), Math.max(r0, r1), { tile: 1 });
-      }
+      if (b > at) rail(w, face, side, at, b);
     }
   }
 }
@@ -177,35 +183,12 @@ function parlour(mat, put, hang) {
 function dining(mat, put, hang, group) {
   const [cx, cz] = [-3.8, -4.2];
   put(table(mat, { w: 1.6, d: 0.8, h: 0.76 }), cx, 0, cz, 0);
-  // A cloth over it, hanging a little over each edge.
-  const cloth = tint(mat.curtain, 0xd0d4bc);
-  const top = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.01, 0.86), cloth);
-  top.position.set(cx, 0.765, cz);
-  worldUV(top, { tile: 1 });
-  group.add(top);
-  for (const sz of [-1, 1]) {
-    const drop = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.18, 0.01), cloth);
-    drop.position.set(cx, 0.68, cz + sz * 0.43);
-    worldUV(drop, { tile: 1 });
-    group.add(drop);
-  }
-  // Four places laid.
+  // A cloth over it, dropped by Blender and let settle (models.py).
+  put(thing(mat, 'tablecloth', { w: 1.6, d: 0.8, h: 0.76 }), cx, 0, cz, 0);
+  // Four places laid, each a plate with its glass toward the middle.
   const places = [[-4.2, -3.95], [-3.4, -3.95], [-4.2, -4.45], [-3.4, -4.45]];
-  for (const [x, z] of places) {
-    const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.1, 0.015, 14), mat.enamel);
-    plate.position.set(x, 0.775, z);
-    group.add(plate);
-    const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.025, 0.1, 8), tint(mat.mirror, 0x506058));
-    glass.position.set(x + 0.13, 0.82, z + (z < cz ? 0.1 : -0.1));
-    group.add(glass);
-  }
-  for (const x of [-4.0, -3.6]) {
-    const p = piece();
-    p.cyl(mat.knob, 0.05, 0.06, 0.03, 0, 0, 0, 8);
-    p.cyl(mat.knob, 0.015, 0.015, 0.22, 0, 0.03, 0, 6);
-    p.cyl(mat.enamel, 0.012, 0.012, 0.12, 0, 0.25, 0, 6);
-    put(p, x, 0.77, cz, 0);
-  }
+  for (const [x, z] of places) put(thing(mat, 'setting', { glass: [0.13, z < cz ? 0.1 : -0.1] }), x, 0.775, z, 0);
+  for (const x of [-4.0, -3.6]) put(thing(mat, 'candlestick'), x, 0.775, cz, 0);
   put(chair(mat), -4.2, 0, -3.35, S);
   put(chair(mat), -3.4, 0, -3.35, S);
   // The fourth chair is missing: its place is the way to the clock.
@@ -228,10 +211,8 @@ function kitchen(mat, put, hang) {
   // is clear from the passage door to the drawers and the study door.
   put(table(mat, { w: 1.1, d: 0.7 }), 2.2, 0, -3.5, 0);
   put(chair(mat), 3.0, 0, -3.5, W);
-  // A bucket, and a broom against the wall.
-  const p = piece();
-  p.cyl(mat.iron, 0.13, 0.11, 0.28, 0, 0, 0, 10);
-  put(p, 6.0, 0, -5.6, 0);
+  // A bucket by the sink.
+  put(thing(mat, 'bucket'), 6.0, 0, -5.6, 0);
   hang(3.75, 2.8, -4.5, { intensity: 3 });
 }
 
@@ -250,12 +231,7 @@ function study(mat, put, light) {
 function passage(mat, put, hang) {
   put(deadDoor(mat, { barred: false }), 0.1, 0, -5.9, N);
   // Coats on hooks, on the wall opposite.
-  const p = piece();
-  p.b(mat.wood, -0.6, 0.6, 1.62, 1.7, 0, 0.03);
-  for (const [x, c, l] of [[-0.38, 0x8a9078, 1.0], [0.0, 0xa09070, 0.8], [0.38, 0x707a68, 1.1]]) {
-    p.b(tint(mat.curtain, c), x - 0.13, x + 0.13, 1.65 - l, 1.65, 0.03, 0.12);
-  }
-  put(p, 1.0, 0, -1.6, W);
+  put(thing(mat, 'coats'), 1.0, 0, -1.6, W);
   put(rug(mat, { w: 0.8, l: 4.6 }), 0.1, 0, -3.0, 0);
   hang(0.1, 2.8, -3.0, { r: 0.0001, drop: 0.25, intensity: 11 });
 }
@@ -266,9 +242,7 @@ function passage(mat, put, hang) {
 function landing(mat, put, hang) {
   const y = UPPER;
   put(table(mat, { w: 0.8, d: 0.4, h: 0.8 }), 0.75, y, -5.68, 0);
-  const vase = piece();
-  vase.cyl(tint(mat.enamel, 0x8a9a80), 0.06, 0.08, 0.26, 0, 0, 0, 10);
-  put(vase, 0.75, y + 0.8, -5.68, 0);
+  put(thing(mat, 'vase', { scale: 0.8 }), 0.75, y + 0.8, -5.68, 0);
   put(picture(mat, { w: 0.5, h: 0.65 }), 0.75, y + 1.6, -5.9, N);
   put(rug(mat, { w: 0.9, l: 2.4 }), 0.6, y, -4.5, 0);
   hang(0.75, y + 2.6, -4.45, { drop: 0.35, intensity: 11, angle: 1.4 });
@@ -302,20 +276,9 @@ function bedroom(mat, put, light) {
 function childsRoom(mat, put, light) {
   const y = UPPER;
   put(bed(mat, { w: 0.9, l: 1.6, made: true, cover: 0xa0a888 }), -6.3, y, -3.9, E);
-  // A rocking horse, from boxes.
-  const h = piece();
-  const paint = tint(mat.door, 0xb8b098);
+  // A rocking horse, painted, on its bowed rockers.
+  const h = thing(mat, 'rocking-horse');
   h.shadow(-0.4, 0.4, -0.15, 0.15, 0.5);
-  for (const sz of [-1, 1]) {
-    const rocker = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.02, 4, 20, 0.9), mat.wood);
-    rocker.rotation.z = Math.PI / 2 - 0.45 + Math.PI;
-    rocker.position.set(0, 0.92, sz * 0.12);
-    h.group.add(rocker);
-  }
-  for (const [x, z] of [[-0.25, -0.1], [0.25, -0.1], [-0.25, 0.1], [0.25, 0.1]]) h.b(paint, x - 0.025, x + 0.025, 0.08, 0.42, z - 0.025, z + 0.025);
-  h.b(paint, -0.32, 0.32, 0.42, 0.6, -0.1, 0.1);
-  h.b(paint, 0.24, 0.36, 0.55, 0.85, -0.07, 0.07);
-  h.b(paint, 0.3, 0.5, 0.75, 0.86, -0.06, 0.06);
   h.solid(-0.45, 0.5, 0, 0.86, -0.15, 0.15);
   put(h, -2.6, y, -5.35, 0);
   put(picture(mat, { w: 0.35, h: 0.45, empty: true }), -1.0, y + 1.5, -3.6, W);
@@ -330,9 +293,6 @@ function bathroom(mat, put, hang) {
   put(bath(mat), 4.6, y, -5.9, N);
   put(basin(mat, { cracked: true }), 4.6, y, -3.0, S);
   // A towel on a rail.
-  const p = piece();
-  p.b(mat.knob, -0.3, 0.3, 1.2, 1.22, 0.05, 0.07);
-  p.b(tint(mat.curtain, 0xb8bca8), -0.22, 0.22, 0.8, 1.22, 0.07, 0.09);
-  put(p, 2.5, y, -3.6, E);
+  put(thing(mat, 'towel-rail'), 2.5, y, -3.6, E);
   hang(4.4, y + 2.6, -4.45, { drop: 0.3, intensity: 6, angle: 1.4 });
 }

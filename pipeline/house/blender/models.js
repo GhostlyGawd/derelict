@@ -1,51 +1,80 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { BLOCKERS, DOORS, STAIRS, openingFor, stairHeight } from '../../../src/house/layout.js';
-import { RAIL } from '../../../src/house/level.js';
+import * as THREE from 'three';
+
+import { dressHouse } from '../../../src/house/dress.js';
+import { buildHouse } from '../../../src/house/level.js';
+import { askedFor } from '../../../src/house/models.js';
+import { buildThings } from '../../../src/house/things.js';
 import { HOUSE_TEXTURES } from '../textures.js';
 import { BLENDER_VERSION } from './version.js';
 
 /**
- * `npm run model`: Blender models the house's pieces (9.3, the owner's look
- * at the modelled hall). Runs the pinned Blender over models.py, which writes
- * one GLB per piece to pipeline/house/models/, with `models.json` naming the
- * hash of everything that went in. Those files are committed: the pipeline
- * copies them into the build and fails if they are stale (`checkModels`), and
- * neither CI nor the deploy runs Blender.
+ * `npm run model`: Blender models the house's pieces (everything modelled by
+ * Blender). The house is built in Node with no models, and every piece it
+ * asks for (`want` in src/house/models.js) is a model to make. Blender writes
+ * one GLB per piece to pipeline/house/models/, and `models.json` stamps each
+ * with the hash of what it is made from: its own request, the modelling
+ * script, and the sizes the textures stand for. Only what is stale or missing
+ * is modelled again. The files are committed: the pipeline copies them and
+ * fails if any piece the house asks for is missing or stale (`checkModels`),
+ * and neither CI nor the deploy runs Blender.
  */
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '../../..');
 export const MODEL_DIR = path.resolve(HERE, '../models');
 const STAMP = path.join(MODEL_DIR, 'models.json');
 
-/** What the models are made from. */
-export const MODEL_SOURCES = [
-  'pipeline/house/blender/models.py', 'pipeline/house/blender/models.js', 'pipeline/house/textures.js',
-  'pipeline/house/model/hall.json', 'src/house/layout.js', 'src/house/level.js',
-];
+/** The files every model is made from, beside its own request. */
+export const MODEL_SOURCES = ['pipeline/house/blender/models.py', 'pipeline/house/textures.js', 'pipeline/house/model/hall.json'];
 
-export function modelHash() {
+/** Every piece the house asks for, by building it in Node with nothing modelled. */
+export function requests() {
+  const mats = new Proxy({}, {
+    get(t, k) {
+      if (typeof k !== 'string') return undefined;
+      if (!t[k]) t[k] = new THREE.MeshBasicMaterial({ name: k });
+      return t[k];
+    },
+  });
+  buildHouse(mats, {});
+  dressHouse(mats, {});
+  buildThings(mats, {});
+  return askedFor().sort((a, b) => (a.id < b.id ? -1 : 1));
+}
+
+/** A piece's hash: its request and the files every model is made from. */
+function pieceHash(piece, common) {
+  return createHash('sha256').update(common).update(JSON.stringify(piece)).digest('hex');
+}
+function commonHash() {
   const h = createHash('sha256');
   for (const file of MODEL_SOURCES) h.update(file).update('\0').update(readFileSync(path.join(ROOT, file))).update('\0');
   return h.digest('hex');
 }
 
-/** The committed models, by id, as files; fails, naming the remedy, if they are stale. */
+/** The committed models, by id, as files; fails, naming the remedy, if any the house asks for is missing or stale. */
 export function checkModels() {
-  if (!existsSync(STAMP)) return {};
-  const stamp = JSON.parse(readFileSync(STAMP, 'utf8'));
-  const hash = modelHash();
-  if (stamp.hash !== hash) {
+  const stamp = existsSync(STAMP) ? JSON.parse(readFileSync(STAMP, 'utf8')) : { models: {} };
+  const common = commonHash();
+  const bad = [];
+  const out = {};
+  for (const piece of requests()) {
+    const have = stamp.models?.[piece.id];
+    if (!have || have !== pieceHash(piece, common) || !existsSync(path.join(MODEL_DIR, `${piece.id}.glb`))) bad.push(piece.id);
+    else out[piece.id] = path.join(MODEL_DIR, `${piece.id}.glb`);
+  }
+  if (bad.length) {
     throw new Error(
-      `the models in pipeline/house/models are stale: a file they were made from changed since (MODEL_SOURCES in blender/models.js) (${stamp.hash.slice(0, 12)} → ${hash.slice(0, 12)}). Run npm run model and commit the result.`
+      `the house asks for ${bad.length} piece(s) Blender has not modelled as they are now (${bad.slice(0, 6).join(', ')}${bad.length > 6 ? ', …' : ''}). Run npm run model and commit the result.`
     );
   }
-  return Object.fromEntries(stamp.models.map((id) => [id, path.join(MODEL_DIR, `${id}.glb`)]));
+  return out;
 }
 
 /** The metres one repeat of each texture stands for: the generated ones' own, or the swatch's. */
@@ -63,62 +92,48 @@ function metres() {
   out.iron = out.wood;
   out.enamel = [0.6, 0.6];
   out.cloth = out.curtain;
+  out.wall = out.plaster;
+  out.hallRug = out.rug;
   return out;
-}
-
-/** The pieces: every door leaf at its opening's size, and the hall's furniture. */
-export function pieces() {
-  const doors = DOORS.map((d) => {
-    const { opening } = openingFor(d.id);
-    // The leaf's size in its opening, as things.js hangs it.
-    const w = opening.width - 0.02;
-    const h = opening.height - 0.01;
-    return { id: `door-${d.id}`, kind: 'door', w, h, glazed: !!d.panes, panes: d.panes ? [2, 2] : undefined, seed: d.id.length };
-  });
-  return [
-    ...doors,
-    // Under the window, its front where the painting stands it off the wall.
-    { id: 'cabinet', kind: 'cabinet', size: [0.6, 0.65, 0.74] },
-    { id: 'chair', kind: 'chair' },
-    { id: 'chest', kind: 'chest' },
-    { id: 'vase', kind: 'vase', scale: 0.9 },
-    { id: 'clock', kind: 'clock', radius: 0.065 },
-    { id: 'lamp', kind: 'lamp' },
-    // Across the hall between its side walls, and short of the stair slot.
-    { id: 'joist', kind: 'joist', length: 4.87 },
-    { id: 'joist-short', kind: 'joist', length: 3.82 },
-    // As big as the painting shows it on the back wall: 0.43 m across, a metre with its loop.
-    { id: 'bag', kind: 'bag', tall: 1.4 },
-    { id: 'fixture', kind: 'fixture', scale: 2.4 },
-    // The banister's posts, at the heights level.js stands them.
-    { id: 'newel', kind: 'newel', height: stairHeight(BLOCKERS[0].z[1]) + RAIL + 0.12 },
-    { id: 'baluster', kind: 'baluster', height: RAIL - 0.1 },
-    { id: 'rag', kind: 'rag' },
-  ];
 }
 
 async function main() {
   const blender = process.env.BLENDER || '/opt/blender-4.2.3-linux-x64/blender';
   const version = execFileSync(blender, ['-b', '--factory-startup', '--version'], { encoding: 'utf8' });
   if (!version.includes(`Blender ${BLENDER_VERSION}`)) throw new Error(`model wants Blender ${BLENDER_VERSION}; ${blender} is ${version.split('\n')[0]}`);
+  const all = requests();
+  const common = commonHash();
+  const stamp = existsSync(STAMP) ? JSON.parse(readFileSync(STAMP, 'utf8')) : { models: {} };
+  stamp.models ??= {};
+  const force = process.argv.includes('--all');
   const only = process.argv.slice(2).filter((a) => !a.startsWith('-'));
-  const work = mkdtempSync(path.join(os.tmpdir(), 'house-model-'));
-  const all = pieces();
-  const job = { metres: metres(), pieces: only.length ? all.filter((p) => only.includes(p.id)) : all };
-  writeFileSync(path.join(work, 'job.json'), JSON.stringify(job));
+  const todo = all.filter((p) =>
+    only.length ? only.some((o) => p.id === o || p.kind === o) : force || stamp.models[p.id] !== pieceHash(p, common) || !existsSync(path.join(MODEL_DIR, `${p.id}.glb`))
+  );
   mkdirSync(MODEL_DIR, { recursive: true });
   const t0 = Date.now();
-  execFileSync(blender, ['-b', '--factory-startup', '--python', path.join(HERE, 'models.py'), '--', path.join(work, 'job.json'), MODEL_DIR], {
-    stdio: ['ignore', 'inherit', 'inherit'],
-  });
-  rmSync(work, { recursive: true, force: true });
-  if (only.length) {
-    console.log(`model — ${job.pieces.length} pieces in ${((Date.now() - t0) / 1000).toFixed(0)} s (a partial run: not stamped)`);
-    return;
+  if (todo.length) {
+    const work = mkdtempSync(path.join(os.tmpdir(), 'house-model-'));
+    writeFileSync(path.join(work, 'job.json'), JSON.stringify({ metres: metres(), pieces: todo }));
+    // Blender exits 0 when its script throws unless it is told not to; a
+    // failed run once stamped fifty models it had not written.
+    execFileSync(blender, ['-b', '--factory-startup', '--python-exit-code', '1', '--python', path.join(HERE, 'models.py'), '--', path.join(work, 'job.json'), MODEL_DIR], {
+      stdio: ['ignore', 'inherit', 'inherit'],
+    });
+    rmSync(work, { recursive: true, force: true });
+    const unwritten = todo.filter((p) => !existsSync(path.join(MODEL_DIR, `${p.id}.glb`)) || statSync(path.join(MODEL_DIR, `${p.id}.glb`)).mtimeMs < t0);
+    if (unwritten.length) throw new Error(`Blender did not write ${unwritten.map((p) => p.id).join(', ')}`);
   }
-  const models = all.map((p) => p.id).filter((id) => readdirSync(MODEL_DIR).includes(`${id}.glb`));
-  writeFileSync(STAMP, JSON.stringify({ hash: modelHash(), sources: MODEL_SOURCES, blender: BLENDER_VERSION, models }, null, 2) + '\n');
-  console.log(`model — ${models.length} pieces in ${((Date.now() - t0) / 1000).toFixed(0)} s, hash ${modelHash().slice(0, 12)}`);
+  // Stamp what was made, and forget what the house no longer asks for.
+  const wanted = new Set(all.map((p) => p.id));
+  const models = {};
+  for (const p of all) {
+    if (todo.includes(p)) models[p.id] = pieceHash(p, common);
+    else if (stamp.models[p.id]) models[p.id] = stamp.models[p.id];
+  }
+  for (const f of readdirSync(MODEL_DIR)) if (f.endsWith('.glb') && !wanted.has(f.slice(0, -4))) rmSync(path.join(MODEL_DIR, f));
+  writeFileSync(STAMP, JSON.stringify({ blender: BLENDER_VERSION, sources: MODEL_SOURCES, models }, null, 2) + '\n');
+  console.log(`model — ${todo.length} of ${all.length} pieces modelled in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) await main();

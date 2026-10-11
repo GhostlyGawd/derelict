@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 
-import { chest, piece, place, table, tint as paint } from './furniture.js';
+import { chest, piece, place, table } from './furniture.js';
 import { panelDoor } from './joinery.js';
-import { place as model } from './models.js';
+import { useModels, want } from './models.js';
 import { CLOCK, CONTAINERS, DOORS, GROUND, ITEMS, NOTES, UPPER, WALL_THICKNESS, openingFor } from './layout.js';
 
 /**
@@ -28,6 +28,13 @@ function tint(meshes) {
 }
 
 /** The wall's run direction and normal, as unit vectors in x and z. */
+/** Every mesh under an object. */
+function collect(obj) {
+  const out = [];
+  obj.traverse((o) => o.isMesh && out.push(o));
+  return out;
+}
+
 function frame(wall) {
   return wall.axis === 'x' ? { u: [0, 1], n: [1, 0] } : { u: [1, 0], n: [0, 1] };
 }
@@ -53,7 +60,8 @@ function makeDoor(def, group, mat, models = {}) {
   // panels, or for the front door upright boards below and glass above.
   // Blender's leaf, modelled at this opening's size, where there is one
   // (pipeline/house/blender/models.py); the code's panelled leaf where not.
-  const modelled = mat && model(models, `door-${def.id}`, { ...mat, door: material }, { tag: `door:${def.id}` });
+  // Its knob on the side away from the hinge, in the model.
+  const modelled = mat && want(models, 'door', { w: Math.round(w * 1000) / 1000, h: Math.round(h * 1000) / 1000, glazed: !!def.panes, knob: -def.hinge }, { ...mat, door: material }, { tag: `door:${def.id}` });
   const leaf = modelled
     ? modelled
     : mat
@@ -88,7 +96,8 @@ function makeDoor(def, group, mat, models = {}) {
     knob.add(neck);
   }
   knob.position.set(-def.hinge * (w - 0.075), 1.0, 0);
-  pivot.add(knob);
+  // Blender's leaf carries its own knobs.
+  if (!modelled) pivot.add(knob);
   const knobMeshes = knob.children;
 
   // Closed: local -hinge·x lies along the wall toward the opening's middle.
@@ -141,7 +150,7 @@ function makeDoor(def, group, mat, models = {}) {
     heldBy: def.heldBy || null,
     open: false,
     t: 0,
-    meshes: mat ? [...leafMeshes, ...knobMeshes] : [leaf, ...knobMeshes],
+    meshes: modelled ? collect(leaf) : mat ? [...leafMeshes, ...knobMeshes] : [leaf, ...knobMeshes],
     point: mid,
     highlight: tint(mat ? leafMeshes.slice(0, 1) : [leaf]),
     canUse: () => !state.open,
@@ -185,37 +194,35 @@ function makeContainer(def, group, mat) {
     open = () => {};
     colliders.push({ minX: x - 0.45, maxX: x + 0.45, minY: floorY, maxY: y + 0.1, minZ: z - 0.45, maxZ: z + 0.45 });
   } else if (def.kind === 'box') {
-    // A toy box with a lid that lifts.
+    // A toy box with a lid that lifts on its hinges: Blender's box and lid (models.py).
     const d = 0.4;
-    const p = piece();
+    const p = piece(mat);
     p.shadow(-0.35, 0.35, 0, d, 0.65);
-    p.b(paint(mat.door, 0x9aa080), -0.35, 0.35, 0.03, 0.45, 0, d);
-    p.b(mat.wood, -0.37, 0.37, 0, 0.05, -0.01, d + 0.01);
+    p.model('toybox', { d });
     p.solid(-0.37, 0.37, 0, 0.5, 0, d);
     const hinge = new THREE.Group();
     hinge.position.set(0, 0.45, 0.01);
     p.group.add(hinge);
-    const lid = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.05, d + 0.02), paint(mat.door, 0x8a9070));
-    lid.position.set(0, 0.025, d / 2);
-    hinge.add(lid);
+    p.model('toybox-lid', { d }, {}, hinge);
     place(group, colliders, p, x - sx * d, floorY, z - sz * d, def.face);
-    meshes = [lid, ...p.group.children.filter((m) => m.isMesh && m !== lid)];
-    moving = lid;
+    meshes = collect(p.group);
+    moving = collect(hinge);
     open = (t) => (hinge.rotation.x = -1.9 * t);
   } else {
     const desk = def.kind === 'desk';
     const d = desk ? 0.6 : 0.45;
-    const { piece: p, fronts, drawers } = chest(mat, desk ? { w: 1.3, h: 0.78, d, drawers: 2 } : { d });
+    const { piece: p, drawers } = chest(mat, desk ? { w: 1.3, h: 0.78, d, drawers: 2 } : { d });
     place(group, colliders, p, x - sx * d, floorY, z - sz * d, def.face);
-    meshes = [];
-    p.group.traverse((m) => m.isMesh && meshes.push(m));
-    moving = fronts[0];
+    meshes = collect(p.group);
+    // The drawer's front and knobs light under the crosshair.
+    moving = collect(drawers[0]).filter((m) => m.userData.slot !== 'wood' && m.userData.slot !== 'black');
     // The top drawer comes out most of its depth, and stays on its runners.
     open = (t) => (drawers[0].position.z = (d - 0.12) * t);
   }
 
   // Its own paint, so lighting it under the crosshair lights nothing else.
-  moving.material = moving.material.clone();
+  if (!Array.isArray(moving)) moving = [moving];
+  for (const m of moving) m.material = m.material.clone();
   const state = {
     kind: 'container',
     id: def.id,
@@ -227,7 +234,7 @@ function makeContainer(def, group, mat) {
     get prompt() {
       return `Open ${def.name}`;
     },
-    highlight: tint([moving]),
+    highlight: tint(moving),
     canUse: () => !state.opened,
     colliders: () => colliders,
     update(dt) {
@@ -245,18 +252,34 @@ function makeClock(group, mat) {
   body.position.set(x, 0, z);
   body.rotation.y = CLOCK.face;
   group.add(body);
-  const caseMesh = new THREE.Mesh(new THREE.BoxGeometry(0.55, 2.0, 0.3), mat ? mat.wood : new THREE.MeshLambertMaterial({ color: 0x3a2a1c }));
-  caseMesh.position.set(0, 1.0, -0.12);
-  body.add(caseMesh);
-  const face = new THREE.Mesh(new THREE.CircleGeometry(0.2, 16), new THREE.MeshLambertMaterial({ color: 0xd8d0b8 }));
-  face.position.set(0, y, 0.035);
-  body.add(face);
   const hand = new THREE.Group();
-  hand.position.set(0, y, 0.04);
+  hand.position.set(0, y, 0.037);
   body.add(hand);
-  const handMesh = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.15, 0.01), new THREE.MeshBasicMaterial({ color: 0x101010 }));
-  handMesh.position.y = 0.075;
-  hand.add(handMesh);
+  let face;
+  let caseMeshes;
+  // Blender's long-case clock and its hand (models.py), or a block and a disc
+  // with no surfaces (a harness without assets).
+  const clock = mat && want(null, 'longcase', { face: y }, mat, { tag: 'clock' });
+  const handModel = mat && want(null, 'clock-hand', {}, mat, { tag: 'clock' });
+  if (clock && handModel) {
+    body.add(clock);
+    hand.add(handModel);
+    caseMeshes = collect(clock);
+    face = caseMeshes.find((m) => m.userData.slot === 'paper');
+  } else {
+    const caseMesh = new THREE.Mesh(new THREE.BoxGeometry(0.55, 2.0, 0.3), new THREE.MeshLambertMaterial({ color: 0x3a2a1c }));
+    caseMesh.position.set(0, 1.0, -0.12);
+    body.add(caseMesh);
+    face = new THREE.Mesh(new THREE.CircleGeometry(0.2, 16), new THREE.MeshLambertMaterial({ color: 0xd8d0b8 }));
+    face.position.set(0, y, 0.035);
+    body.add(face);
+    const handMesh = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.15, 0.01), new THREE.MeshBasicMaterial({ color: 0x101010 }));
+    handMesh.position.y = 0.075;
+    hand.add(handMesh);
+    caseMeshes = [caseMesh, face];
+  }
+  // The dial lights under the crosshair, on its own paint.
+  face.material = face.material.clone();
 
   const state = {
     kind: 'clock',
@@ -265,7 +288,7 @@ function makeClock(group, mat) {
     /** Set once the hands have reached the hour. It never unsets. */
     set: false,
     shown: CLOCK.stopped,
-    meshes: [face, caseMesh],
+    meshes: caseMeshes,
     point: new THREE.Vector3(x, y, z),
     prompt: 'Turn the Hands',
     highlight: tint([face]),
@@ -294,6 +317,8 @@ function makeNote(def, group, mat) {
   const [x, y, z] = def.at;
   mesh.position.set(x, y, z);
   mesh.userData.inventory = `note:${def.id}`;
+  // Not a piece: a sheet of paper (the models harness).
+  mesh.userData.notAPiece = 'paper';
   if (def.flat) mesh.rotation.set(-Math.PI / 2, 0, def.face);
   else mesh.rotation.y = def.face;
   group.add(mesh);
@@ -333,6 +358,7 @@ function tables(group, surfaces) {
 }
 
 export function buildThings(mat = null, models = {}) {
+  useModels(models);
   const group = new THREE.Group();
   group.name = 'things';
   const doors = DOORS.map((d) => makeDoor(d, group, mat, models));

@@ -114,229 +114,229 @@
       "file": "/assets/house/baked/hall-z0-p.png",
       "width": 241,
       "height": 179,
-      "bytes": 57053
+      "bytes": 56086
     },
     "hall-z4.6-n": {
       "file": "/assets/house/baked/hall-z4.6-n.png",
       "width": 312,
       "height": 179,
-      "bytes": 70221
+      "bytes": 70213
     },
     "hall-x-2.67-p": {
       "file": "/assets/house/baked/hall-x-2.67-p.png",
       "width": 282,
       "height": 179,
-      "bytes": 62984
+      "bytes": 63161
     },
     "hall-x2.4-n": {
       "file": "/assets/house/baked/hall-x2.4-n.png",
       "width": 282,
       "height": 179,
-      "bytes": 69995
+      "bytes": 70994
     },
     "hall-floor": {
       "file": "/assets/house/baked/hall-floor.png",
       "width": 324,
       "height": 294,
-      "bytes": 151882
+      "bytes": 151736
     },
     "hall-ceiling": {
       "file": "/assets/house/baked/hall-ceiling.png",
       "width": 324,
       "height": 294,
-      "bytes": 13420
+      "bytes": 12127
     },
     "parlour-z0-n": {
       "file": "/assets/house/baked/parlour-z0-n.png",
       "width": 352,
       "height": 179,
-      "bytes": 55734
+      "bytes": 54480
     },
     "parlour-x-6.4-p": {
       "file": "/assets/house/baked/parlour-x-6.4-p.png",
       "width": 179,
       "height": 179,
-      "bytes": 9107
+      "bytes": 8841
     },
     "parlour-z-3-p": {
       "file": "/assets/house/baked/parlour-z-3-p.png",
       "width": 352,
       "height": 179,
-      "bytes": 49644
+      "bytes": 50425
     },
     "parlour-x-0.7-n": {
       "file": "/assets/house/baked/parlour-x-0.7-n.png",
       "width": 179,
       "height": 179,
-      "bytes": 20252
+      "bytes": 19739
     },
     "parlour-floor": {
       "file": "/assets/house/baked/parlour-floor.png",
       "width": 365,
       "height": 192,
-      "bytes": 119738
+      "bytes": 119191
     },
     "parlour-ceiling": {
       "file": "/assets/house/baked/parlour-ceiling.png",
       "width": 365,
       "height": 192,
-      "bytes": 16407
+      "bytes": 16278
     },
     "passage-z0-n": {
       "file": "/assets/house/baked/passage-z0-n.png",
       "width": 102,
       "height": 179,
-      "bytes": 19170
+      "bytes": 18730
     },
     "passage-z-6-p": {
       "file": "/assets/house/baked/passage-z-6-p.png",
       "width": 102,
       "height": 179,
-      "bytes": 12605
+      "bytes": 12526
     },
     "passage-x-0.7-p": {
       "file": "/assets/house/baked/passage-x-0.7-p.png",
       "width": 371,
       "height": 179,
-      "bytes": 93847
+      "bytes": 92867
     },
     "passage-x1.1-n": {
       "file": "/assets/house/baked/passage-x1.1-n.png",
       "width": 371,
       "height": 179,
-      "bytes": 89753
+      "bytes": 88467
     },
     "passage-floor": {
       "file": "/assets/house/baked/passage-floor.png",
       "width": 115,
       "height": 384,
-      "bytes": 70280
+      "bytes": 70009
     },
     "passage-ceiling": {
       "file": "/assets/house/baked/passage-ceiling.png",
       "width": 115,
       "height": 384,
-      "bytes": 3703
+      "bytes": 3488
     },
     "study-z0-n": {
       "file": "/assets/house/baked/study-z0-n.png",
       "width": 243,
       "height": 179,
-      "bytes": 43746
+      "bytes": 43048
     },
     "study-x2.4-p": {
       "file": "/assets/house/baked/study-x2.4-p.png",
       "width": 179,
       "height": 179,
-      "bytes": 25837
+      "bytes": 26269
     },
     "study-x6.4-n": {
       "file": "/assets/house/baked/study-x6.4-n.png",
       "width": 179,
       "height": 179,
-      "bytes": 21551
+      "bytes": 25222
     },
     "study-z-3-p": {
       "file": "/assets/house/baked/study-z-3-p.png",
       "width": 243,
       "height": 179,
-      "bytes": 35859
+      "bytes": 35410
     },
     "study-floor": {
       "file": "/assets/house/baked/study-floor.png",
       "width": 256,
       "height": 192,
-      "bytes": 64044
+      "bytes": 63312
     },
     "study-ceiling": {
       "file": "/assets/house/baked/study-ceiling.png",
       "width": 256,
       "height": 192,
-      "bytes": 33142
+      "bytes": 32322
     },
     "dining-z-6-p": {
       "file": "/assets/house/baked/dining-z-6-p.png",
       "width": 352,
       "height": 179,
-      "bytes": 54163
+      "bytes": 52833
     },
     "dining-x-6.4-p": {
       "file": "/assets/house/baked/dining-x-6.4-p.png",
       "width": 179,
       "height": 179,
-      "bytes": 19467
+      "bytes": 19001
     },
     "dining-z-3-n": {
       "file": "/assets/house/baked/dining-z-3-n.png",
       "width": 352,
       "height": 179,
-      "bytes": 64299
+      "bytes": 66049
     },
     "dining-x-0.7-n": {
       "file": "/assets/house/baked/dining-x-0.7-n.png",
       "width": 179,
       "height": 179,
-      "bytes": 27344
+      "bytes": 26385
     },
     "dining-floor": {
       "file": "/assets/house/baked/dining-floor.png",
       "width": 365,
       "height": 192,
-      "bytes": 128828
+      "bytes": 128920
     },
     "dining-ceiling": {
       "file": "/assets/house/baked/dining-ceiling.png",
       "width": 365,
       "height": 192,
-      "bytes": 36702
+      "bytes": 35430
     },
     "kitchen-z-6-p": {
       "file": "/assets/house/baked/kitchen-z-6-p.png",
       "width": 326,
       "height": 179,
-      "bytes": 38508
+      "bytes": 37451
     },
     "kitchen-x6.4-n": {
       "file": "/assets/house/baked/kitchen-x6.4-n.png",
       "width": 179,
       "height": 179,
-      "bytes": 31261
+      "bytes": 31210
     },
     "kitchen-z-3-n": {
       "file": "/assets/house/baked/kitchen-z-3-n.png",
       "width": 326,
       "height": 179,
-      "bytes": 67991
+      "bytes": 68765
     },
     "kitchen-x1.1-p": {
       "file": "/assets/house/baked/kitchen-x1.1-p.png",
       "width": 179,
       "height": 179,
-      "bytes": 29811
+      "bytes": 29636
     },
     "kitchen-floor": {
       "file": "/assets/house/baked/kitchen-floor.png",
       "width": 339,
       "height": 192,
-      "bytes": 131028
+      "bytes": 131218
     },
     "kitchen-ceiling": {
       "file": "/assets/house/baked/kitchen-ceiling.png",
       "width": 339,
       "height": 192,
-      "bytes": 24388
+      "bytes": 23477
     },
     "stairhead-z-2.9-p": {
       "file": "/assets/house/baked/stairhead-z-2.9-p.png",
       "width": 58,
       "height": 166,
-      "bytes": 1293
+      "bytes": 1277
     },
     "stairhead-floor": {
       "file": "/assets/house/baked/stairhead-floor.png",
       "width": 70,
       "height": 38,
-      "bytes": 1732
+      "bytes": 1719
     },
     "stairhead-ceiling": {
       "file": "/assets/house/baked/stairhead-ceiling.png",
@@ -348,169 +348,169 @@
       "file": "/assets/house/baked/landing-z-2.9-n.png",
       "width": 64,
       "height": 166,
-      "bytes": 12028
+      "bytes": 11982
     },
     "landing-z-6-p": {
       "file": "/assets/house/baked/landing-z-6-p.png",
       "width": 198,
       "height": 166,
-      "bytes": 50566
+      "bytes": 52636
     },
     "landing-x-0.9-p": {
       "file": "/assets/house/baked/landing-x-0.9-p.png",
       "width": 186,
       "height": 166,
-      "bytes": 46278
+      "bytes": 45308
     },
     "landing-x2.4-n": {
       "file": "/assets/house/baked/landing-x2.4-n.png",
       "width": 186,
       "height": 166,
-      "bytes": 45434
+      "bytes": 45102
     },
     "landing-floor": {
       "file": "/assets/house/baked/landing-floor.png",
       "width": 211,
       "height": 198,
-      "bytes": 78994
+      "bytes": 78452
     },
     "landing-ceiling": {
       "file": "/assets/house/baked/landing-ceiling.png",
       "width": 211,
       "height": 198,
-      "bytes": 8994
+      "bytes": 8998
     },
     "gallery-z0-n": {
       "file": "/assets/house/baked/gallery-z0-n.png",
       "width": 122,
       "height": 166,
-      "bytes": 23503
+      "bytes": 22629
     },
     "gallery-x-0.9-p": {
       "file": "/assets/house/baked/gallery-x-0.9-p.png",
       "width": 173,
       "height": 166,
-      "bytes": 25231
+      "bytes": 24384
     },
     "gallery-floor": {
       "file": "/assets/house/baked/gallery-floor.png",
       "width": 134,
       "height": 186,
-      "bytes": 27786
+      "bytes": 27466
     },
     "gallery-ceiling": {
       "file": "/assets/house/baked/gallery-ceiling.png",
       "width": 134,
       "height": 186,
-      "bytes": 1521
+      "bytes": 2006
     },
     "bedroom-z0-n": {
       "file": "/assets/house/baked/bedroom-z0-n.png",
       "width": 339,
       "height": 166,
-      "bytes": 65944
+      "bytes": 66201
     },
     "bedroom-x-6.4-p": {
       "file": "/assets/house/baked/bedroom-x-6.4-p.png",
       "width": 179,
       "height": 166,
-      "bytes": 37682
+      "bytes": 38293
     },
     "bedroom-x-0.9-n": {
       "file": "/assets/house/baked/bedroom-x-0.9-n.png",
       "width": 179,
       "height": 166,
-      "bytes": 24648
+      "bytes": 24293
     },
     "bedroom-z-3-p": {
       "file": "/assets/house/baked/bedroom-z-3-p.png",
       "width": 339,
       "height": 166,
-      "bytes": 58198
+      "bytes": 57128
     },
     "bedroom-floor": {
       "file": "/assets/house/baked/bedroom-floor.png",
       "width": 352,
       "height": 192,
-      "bytes": 106907
+      "bytes": 106564
     },
     "bedroom-ceiling": {
       "file": "/assets/house/baked/bedroom-ceiling.png",
       "width": 352,
       "height": 192,
-      "bytes": 58911
+      "bytes": 58198
     },
     "child-z-6-p": {
       "file": "/assets/house/baked/child-z-6-p.png",
       "width": 339,
       "height": 166,
-      "bytes": 45048
+      "bytes": 44560
     },
     "child-x-6.4-p": {
       "file": "/assets/house/baked/child-x-6.4-p.png",
       "width": 179,
       "height": 166,
-      "bytes": 18273
+      "bytes": 18453
     },
     "child-x-0.9-n": {
       "file": "/assets/house/baked/child-x-0.9-n.png",
       "width": 179,
       "height": 166,
-      "bytes": 26299
+      "bytes": 26972
     },
     "child-z-3-n": {
       "file": "/assets/house/baked/child-z-3-n.png",
       "width": 339,
       "height": 166,
-      "bytes": 43380
+      "bytes": 43539
     },
     "child-floor": {
       "file": "/assets/house/baked/child-floor.png",
       "width": 352,
       "height": 192,
-      "bytes": 83477
+      "bytes": 83847
     },
     "child-ceiling": {
       "file": "/assets/house/baked/child-ceiling.png",
       "width": 352,
       "height": 192,
-      "bytes": 35109
+      "bytes": 35014
     },
     "bathroom-z-6-p": {
       "file": "/assets/house/baked/bathroom-z-6-p.png",
       "width": 243,
       "height": 166,
-      "bytes": 27688
+      "bytes": 27701
     },
     "bathroom-x6.4-n": {
       "file": "/assets/house/baked/bathroom-x6.4-n.png",
       "width": 186,
       "height": 166,
-      "bytes": 24754
+      "bytes": 23834
     },
     "bathroom-x2.4-p": {
       "file": "/assets/house/baked/bathroom-x2.4-p.png",
       "width": 186,
       "height": 166,
-      "bytes": 20531
+      "bytes": 19660
     },
     "bathroom-z-2.9-n": {
       "file": "/assets/house/baked/bathroom-z-2.9-n.png",
       "width": 243,
       "height": 166,
-      "bytes": 31992
+      "bytes": 33416
     },
     "bathroom-floor": {
       "file": "/assets/house/baked/bathroom-floor.png",
       "width": 256,
       "height": 198,
-      "bytes": 74611
+      "bytes": 76041
     },
     "bathroom-ceiling": {
       "file": "/assets/house/baked/bathroom-ceiling.png",
       "width": 256,
       "height": 198,
-      "bytes": 6001
+      "bytes": 3907
     }
   },
   "target": {
@@ -607,93 +607,545 @@
     "rug": 1
   },
   "models": {
-    "door-front-door": {
-      "file": "/assets/house/models/door-front-door.glb",
-      "bytes": 144508
+    "arch-fill-6d26bc00": {
+      "file": "/assets/house/models/arch-fill-6d26bc00.glb",
+      "bytes": 20432
     },
-    "door-parlour-door": {
-      "file": "/assets/house/models/door-parlour-door.glb",
-      "bytes": 183752
+    "armchair-73250997": {
+      "file": "/assets/house/models/armchair-73250997.glb",
+      "bytes": 120552
     },
-    "door-dining-door": {
-      "file": "/assets/house/models/door-dining-door.glb",
-      "bytes": 166292
+    "bag-2e34c9ad": {
+      "file": "/assets/house/models/bag-2e34c9ad.glb",
+      "bytes": 133332
     },
-    "door-kitchen-door": {
-      "file": "/assets/house/models/door-kitchen-door.glb",
-      "bytes": 166164
+    "baluster-df93132e": {
+      "file": "/assets/house/models/baluster-df93132e.glb",
+      "bytes": 19672
     },
-    "door-study-door": {
-      "file": "/assets/house/models/door-study-door.glb",
-      "bytes": 166776
+    "basin-3639c02a": {
+      "file": "/assets/house/models/basin-3639c02a.glb",
+      "bytes": 105796
     },
-    "door-bedroom-door": {
-      "file": "/assets/house/models/door-bedroom-door.glb",
-      "bytes": 166540
+    "bath-485d036c": {
+      "file": "/assets/house/models/bath-485d036c.glb",
+      "bytes": 181372
     },
-    "door-child-door": {
-      "file": "/assets/house/models/door-child-door.glb",
-      "bytes": 166784
+    "bed-86a48be2": {
+      "file": "/assets/house/models/bed-86a48be2.glb",
+      "bytes": 406716
     },
-    "door-bathroom-door": {
-      "file": "/assets/house/models/door-bathroom-door.glb",
-      "bytes": 166800
+    "bed-c3f2f9dc": {
+      "file": "/assets/house/models/bed-c3f2f9dc.glb",
+      "bytes": 338728
     },
-    "door-stair-door": {
-      "file": "/assets/house/models/door-stair-door.glb",
-      "bytes": 166784
+    "bookcase-0f402c00": {
+      "file": "/assets/house/models/bookcase-0f402c00.glb",
+      "bytes": 453496
     },
-    "cabinet": {
-      "file": "/assets/house/models/cabinet.glb",
-      "bytes": 126804
+    "bookcase-4c469f52": {
+      "file": "/assets/house/models/bookcase-4c469f52.glb",
+      "bytes": 513980
+    },
+    "bucket": {
+      "file": "/assets/house/models/bucket.glb",
+      "bytes": 32828
+    },
+    "cabinet-b52c4f98": {
+      "file": "/assets/house/models/cabinet-b52c4f98.glb",
+      "bytes": 119844
+    },
+    "candlestick": {
+      "file": "/assets/house/models/candlestick.glb",
+      "bytes": 26372
+    },
+    "casing-30f7a106": {
+      "file": "/assets/house/models/casing-30f7a106.glb",
+      "bytes": 10116
+    },
+    "casing-bc6eed27": {
+      "file": "/assets/house/models/casing-bc6eed27.glb",
+      "bytes": 10112
+    },
+    "casing-d2c51e83": {
+      "file": "/assets/house/models/casing-d2c51e83.glb",
+      "bytes": 10116
+    },
+    "casing-e6810e6e": {
+      "file": "/assets/house/models/casing-e6810e6e.glb",
+      "bytes": 10116
+    },
+    "casing-f15bf150": {
+      "file": "/assets/house/models/casing-f15bf150.glb",
+      "bytes": 8128
+    },
+    "casing-f3a17d1a": {
+      "file": "/assets/house/models/casing-f3a17d1a.glb",
+      "bytes": 47924
     },
     "chair": {
       "file": "/assets/house/models/chair.glb",
-      "bytes": 104180
+      "bytes": 96120
     },
     "chest": {
       "file": "/assets/house/models/chest.glb",
-      "bytes": 245428
+      "bytes": 243024
     },
-    "vase": {
-      "file": "/assets/house/models/vase.glb",
-      "bytes": 28616
+    "chest-carcass-05d6fe09": {
+      "file": "/assets/house/models/chest-carcass-05d6fe09.glb",
+      "bytes": 87040
     },
-    "clock": {
-      "file": "/assets/house/models/clock.glb",
-      "bytes": 138560
+    "chest-carcass-57969f10": {
+      "file": "/assets/house/models/chest-carcass-57969f10.glb",
+      "bytes": 87044
     },
-    "lamp": {
-      "file": "/assets/house/models/lamp.glb",
-      "bytes": 145760
+    "chest-carcass-d5ec7d3e": {
+      "file": "/assets/house/models/chest-carcass-d5ec7d3e.glb",
+      "bytes": 95440
     },
-    "joist": {
-      "file": "/assets/house/models/joist.glb",
-      "bytes": 164708
+    "chest-carcass-e519b9ad": {
+      "file": "/assets/house/models/chest-carcass-e519b9ad.glb",
+      "bytes": 87040
     },
-    "joist-short": {
-      "file": "/assets/house/models/joist-short.glb",
-      "bytes": 164720
+    "clock-bbae2cb4": {
+      "file": "/assets/house/models/clock-bbae2cb4.glb",
+      "bytes": 136160
     },
-    "bag": {
-      "file": "/assets/house/models/bag.glb",
-      "bytes": 135848
+    "clock-hand": {
+      "file": "/assets/house/models/clock-hand.glb",
+      "bytes": 7284
     },
-    "fixture": {
-      "file": "/assets/house/models/fixture.glb",
-      "bytes": 24168
+    "coats": {
+      "file": "/assets/house/models/coats.glb",
+      "bytes": 146820
     },
-    "newel": {
-      "file": "/assets/house/models/newel.glb",
-      "bytes": 37116
+    "curtains-552e5555": {
+      "file": "/assets/house/models/curtains-552e5555.glb",
+      "bytes": 65092
     },
-    "baluster": {
-      "file": "/assets/house/models/baluster.glb",
-      "bytes": 20480
+    "curtains-8de275f8": {
+      "file": "/assets/house/models/curtains-8de275f8.glb",
+      "bytes": 132704
+    },
+    "curtains-9df2fe22": {
+      "file": "/assets/house/models/curtains-9df2fe22.glb",
+      "bytes": 175360
+    },
+    "curtains-9fefeb39": {
+      "file": "/assets/house/models/curtains-9fefeb39.glb",
+      "bytes": 142040
+    },
+    "curtains-ba615627": {
+      "file": "/assets/house/models/curtains-ba615627.glb",
+      "bytes": 142040
+    },
+    "curtains-cff2959e": {
+      "file": "/assets/house/models/curtains-cff2959e.glb",
+      "bytes": 142040
+    },
+    "dead-door-22ae7765": {
+      "file": "/assets/house/models/dead-door-22ae7765.glb",
+      "bytes": 216564
+    },
+    "dead-door-997d61a6": {
+      "file": "/assets/house/models/dead-door-997d61a6.glb",
+      "bytes": 181220
+    },
+    "door-0c05bb0e": {
+      "file": "/assets/house/models/door-0c05bb0e.glb",
+      "bytes": 157024
+    },
+    "door-56648ea1": {
+      "file": "/assets/house/models/door-56648ea1.glb",
+      "bytes": 175976
+    },
+    "door-723d7cb2": {
+      "file": "/assets/house/models/door-723d7cb2.glb",
+      "bytes": 175980
+    },
+    "door-735bbc2a": {
+      "file": "/assets/house/models/door-735bbc2a.glb",
+      "bytes": 175852
+    },
+    "door-ee3e071c": {
+      "file": "/assets/house/models/door-ee3e071c.glb",
+      "bytes": 175852
+    },
+    "door-f2640a8b": {
+      "file": "/assets/house/models/door-f2640a8b.glb",
+      "bytes": 190972
+    },
+    "drawer-1d0d06e1": {
+      "file": "/assets/house/models/drawer-1d0d06e1.glb",
+      "bytes": 61064
+    },
+    "drawer-651f679f": {
+      "file": "/assets/house/models/drawer-651f679f.glb",
+      "bytes": 61064
+    },
+    "drawer-68e7ac83": {
+      "file": "/assets/house/models/drawer-68e7ac83.glb",
+      "bytes": 61036
+    },
+    "drawer-7180bcc0": {
+      "file": "/assets/house/models/drawer-7180bcc0.glb",
+      "bytes": 61064
+    },
+    "drawer-91400881": {
+      "file": "/assets/house/models/drawer-91400881.glb",
+      "bytes": 61044
+    },
+    "drawer-ac3ab9f8": {
+      "file": "/assets/house/models/drawer-ac3ab9f8.glb",
+      "bytes": 61068
+    },
+    "drawer-c173cd8d": {
+      "file": "/assets/house/models/drawer-c173cd8d.glb",
+      "bytes": 61044
+    },
+    "drawer-fc1c4b2b": {
+      "file": "/assets/house/models/drawer-fc1c4b2b.glb",
+      "bytes": 61068
+    },
+    "drawer-fce1b0c5": {
+      "file": "/assets/house/models/drawer-fce1b0c5.glb",
+      "bytes": 61040
+    },
+    "dresser-base-156ed278": {
+      "file": "/assets/house/models/dresser-base-156ed278.glb",
+      "bytes": 137600
+    },
+    "fireplace-def91bf1": {
+      "file": "/assets/house/models/fireplace-def91bf1.glb",
+      "bytes": 217636
+    },
+    "fixture-22774ea1": {
+      "file": "/assets/house/models/fixture-22774ea1.glb",
+      "bytes": 24080
+    },
+    "flight-a69eabcc": {
+      "file": "/assets/house/models/flight-a69eabcc.glb",
+      "bytes": 431188
+    },
+    "handrail-3f22ea05": {
+      "file": "/assets/house/models/handrail-3f22ea05.glb",
+      "bytes": 15800
+    },
+    "handrail-9ac2761f": {
+      "file": "/assets/house/models/handrail-9ac2761f.glb",
+      "bytes": 41684
+    },
+    "joist-cf325043": {
+      "file": "/assets/house/models/joist-cf325043.glb",
+      "bytes": 164728
+    },
+    "joist-db55d40c": {
+      "file": "/assets/house/models/joist-db55d40c.glb",
+      "bytes": 164728
+    },
+    "lamp-cfcd21a4": {
+      "file": "/assets/house/models/lamp-cfcd21a4.glb",
+      "bytes": 215808
+    },
+    "longcase-8bb7c8a2": {
+      "file": "/assets/house/models/longcase-8bb7c8a2.glb",
+      "bytes": 206624
+    },
+    "newel-a5d2ac49": {
+      "file": "/assets/house/models/newel-a5d2ac49.glb",
+      "bytes": 33948
+    },
+    "newel-acf059c4": {
+      "file": "/assets/house/models/newel-acf059c4.glb",
+      "bytes": 33948
+    },
+    "pendant-078d9a61": {
+      "file": "/assets/house/models/pendant-078d9a61.glb",
+      "bytes": 25412
+    },
+    "pendant-09f306b0": {
+      "file": "/assets/house/models/pendant-09f306b0.glb",
+      "bytes": 142944
+    },
+    "pendant-3254b676": {
+      "file": "/assets/house/models/pendant-3254b676.glb",
+      "bytes": 142944
+    },
+    "pendant-740f9044": {
+      "file": "/assets/house/models/pendant-740f9044.glb",
+      "bytes": 142948
+    },
+    "pendant-848c7047": {
+      "file": "/assets/house/models/pendant-848c7047.glb",
+      "bytes": 142944
+    },
+    "picture-3c2b1d92": {
+      "file": "/assets/house/models/picture-3c2b1d92.glb",
+      "bytes": 6768
+    },
+    "picture-451bea15": {
+      "file": "/assets/house/models/picture-451bea15.glb",
+      "bytes": 6824
+    },
+    "picture-4ca2371a": {
+      "file": "/assets/house/models/picture-4ca2371a.glb",
+      "bytes": 6828
+    },
+    "picture-6450c056": {
+      "file": "/assets/house/models/picture-6450c056.glb",
+      "bytes": 6772
+    },
+    "picture-65a9bf90": {
+      "file": "/assets/house/models/picture-65a9bf90.glb",
+      "bytes": 6796
+    },
+    "picture-72958c70": {
+      "file": "/assets/house/models/picture-72958c70.glb",
+      "bytes": 6820
+    },
+    "picture-9990aa73": {
+      "file": "/assets/house/models/picture-9990aa73.glb",
+      "bytes": 6796
+    },
+    "picture-9f69fba5": {
+      "file": "/assets/house/models/picture-9f69fba5.glb",
+      "bytes": 6768
+    },
+    "picture-ca30957d": {
+      "file": "/assets/house/models/picture-ca30957d.glb",
+      "bytes": 6824
+    },
+    "picture-d5e7af8a": {
+      "file": "/assets/house/models/picture-d5e7af8a.glb",
+      "bytes": 6796
     },
     "rag": {
       "file": "/assets/house/models/rag.glb",
       "bytes": 37044
+    },
+    "range-d49691c0": {
+      "file": "/assets/house/models/range-d49691c0.glb",
+      "bytes": 185296
+    },
+    "rocking-horse": {
+      "file": "/assets/house/models/rocking-horse.glb",
+      "bytes": 114512
+    },
+    "rug-0f6ec5dc": {
+      "file": "/assets/house/models/rug-0f6ec5dc.glb",
+      "bytes": 193716
+    },
+    "rug-7d4a6b92": {
+      "file": "/assets/house/models/rug-7d4a6b92.glb",
+      "bytes": 119700
+    },
+    "rug-90efe7b0": {
+      "file": "/assets/house/models/rug-90efe7b0.glb",
+      "bytes": 93940
+    },
+    "rug-9935b754": {
+      "file": "/assets/house/models/rug-9935b754.glb",
+      "bytes": 118588
+    },
+    "rug-abf6babc": {
+      "file": "/assets/house/models/rug-abf6babc.glb",
+      "bytes": 123624
+    },
+    "rug-dd5d0597": {
+      "file": "/assets/house/models/rug-dd5d0597.glb",
+      "bytes": 149948
+    },
+    "rug-ef708da0": {
+      "file": "/assets/house/models/rug-ef708da0.glb",
+      "bytes": 114112
+    },
+    "rug-fd6f2c9f": {
+      "file": "/assets/house/models/rug-fd6f2c9f.glb",
+      "bytes": 100672
+    },
+    "setting-920b0cd8": {
+      "file": "/assets/house/models/setting-920b0cd8.glb",
+      "bytes": 31920
+    },
+    "setting-ff64759b": {
+      "file": "/assets/house/models/setting-ff64759b.glb",
+      "bytes": 31920
+    },
+    "shelf-0ed8ae8e": {
+      "file": "/assets/house/models/shelf-0ed8ae8e.glb",
+      "bytes": 79996
+    },
+    "shelf-378ad8c1": {
+      "file": "/assets/house/models/shelf-378ad8c1.glb",
+      "bytes": 85660
+    },
+    "shelf-4607b89f": {
+      "file": "/assets/house/models/shelf-4607b89f.glb",
+      "bytes": 75232
+    },
+    "shell-19abad6d": {
+      "file": "/assets/house/models/shell-19abad6d.glb",
+      "bytes": 529304
+    },
+    "skirting-0506d93e": {
+      "file": "/assets/house/models/skirting-0506d93e.glb",
+      "bytes": 2872
+    },
+    "skirting-089d8040": {
+      "file": "/assets/house/models/skirting-089d8040.glb",
+      "bytes": 2876
+    },
+    "skirting-221d0a3a": {
+      "file": "/assets/house/models/skirting-221d0a3a.glb",
+      "bytes": 2876
+    },
+    "skirting-4e3571b9": {
+      "file": "/assets/house/models/skirting-4e3571b9.glb",
+      "bytes": 2876
+    },
+    "skirting-7426ee48": {
+      "file": "/assets/house/models/skirting-7426ee48.glb",
+      "bytes": 2876
+    },
+    "skirting-7b2629b2": {
+      "file": "/assets/house/models/skirting-7b2629b2.glb",
+      "bytes": 2660
+    },
+    "skirting-7f89a530": {
+      "file": "/assets/house/models/skirting-7f89a530.glb",
+      "bytes": 2860
+    },
+    "skirting-988c889b": {
+      "file": "/assets/house/models/skirting-988c889b.glb",
+      "bytes": 2876
+    },
+    "skirting-b5a18f0f": {
+      "file": "/assets/house/models/skirting-b5a18f0f.glb",
+      "bytes": 2872
+    },
+    "skirting-c53aaf2e": {
+      "file": "/assets/house/models/skirting-c53aaf2e.glb",
+      "bytes": 2872
+    },
+    "skirting-c7b55f43": {
+      "file": "/assets/house/models/skirting-c7b55f43.glb",
+      "bytes": 2872
+    },
+    "skirting-c865aa9f": {
+      "file": "/assets/house/models/skirting-c865aa9f.glb",
+      "bytes": 2660
+    },
+    "skirting-db55d40c": {
+      "file": "/assets/house/models/skirting-db55d40c.glb",
+      "bytes": 2656
+    },
+    "skirting-db90046c": {
+      "file": "/assets/house/models/skirting-db90046c.glb",
+      "bytes": 2876
+    },
+    "skirting-e1d174f2": {
+      "file": "/assets/house/models/skirting-e1d174f2.glb",
+      "bytes": 2872
+    },
+    "skirting-e3800bfa": {
+      "file": "/assets/house/models/skirting-e3800bfa.glb",
+      "bytes": 2876
+    },
+    "skirting-e51025da": {
+      "file": "/assets/house/models/skirting-e51025da.glb",
+      "bytes": 2660
+    },
+    "skirting-e65a590f": {
+      "file": "/assets/house/models/skirting-e65a590f.glb",
+      "bytes": 2872
+    },
+    "skirting-eeb41a03": {
+      "file": "/assets/house/models/skirting-eeb41a03.glb",
+      "bytes": 2656
+    },
+    "skirting-fe01922c": {
+      "file": "/assets/house/models/skirting-fe01922c.glb",
+      "bytes": 2660
+    },
+    "table-2a8cb5ca": {
+      "file": "/assets/house/models/table-2a8cb5ca.glb",
+      "bytes": 165504
+    },
+    "table-5d1a53e4": {
+      "file": "/assets/house/models/table-5d1a53e4.glb",
+      "bytes": 165504
+    },
+    "table-d2b0db02": {
+      "file": "/assets/house/models/table-d2b0db02.glb",
+      "bytes": 165504
+    },
+    "table-ec6d4216": {
+      "file": "/assets/house/models/table-ec6d4216.glb",
+      "bytes": 165504
+    },
+    "table-lamp": {
+      "file": "/assets/house/models/table-lamp.glb",
+      "bytes": 51172
+    },
+    "tablecloth-5d1a53e4": {
+      "file": "/assets/house/models/tablecloth-5d1a53e4.glb",
+      "bytes": 238728
+    },
+    "towel-rail": {
+      "file": "/assets/house/models/towel-rail.glb",
+      "bytes": 55560
+    },
+    "toybox-425e11ad": {
+      "file": "/assets/house/models/toybox-425e11ad.glb",
+      "bytes": 74632
+    },
+    "toybox-lid-425e11ad": {
+      "file": "/assets/house/models/toybox-lid-425e11ad.glb",
+      "bytes": 48036
+    },
+    "vase-5aaf9ceb": {
+      "file": "/assets/house/models/vase-5aaf9ceb.glb",
+      "bytes": 72784
+    },
+    "vase-eecfbbbc": {
+      "file": "/assets/house/models/vase-eecfbbbc.glb",
+      "bytes": 72784
+    },
+    "wardrobe-6c5e09c1": {
+      "file": "/assets/house/models/wardrobe-6c5e09c1.glb",
+      "bytes": 135976
+    },
+    "window-0f4f7bae": {
+      "file": "/assets/house/models/window-0f4f7bae.glb",
+      "bytes": 47644
+    },
+    "window-16e7099a": {
+      "file": "/assets/house/models/window-16e7099a.glb",
+      "bytes": 47644
+    },
+    "window-327032b7": {
+      "file": "/assets/house/models/window-327032b7.glb",
+      "bytes": 47644
+    },
+    "window-68a6db06": {
+      "file": "/assets/house/models/window-68a6db06.glb",
+      "bytes": 47628
+    },
+    "window-6cd4a954": {
+      "file": "/assets/house/models/window-6cd4a954.glb",
+      "bytes": 47644
+    },
+    "window-7bed4252": {
+      "file": "/assets/house/models/window-7bed4252.glb",
+      "bytes": 47612
+    },
+    "window-bbe11a15": {
+      "file": "/assets/house/models/window-bbe11a15.glb",
+      "bytes": 47644
+    },
+    "window-ce438874": {
+      "file": "/assets/house/models/window-ce438874.glb",
+      "bytes": 47644
     }
   }
 }

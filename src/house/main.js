@@ -20,7 +20,8 @@ import { ITEMS, LOOP, PLAYER_HEIGHT, PLAYER_RADIUS, RING_SIZE, SPACES, SPAWN, fl
 import * as LAYOUT from './layout.js';
 import { buildThings } from './things.js';
 import { closeUps, renderTags, texelScale } from './inventory.js';
-import { loadModels } from './models.js';
+import { askedFor, loadModels } from './models.js';
+import { codeDrawn, modelFacts, shootModel } from './modelcheck.js';
 import { paintingCamera } from './painter.js';
 
 // Wider than the ship's 72: the reference hall is seen through a wide lens,
@@ -82,6 +83,17 @@ class House {
       tags: (camera, w, h) => renderTags(this.view.renderer, this.scene, camera, w, h),
       texels: () => texelScale(this.scene, this.surfaces.manifest),
       closeUps: (names) => closeUps(this.scene, names, LAYOUT.PAINTING.pos, SPACES),
+      // The models harness (tools/house/models.mjs).
+      codeDrawn: () => codeDrawn(this.scene),
+      modelFacts: () => modelFacts(this.models),
+      asked: () => askedFor(),
+      shootModel: (id, turn, w, h) => {
+        const px = shootModel(this.view.renderer, this.surfaces.materials, this.models, id, turn, w, h);
+        let s = '';
+        for (let i = 0; i < px.length; i += 8192) s += String.fromCharCode(...px.subarray(i, i + 8192));
+        return btoa(s);
+      },
+      loaded: () => Object.keys(this.models),
       shot: ({ pos, target }) => {
         this.camera.clearViewOffset();
         this.camera.position.fromArray(pos);
