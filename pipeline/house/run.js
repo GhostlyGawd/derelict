@@ -10,6 +10,7 @@ import { STYLE_BIBLE_HOUSE, TARGET } from './style.js';
 import { BAKED_ROOMS, bakeRooms, readLook } from './bake.js';
 import { HOUSE_TEXTURES, gradeLut } from './textures.js';
 import { paintedSwatches } from './model/run.js';
+import { checkModels } from './blender/models.js';
 const SWATCH_JOB = JSON.parse(readFileSync(new URL('./model/hall.json', import.meta.url), 'utf8'));
 
 /**
@@ -109,6 +110,17 @@ async function main() {
   // The look's live knobs, for the materials the game lights itself (9.4.4).
   manifest.live = readLook().live;
   log.done(`grade — 16³ lookup table, ${bytes(lutPng.length)} → ${rel(lutFile)}`);
+
+  // The pieces Blender modelled (blender/models.py), committed as sources
+  // and copied as they are; stale ones stop the pipeline with the remedy.
+  log.stage('house — models');
+  manifest.models = {};
+  for (const [id, file] of Object.entries(checkModels())) {
+    const glb = readFileSync(file);
+    await write(path.join(OUT, 'models', `${id}.glb`), glb);
+    manifest.models[id] = { file: `/assets/house/models/${id}.glb`, bytes: glb.length };
+    log.done(`${id} — ${bytes(glb.length)}, modelled by Blender`);
+  }
 
   log.stage(`house — baked surfaces (${BAKED_ROOMS.join(', ')})`);
   const baked = await bakeRooms(path.join(OUT, 'textures'), (c, w, h, n) => log.done(`${c.id} — ${w}×${h}, ${bytes(n)}`));

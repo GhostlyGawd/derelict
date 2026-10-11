@@ -21,7 +21,8 @@ import { LAYERS, exportScene, sourceHash } from './export.js';
  * as RGBE: an 8-bit mantissa per channel and a shared exponent in alpha, so
  * the dark corners keep their precision beside the lamp's pool.
  */
-export const BLENDER_VERSION = '4.2.3';
+export { BLENDER_VERSION } from './version.js';
+import { BLENDER_VERSION } from './version.js';
 export const SAMPLES = Number(process.env.BAKE_SAMPLES || 1024);
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const LIGHT_DIR = path.resolve(HERE, '../light');
@@ -33,6 +34,12 @@ export function checkLight() {
   const file = path.join(LIGHT_DIR, 'inputs.json');
   const committed = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null;
   if (!committed || committed.hash !== hash) {
+    // While a room is being laid out, the light it was last baked with will
+    // do for looking at it: never in CI or the deploy, which never set this.
+    if (committed && process.env.HOUSE_STALE_LIGHT === 'ok') {
+      console.warn(`  ! the baked light is stale (${committed.hash.slice(0, 12)} → ${hash.slice(0, 12)}); used anyway, as HOUSE_STALE_LIGHT=ok asks`);
+      return committed;
+    }
     throw new Error(
       `the baked light in pipeline/house/light is stale: a file it was baked from changed since (LIGHT_SOURCES in export.js) (${committed?.hash?.slice(0, 12) ?? 'none'} → ${hash.slice(0, 12)}). Run npm run bake:light and commit the result.`
     );

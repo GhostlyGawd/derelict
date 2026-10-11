@@ -607,6 +607,80 @@ rug (up to 2.15×), every curtain (3 to 4.7×), the turned lamp, jug and posts
 (their lathe coordinates stretched round them), and the bag. Ten of the twelve
 regions of the painting's view are under the bar, from 0.39 to −0.20.
 
+*The hall rebuilt against the inventory, the same day.* Blender now models
+the house's pieces (`npm run model`, `pipeline/house/blender/models.py`): every
+door leaf at its own opening's size, the interior doors with two panels of
+upright planks in a bolection moulding as the painting's parlour door, the
+front door with boards below a lock rail and two lights of glass; the cabinet,
+the chair, the chest with a cloth Blender drops on it and lets settle, the
+vase, the clock, the lamp's enamel shade, the hewn joists, the woven bag on
+its crossed straps, the bell push, the rag, the newel and the balusters.
+Every piece is bevelled, turned or swept, with wear pushed into its surface,
+and every texture is laid on it at its real size: a face square to an axis
+from that axis, any other face in its own plane, a turned piece round its
+axis, and cloth and the bag unwrapped by Blender and scaled to size. The GLBs
+are committed with a hash of their sources and copied by the pipeline, which
+fails if they are stale. The image-to-3D model was tried on the bag (TripoSR,
+from the painting's crop, on the CPU, with its weights renamed for the
+current transformers). With the wall behind it, it made a box; cut out, it
+made a slab carrying the painting's paint that is flat from the side. Blender's
+bag is kept, and the model is used nowhere yet.
+
+Three things were found on the way. The GLBs first lost their material
+names, so every piece wore wood and the lamp's lit underside showed grain.
+The cloth first exploded off the chest (its self-collision distance was wider
+than its own mesh) and then slid off (no friction), and is now held. And the
+swatches cut from the painting were hashed against the whole of
+`layout.js`, so moving a wall called them stale; they are hashed against
+the painter's camera (`PAINTING`) instead, which is all of the layout they
+depend on, and were confirmed current under the old hash first.
+
+The hall was re-laid to the painting's frame, piece by piece, with the
+painting's pixels taken back through its camera to the walls and floor. The
+painting's frame cuts the left wall off 1.25 m from the back wall, so the
+cabinet stands under the window and is shorter, with the clock at its near
+end and the vase behind it, the chest stands end-on nearer the viewer, the
+window keeps only the valance the painting shows, and the window moved 13 cm
+forward. The stairs start 20 cm further back. The banister was moved 17 cm
+toward the painting's too, which left the flight and the stair door 0.88 m
+wide, and the monkey's autopilot could then not climb to the bedroom (seeds
+9101 and 9102); the banister went back, and the flight is a metre wide as
+before. The front door moved back beside the foot of the stairs in a slim
+stop instead of an architrave, which left the notice room on the wall beside
+it, and the passage's doors are taller. The floor proof, the chain and the
+monkey hold. The texture-scale check passes everywhere in the house.
+
+Two things in the inventory stay out, and they are the owner's to decide.
+The painting's stairs are narrower than a person: read through its camera,
+the newel stands at x = 1.68 and the wall at 2.42, a flight 0.7 m wide, where
+the player is 0.68 m across and the monkey's autopilot plans with ten
+centimetres to spare either side, the margin this phase has re-laid rooms for
+rather than cut, and which found the flight at 0.88 m too narrow. So the
+banister and newel stand 0.4 m left of the painting's.
+Meeting the painting would mean widening the hall to the right by 0.25 m,
+taking the same from the study, and moving the front door and the notice
+again, or narrowing the flight below what the autopilot plans for. The
+painting's structure is the other. The tuner tunes the hall again, now
+scored on the painting's structure as well as the style target (it had been
+barred from the hall since the projection), and the structure is shared with
+the inventory (`tools/lib/structure.js`). It brought its score from 112 to 95,
+nearly all of it in the colour statistics: the structure barely moves with
+the hall's exposure and lamps, because what is out of place is where the
+light falls on the modelled pieces, which the game lights live and the bake
+does not reach. On numbers alone it also turned the damp and the wear to
+nothing and darkened the runner again, the look the owner asked for, so those
+were put back and the tuner may no longer go below them. Two of the twelve
+regions now pass (the top centre two, 0.75 each); the others are 0.46 to
+−0.07. The style harness has eleven checks out, three more than before the
+rebuild: the hall's reference view is still lit brighter than the painting
+in its middle two regions (the passage seen through the arch and the foot of
+the stairs), and the back passage, the kitchen and the child's room are out
+on their own views, where the passage could not be both as dark as the
+painting shows it through the arch and as bright as its own view asks.
+
+`HOUSE_STALE_LIGHT=ok` lets the pipeline use the last baked light while a room
+is being laid out, with a warning; CI and the deploy never set it.
+
 For now, doors open and stay open, and a key is spent at its door. On a
 phone the key ring sits at the top left, because the stick holds the bottom
 left.

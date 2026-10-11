@@ -181,10 +181,12 @@ function dining(mat, put, hang, group) {
   const cloth = tint(mat.curtain, 0xd0d4bc);
   const top = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.01, 0.86), cloth);
   top.position.set(cx, 0.765, cz);
+  worldUV(top, { tile: 1 });
   group.add(top);
   for (const sz of [-1, 1]) {
     const drop = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.18, 0.01), cloth);
     drop.position.set(cx, 0.68, cz + sz * 0.43);
+    worldUV(drop, { tile: 1 });
     group.add(drop);
   }
   // Four places laid.
@@ -275,8 +277,8 @@ function landing(mat, put, hang) {
 /** The gallery beside the stairwell: pictures and a runner. */
 function gallery(mat, put, hang) {
   const y = UPPER;
-  put(picture(mat, { w: 0.4, h: 0.5 }), 1.15, y + 1.55, -1.0, W);
-  put(picture(mat, { w: 0.4, h: 0.5, empty: true }), 1.15, y + 1.55, -2.0, W);
+  put(picture(mat, { w: 0.4, h: 0.5 }), 1.2, y + 1.55, -1.0, W);
+  put(picture(mat, { w: 0.4, h: 0.5, empty: true }), 1.2, y + 1.55, -2.0, W);
   put(rug(mat, { w: 0.8, l: 2.4 }), 0.15, y, -1.5, 0);
   hang(0.15, y + 2.6, -1.45, { drop: 0.3, intensity: 12, angle: 1.4 });
 }

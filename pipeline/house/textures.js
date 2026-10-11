@@ -23,7 +23,7 @@ export const HOUSE_TEXTURES = [
   { id: 'door', size: 256, metres: [1, 1], draw: door, note: 'a panelled door leaf' },
   { id: 'wood', size: 256, metres: [1, 1], draw: wood, note: 'dark wood for stairs, rails and furniture' },
   { id: 'rug', size: 256, metres: [1.26, 1.26], draw: rug, note: 'the runner, one repeat of its pattern' },
-  { id: 'curtain', size: 128, metres: [0.6, 0.6], draw: curtain, note: 'thin cloth' },
+  { id: 'curtain', size: 128, metres: [1, 1], draw: curtain, note: 'thin cloth' },
   { id: 'night', size: 256, draw: night, note: 'the night outside: sky, rain, branches' },
   { id: 'paper', size: 128, draw: paper, note: 'a notice, written but not legible' },
   { id: 'picture', size: 128, draw: picture, note: 'a dark painting' },

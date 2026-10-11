@@ -1,0 +1,36 @@
+{
+  "hash": "2f23dfe9a5f0600f07a8f4e30e176cac4d22b019e3e26172682f623a84684ff9",
+  "sources": [
+    "pipeline/house/blender/models.py",
+    "pipeline/house/blender/models.js",
+    "pipeline/house/textures.js",
+    "pipeline/house/model/hall.json",
+    "src/house/layout.js",
+    "src/house/level.js"
+  ],
+  "blender": "4.2.3",
+  "models": [
+    "door-front-door",
+    "door-parlour-door",
+    "door-dining-door",
+    "door-kitchen-door",
+    "door-study-door",
+    "door-bedroom-door",
+    "door-child-door",
+    "door-bathroom-door",
+    "door-stair-door",
+    "cabinet",
+    "chair",
+    "chest",
+    "vase",
+    "clock",
+    "lamp",
+    "joist",
+    "joist-short",
+    "bag",
+    "fixture",
+    "newel",
+    "baluster",
+    "rag"
+  ]
+}

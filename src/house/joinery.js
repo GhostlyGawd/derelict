@@ -143,6 +143,14 @@ export const ARCHITRAVE = [
   [0.13, 0.012],
   [0.135, 0.0],
 ];
+/** A slim stop round a door that fills its frame: a square edge with its arris rounded. */
+export const SLIM = [
+  [0, 0.03],
+  [0.035, 0.03],
+  [0.045, 0.024],
+  [0.05, 0.012],
+  [0.05, 0],
+];
 /** A skirting board: tall and plain, with a rounded top. */
 export const SKIRTING = [
   [0, 0.02],
@@ -192,8 +200,9 @@ export function turned(material, profile, segments = 18) {
  * Cloth that hangs in folds: a sheet `w` wide and `h` tall in x and y, its
  * folds pushed out along +z, deeper toward the hem, as a curtain falls.
  */
-export function folds(material, w, h, { count = 7, depth = 0.04, seed = 1 } = {}) {
-  const geo = new THREE.PlaneGeometry(w, h, Math.max(8, count * 6), 8);
+export function folds(material, w, h, { count = 7, depth = 0.04, seed = 1, tile = 1 } = {}) {
+  const across = Math.max(8, count * 6);
+  const geo = new THREE.PlaneGeometry(w, h, across, 8);
   const pos = geo.attributes.position;
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
@@ -202,6 +211,27 @@ export function folds(material, w, h, { count = 7, depth = 0.04, seed = 1 } = {}
     const phase = seed * 1.7 + Math.sin(seed * 3.1) * 0.6;
     const z = Math.sin((x / w) * count * Math.PI * 2 + phase) * depth * down + Math.sin((x / w) * count * 5.3 + phase) * depth * 0.25;
     pos.setZ(i, z);
+  }
+  // The cloth at its real size, `tile` metres a repeat, measured along the
+  // folds rather than straight across them: a curtain is wider than the
+  // window it hangs in by the cloth gathered into it.
+  // Each column takes the run along the folds at the cloth's middle height,
+  // so the weave stays upright down the fall.
+  const uv = geo.attributes.uv;
+  const runs = new Float32Array(across + 1);
+  for (let k = 1; k <= across; k++) {
+    let d = 0;
+    for (let row = 0; row <= 8; row++) {
+      const i = row * (across + 1) + k;
+      d += Math.hypot(pos.getX(i) - pos.getX(i - 1), pos.getZ(i) - pos.getZ(i - 1));
+    }
+    runs[k] = runs[k - 1] + d / 9;
+  }
+  for (let row = 0; row <= 8; row++) {
+    for (let k = 0; k <= across; k++) {
+      const i = row * (across + 1) + k;
+      uv.setXY(i, runs[k] / tile, (pos.getY(i) + h / 2) / tile);
+    }
   }
   geo.computeVertexNormals();
   const mesh = new THREE.Mesh(geo, material);

@@ -65,7 +65,7 @@ export const SPACES = [
   { id: 'dining', name: 'Dining Room', floor: 0, x: [-6.4, -0.7], z: [-6, -3], y: GROUND, h: 2.8 },
   { id: 'kitchen', name: 'Kitchen', surface: 'tile', floor: 0, x: [1.1, 6.4], z: [-6, -3], y: GROUND, h: 2.8 },
   // ---- Upper ----
-  { id: 'stairhead', name: 'Stairhead', floor: 1, x: [1.2, 2.4], z: [-2.9, -2.3], y: UPPER, h: 2.6 },
+  { id: 'stairhead', name: 'Stairhead', floor: 1, x: [1.3, 2.4], z: [-2.9, -2.3], y: UPPER, h: 2.6 },
   { id: 'landing', name: 'Landing', floor: 1, x: [-0.9, 2.4], z: [-6, -2.9], y: UPPER, h: 2.6 },
   // The landing runs on south as a gallery beside the stairwell, over the
   // back passage, to the bedroom's door.
@@ -80,7 +80,7 @@ export const SPACES = [
  * back wall's line to the stairhead. Climbed, never jumped — there is no jump
  * — and the only way between the floors.
  */
-export const STAIRS = { x: [1.3, 2.3], z: [-2.3, 1.15], bottom: GROUND, top: UPPER };
+export const STAIRS = { x: [1.35, 2.3], z: [-2.3, 0.95], bottom: GROUND, top: UPPER };
 
 /**
  * The slot the flight climbs through: a hole in the hall's ceiling, walled up
@@ -88,7 +88,7 @@ export const STAIRS = { x: [1.3, 2.3], z: [-2.3, 1.15], bottom: GROUND, top: UPP
  * Its walls are colliders above the hall's ceiling, so nobody on the upper
  * part of the flight or the stairhead steps off it to either side.
  */
-export const STAIRWELL = { x: [1.25, 2.4], z: [-2.9, 1.15] };
+export const STAIRWELL = { x: [1.3, 2.4], z: [-2.9, 0.95] };
 
 /**
  * Wall lines, per floor. `axis: 'x'` is a wall at constant x running in z from
@@ -100,7 +100,7 @@ export const WALLS = [
   // ===== Ground floor =====
   // The hall's back wall, which runs on as the front of the house, broken
   // where the stairs pass through it.
-  { y: GROUND, h: 2.8, axis: 'z', at: 0, from: -6.4, to: 1.25, openings: [
+  { y: GROUND, h: 2.8, axis: 'z', at: 0, from: -6.4, to: 1.3, openings: [
     { center: -1.36, width: 1.09, height: 2.42, id: 'parlour-door', kind: 'door' },
     { center: 0.3, width: 1.12, height: 2.45, id: 'arch', kind: 'arch' },
     { center: -4.4, width: 1.0, height: 1.4, sill: 0.9, id: 'parlour-window', kind: 'window' },
@@ -108,10 +108,10 @@ export const WALLS = [
   { y: GROUND, h: 2.8, axis: 'z', at: 0, from: 2.4, to: 6.4, openings: [{ center: 3.2, width: 0.9, height: 1.4, sill: 0.9, id: 'study-window', kind: 'window' }] },
   { y: GROUND, h: 2.8, axis: 'z', at: 4.6, from: -2.67, to: 2.4, openings: [] },
   { y: GROUND, h: 2.8, axis: 'x', at: -2.67, from: 0, to: 4.6, openings: [
-    { center: 0.67, width: 0.62, height: 1.0, sill: 0.8, id: 'hall-window', kind: 'window' },
+    { center: 0.8, width: 0.6, height: 0.95, sill: 0.85, id: 'hall-window', kind: 'window', valance: true },
   ] },
   { y: GROUND, h: 2.8, axis: 'x', at: 2.4, from: 0, to: 4.6, openings: [
-    { center: 1.59, width: 0.88, height: 2.38, id: 'front-door', kind: 'door' },
+    { center: 1.42, width: 0.88, height: 2.38, id: 'front-door', kind: 'door', casing: 'slim' },
   ] },
   { y: GROUND, h: 2.8, axis: 'x', at: 2.4, from: -3, to: 0, openings: [] },
   // The back of the house
@@ -120,8 +120,8 @@ export const WALLS = [
   { y: GROUND, h: 2.8, axis: 'x', at: 6.4, from: -6, to: 0, openings: [] },
   { y: GROUND, h: 2.8, axis: 'z', at: -3, from: -6.4, to: -0.7, openings: [] },
   { y: GROUND, h: 2.8, axis: 'z', at: -3, from: 1.1, to: 6.4, openings: [{ center: 4, width: 1.0, height: 2.15, id: 'study-door', kind: 'door' }] },
-  { y: GROUND, h: 2.8, axis: 'x', at: -0.7, from: -6, to: 0, openings: [{ center: -4.5, width: 1.0, height: 2.15, id: 'dining-door', kind: 'door' }] },
-  { y: GROUND, h: 2.8, axis: 'x', at: 1.1, from: -6, to: 0, openings: [{ center: -4.5, width: 1.0, height: 2.15, id: 'kitchen-door', kind: 'door' }] },
+  { y: GROUND, h: 2.8, axis: 'x', at: -0.7, from: -6, to: 0, openings: [{ center: -4.5, width: 1.0, height: 2.4, id: 'dining-door', kind: 'door' }] },
+  { y: GROUND, h: 2.8, axis: 'x', at: 1.1, from: -6, to: 0, openings: [{ center: -4.5, width: 1.0, height: 2.4, id: 'kitchen-door', kind: 'door' }] },
 
   // ===== Upper floor =====
   { y: UPPER, h: 2.6, axis: 'z', at: 0, from: -6.4, to: 1.2, openings: [] },
@@ -152,7 +152,7 @@ export const BLOCKERS = [
   // the front. Tall, so nobody steps off the stairs into the hall, and down to
   // the floor, so nobody walks in under the flight. What is drawn is a rail on
   // balusters (level.js), not this box.
-  { x: [1.15, 1.25], z: [-2.9, 1.1], y: [0, UPPER + 1.0] },
+  { x: [1.2, 1.3], z: [-2.9, 0.9], y: [0, UPPER + 1.0] },
 ];
 
 /**
@@ -286,7 +286,7 @@ export const CLOCK = { at: [-3.6, 1.7, -5.85], face: 0, stopped: 7, hour: 3, ope
  */
 export const NOTES = [
   // Pinned to the hall's right-hand wall beside the front door, as in the reference.
-  { id: 'notice', at: [2.28, 1.6, 2.3], face: -Math.PI / 2, title: 'NOTICE', text: '[Placeholder] A notice pinned by the door. Why someone left.' },
+  { id: 'notice', at: [2.28, 1.55, 2.14], size: [0.42, 0.6], face: -Math.PI / 2, title: 'NOTICE', text: '[Placeholder] A notice pinned by the door. Why someone left.' },
   { id: 'hour', at: [-3.6, 0.78, -2.6], face: 0, flat: true, title: 'A NOTE', text: '[Placeholder] Every clock in the house stopped at three.' },
   { id: 'bath-note', at: [6.28, UPPER + 1.5, -4.5], face: -Math.PI / 2, title: 'A NOTE', text: '[Placeholder] Written on the mirror, or near it.' },
   { id: 'study-note', at: [2.97, 0.78, -1.2], face: 0, flat: true, title: 'A NOTE', text: '[Placeholder] The last of the story, in the study.' },
@@ -318,7 +318,7 @@ export const LOOP = [
  * hall, on the ground floor: the kitchen, the study and the
  * bathroom run east of it too, and are inside.
  */
-export const EXIT = { door: 'front-door', inside: [1.75, 0, 1.59], outside: [3.6, 0, 1.59], past: 2.95 };
+export const EXIT = { door: 'front-door', inside: [1.75, 0, 1.42], outside: [3.6, 0, 1.42], past: 2.95 };
 export const isOut = (p) => p.x > EXIT.past && p.z > 0 && p.y < 1;
 
 /** The opening a door fills, from WALLS. */

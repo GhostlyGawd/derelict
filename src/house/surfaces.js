@@ -86,6 +86,12 @@ function materials(tex, live) {
     iron: new THREE.MeshPhongMaterial({ map: tex.wood, color: 0x34363a, shininess: 24, specular: 0x1a1c1a }),
     enamel: new THREE.MeshPhongMaterial({ map: tex.paper, color: 0xe4e8d6, shininess: 40, specular: 0x2a2e26 }),
     mirror: new THREE.MeshPhongMaterial({ color: 0x2a3832, shininess: 90, specular: 0x5a6a5a }),
+    // For the pieces Blender models (models.js): a green glaze, a pale cloth,
+    // wicker and leather, each the generated grain under its own colour.
+    glaze: new THREE.MeshPhongMaterial({ color: 0x3e5a34, shininess: 60, specular: 0x2a3424 }),
+    cloth: new THREE.MeshLambertMaterial({ map: tex.curtain, color: 0xe8e6d8, side: THREE.DoubleSide }),
+    wicker: new THREE.MeshPhongMaterial({ map: tex.wood, color: 0xb89a62, shininess: 4, specular: 0x0c0e0a }),
+    leather: new THREE.MeshPhongMaterial({ map: tex.wood, color: 0x6a5232, shininess: 16, specular: 0x14120c }),
   };
 }
 

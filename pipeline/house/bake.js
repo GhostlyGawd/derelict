@@ -11,6 +11,7 @@ import { LININGS } from '../../src/house/rooms.js';
 import { SPACES, SPAWN, STAIRS, WALLS, spaceAt } from '../../src/house/layout.js';
 import { buildHouse } from '../../src/house/level.js';
 import { buildThings } from '../../src/house/things.js';
+import { MODELS } from './models.js';
 import { fbm, noise2, rng } from '../lib/raster.js';
 import { checkLight, readLight } from './blender/run.js';
 
@@ -46,7 +47,7 @@ export const BAKED_ROOMS = SPACES.map((s) => s.id);
 const LAMPS_BY_ROOM = (() => {
   const mats = new Proxy({}, { get: (t, k) => (typeof k === 'string' ? (t[k] ??= new THREE.MeshBasicMaterial({ name: k })) : undefined) });
   const out = new Map();
-  for (const l of dressHouse(mats).lights) {
+  for (const l of dressHouse(mats, MODELS).lights) {
     if (!l.isSpotLight && !l.isPointLight) continue;
     const room = spaceAt(l.position.x, l.position.z, l.position.y - 1)?.id;
     if (!out.has(room)) out.set(room, []);
@@ -67,9 +68,9 @@ export function houseBVH({ clear = new Set(['shade', 'lampshade', 'night', 'pape
     },
   });
   const root = new THREE.Group();
-  root.add(buildHouse(mats).group);
-  root.add(dressHouse(mats).group);
-  const things = buildThings(mats);
+  root.add(buildHouse(mats, MODELS).group);
+  root.add(dressHouse(mats, MODELS).group);
+  const things = buildThings(mats, MODELS);
   root.add(things.group);
   const moving = new Set();
   for (const d of things.doors) for (const m of d.meshes) m.traverse((o) => moving.add(o));

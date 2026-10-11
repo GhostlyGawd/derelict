@@ -9,6 +9,7 @@ import { dressHouse } from '../../../src/house/dress.js';
 import { SPACES, spaceAt } from '../../../src/house/layout.js';
 import { buildHouse } from '../../../src/house/level.js';
 import { buildThings } from '../../../src/house/things.js';
+import { MODELS } from '../models.js';
 
 /**
  * The house as Blender lights it (9.4.4, Blender and a tuner): every static
@@ -64,6 +65,7 @@ const SOURCE = {
   iron: ['wood', 0x34363a], enamel: ['paper', 0xe4e8d6],
   knob: [null, 0xa08a50], black: [null, 0x060706], mirror: [null, 0x2a3832],
   shade: [null, 0xf2f4e6], lampshade: [null, 0xc8c088],
+  glaze: [null, 0x3e5a34], cloth: ['curtain', 0xe8e6d8], wicker: ['wood', 0xb89a62], leather: ['wood', 0x6a5232],
 };
 /** What gives light rather than taking it, and how strongly, as Cycles emission. */
 const EMIT = { night: 1.0, shade: 0, lampshade: 0.6 };
@@ -87,10 +89,10 @@ export async function exportScene(textureDir) {
     },
   });
   const root = new THREE.Group();
-  root.add(buildHouse(mats).group);
-  const dressing = dressHouse(mats);
+  root.add(buildHouse(mats, MODELS).group);
+  const dressing = dressHouse(mats, MODELS);
   root.add(dressing.group);
-  const things = buildThings(mats);
+  const things = buildThings(mats, MODELS);
   root.add(things.group);
   // Doors stand open in play, and light the hall through; a baked door would be a fixed one.
   const moving = new Set();
@@ -170,6 +172,8 @@ export const LIGHT_SOURCES = [
   'pipeline/house/blender/export.js', 'pipeline/house/blender/bake.py',
   // The surfaces grown from the owner's painting give the house its colours.
   'pipeline/house/concept/swatches.json',
+  // The pieces Blender modelled shade the walls they stand by.
+  'pipeline/house/models/models.json',
 ];
 
 export function sourceHash() {

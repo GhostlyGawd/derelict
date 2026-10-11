@@ -3,9 +3,10 @@
  *
  * Turns the knobs in pipeline/house/look.json to bring the hall closer to the
  * reference, as numbers: the whole-frame statistics of 9.4.5 on the hall's
- * three views, and the regional statistics on its reference view
- * (TARGET.regions). It never compares pixels, and nothing of the picture is
- * read here: the target is the numbers committed in pipeline/house/style.js.
+ * three views, the regional statistics on its reference view
+ * (TARGET.regions), and that view's structure against the owner's painting
+ * itself (tools/lib/structure.js), which is committed now and is the hall's
+ * source.
  *
  * The slow part of a bake (occlusion, grime, Blender's light) is computed
  * once. Each trial composes the hall's surfaces and the grade under a look,
@@ -28,6 +29,7 @@ import { LOOK_FILE, chartFields, compose, encode, readLook } from '../../pipelin
 import { TARGET } from '../../pipeline/house/style.js';
 import { gradeLut } from '../../pipeline/house/textures.js';
 import { regions, stats } from '../lib/stylestats.js';
+import { luminance, structure } from '../lib/structure.js';
 import { VIEWS as ALL_VIEWS } from './views.js';
 
 const ROOT = process.argv.find((a) => /^https?:/.test(a)) || 'http://127.0.0.1:4173/';
@@ -36,10 +38,9 @@ const MAX_EVALS = at > 0 ? Number(process.argv[at + 1]) : 160;
 const DRY = process.argv.includes('--dry');
 const r = process.argv.indexOf('--room');
 const ROOM = r > 0 ? process.argv[r + 1] : 'hall';
-// The hall is the owner's painting (9.3): its look is the painting's, and
-// there is nothing of it left to tune. Its shared knobs still reach the rugs
-// and the grime of every other room, as they did.
-if (ROOM === 'hall') throw new Error('the hall is the owner\'s painting now; tune another room with --room <id>');
+// The hall is tuned against the owner's painting itself as well as the
+// numbers (the owner's look at the modelled hall): its reference view's
+// structure, region by region, as the inventory check judges it.
 const VIEWS = ALL_VIEWS.filter((v) => v.room === ROOM);
 if (!VIEWS.length) throw new Error(`no style view judges the room "${ROOM}"`);
 
@@ -55,12 +56,15 @@ const roomKnobs = (room) => [
 /** The knobs, where they live in the look, and how far each may go. */
 const KNOBS = ROOM !== 'hall' ? roomKnobs(ROOM) : [
   ...roomKnobs('hall'),
-  { path: ['live', 'rug'], lo: 0.35, hi: 1.2 },
-  // The paint is the look the owner asked for: the tuner may weaken it, never remove it.
-  { path: ['grime', 'mottle'], lo: 0.5, hi: 2.5 },
+  // The paint is the look the owner asked for: the tuner may weaken it, never
+  // remove it. Since the surfaces are cut from the painting, which carries its
+  // own mottle, the bake's mottle is a trace over it (0.15) and may stay one.
+  { path: ['grime', 'mottle'], lo: 0.1, hi: 2.5 },
   { path: ['grime', 'dirt'], lo: 0, hi: 1.5 },
-  { path: ['grime', 'damp'], lo: 0, hi: 1.2 },
-  { path: ['grime', 'wear'], lo: 0, hi: 1 },
+  // The damp and the wear are the stains and the worn boards the painting is
+  // full of: tuned to nothing on numbers alone, the walls went clean.
+  { path: ['grime', 'damp'], lo: 0.3, hi: 1.2 },
+  { path: ['grime', 'wear'], lo: 0.5, hi: 1 },
   { path: ['paint', 'strokes'], lo: 0.6, hi: 2 },
   // Not the grade: it lies over every room's frame, so the hall alone may not
   // turn it. Tuned on the hall, it took four other rooms out of their target.
@@ -82,6 +86,10 @@ function globalScore(s) {
     (lr(s.detail, t.detail) / 0.3) ** 2 +
     (lr(s.colours15, t.colours15) / 0.5) ** 2
   );
+}
+/** How far the reference view's structure is from the painting's, in units of a tenth. */
+function structureScore(scores) {
+  return scores.reduce((a, v) => a + ((1 - v) / 0.1) ** 2, 0) / 12;
 }
 function regionScore(r) {
   let sum = 0;
@@ -111,6 +119,7 @@ await page.evaluate(() => {
 await page.waitForFunction(() => window.__house.phase === 'playing');
 await page.addStyleTag({ content: '#hud, #ring, #touch { display: none !important; }' });
 
+const PAINTED = await luminance(new URL('../../pipeline/house/concept/hall.filled.jpg', import.meta.url).pathname);
 const url = (png) => `data:image/png;base64,${png.toString('base64')}`;
 let evals = 0;
 async function score(look) {
@@ -144,11 +153,18 @@ async function score(look) {
   for (const v of VIEWS) {
     await page.evaluate((v) => {
       const g = window.__house;
-      g.player.position.set(v.pos[0], v.y || 0, v.pos[1]);
+      // The reference view is the painting's own camera, as the style harness has it.
+      const P = v.painting ? g.layout.PAINTING : null;
+      g.camera.clearViewOffset();
+      g.player.position.set(P ? P.pos[0] : v.pos[0], v.y || 0, P ? P.pos[2] : v.pos[1]);
       g.player.velocity.set(0, 0, 0);
-      g.player.yaw = v.yaw;
-      g.player.pitch = v.pitch;
+      g.player.yaw = P ? P.yaw : v.yaw;
+      g.player.pitch = P ? 0 : v.pitch;
       for (let i = 0; i < 3; i++) g.stepForTest(1 / 60);
+      if (P) {
+        g.camera.setViewOffset(innerWidth, innerHeight, (0.5 - P.axis[0]) * innerWidth, (0.5 - P.axis[1]) * innerHeight, innerWidth, innerHeight);
+        g.stepForTest(1 / 60);
+      }
     }, v);
     const shot = await page.screenshot();
     const { data, info } = await sharp(shot).resize(448, 299, { fit: 'fill', kernel: 'cubic' }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -159,6 +175,11 @@ async function score(look) {
       const r = regionScore(regions(data, info.width, info.height));
       total += r;
       parts.push(`regions ${r.toFixed(1)}`);
+    }
+    if (v.painting) {
+      const st = structureScore(structure(PAINTED, await luminance(shot)));
+      total += st;
+      parts.push(`structure ${st.toFixed(1)}`);
     }
   }
   return { total, parts };

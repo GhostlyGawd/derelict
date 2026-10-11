@@ -1,7 +1,7 @@
 {
   "grime": {
     "mottle": 0.15,
-    "dirt": 0,
+    "dirt": 0.6,
     "dirtColour": [
       0.012,
       0.016,
@@ -41,14 +41,14 @@
   },
   "rooms": {
     "hall": {
-      "exposure": 3,
+      "exposure": 3.574,
       "light": {
-        "cone": 0.84,
-        "glow": 1.691,
+        "cone": 0.497,
+        "glow": 0.35,
         "night": 20,
         "others": 1
       },
-      "fill": 11.2
+      "fill": 16
     },
     "default": {
       "exposure": 1,
@@ -101,7 +101,7 @@
       "fill": 10.6
     },
     "passage": {
-      "exposure": 3.405,
+      "exposure": 2.5,
       "light": {
         "cone": 0.646,
         "glow": 1,

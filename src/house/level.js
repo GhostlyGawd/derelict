@@ -2,6 +2,7 @@ import * as THREE from 'three';
 
 import { BLOCKERS, SPACES, STAIRS, STAIRWELL, UPPER, WALLS, WALL_THICKNESS } from './layout.js';
 import { HANDRAIL, placeRun, post, soft } from './joinery.js';
+import { place as model } from './models.js';
 import { worldUV } from './surfaces.js';
 
 const T = WALL_THICKNESS;
@@ -16,7 +17,10 @@ const T = WALL_THICKNESS;
  * Colliders are boxes with a floor and a ceiling each, the same contract as
  * the ship's, so the player's collision code is the ship's.
  */
-export function buildHouse(surfaces) {
+/** The handrail's height over the nosings. */
+export const RAIL = 0.9;
+
+export function buildHouse(surfaces, models = {}) {
   const group = new THREE.Group();
   group.name = 'level';
   const colliders = [];
@@ -35,7 +39,7 @@ export function buildHouse(surfaces) {
     const mesh = new THREE.Mesh(geo, material);
     mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
     const baseY = y0 >= UPPER - 0.25 ? UPPER : 0;
-    worldUV(mesh, isWall(material) ? { tile: 2.8, tileV: 2.8, baseY } : { tile: 1 });
+    worldUV(mesh, isWall(material) ? { tile: 2.8, tileV: 2.8, baseY } : { tile: material === mat.ceiling ? 2 : 1 });
     group.add(mesh);
     if (solid) colliders.push({ minX: x0, maxX: x1, minY: y0, maxY: y1, minZ: z0, maxZ: z1 });
     return mesh;
@@ -161,7 +165,6 @@ export function buildHouse(surfaces) {
   // the stairs, on balusters, with a post at each end.
   for (const b of BLOCKERS) colliders.push({ minX: b.x[0], maxX: b.x[1], minY: b.y[0], maxY: b.y[1], minZ: b.z[0], maxZ: b.z[1] });
   const railX = (BLOCKERS[0].x[0] + BLOCKERS[0].x[1]) / 2;
-  const RAIL = 0.9;
   // The open banister, as the painting's: plain square balusters standing on
   // the string, one to a tread, under a moulded handrail, from a tall square
   // newel post with a capped top at the foot of the flight to a half post
@@ -179,12 +182,15 @@ export function buildHouse(surfaces) {
     return obj;
   };
   const banisterFrom = group.children.length;
+  // Blender's balusters and newel (pipeline/house/blender/models.py), or the
+  // code's square posts where they are not there.
+  const turnedPost = (id, w, h, opts) => model(models, id, surfaces, { tag: id === 'newel' ? 'newel' : 'banister' }) ?? post(mat.banister, w, h, opts);
   for (let z = zFoot - 0.18; z > zBack + 0.06; z -= run) {
     const y0 = stairY(z) + 0.1;
-    stand(post(mat.banister, 0.036, stairY(z) + RAIL - y0), railX, y0, z);
+    stand(turnedPost('baluster', 0.036, stairY(z) + RAIL - y0), railX, y0, z);
   }
   const newelTop = stairY(zFoot) + RAIL + 0.12;
-  stand(post(mat.banister, 0.11, newelTop, { cap: 0.15, capH: 0.06 }), railX, 0, zFoot).userData.inventory = 'newel';
+  stand(turnedPost('newel', 0.11, newelTop, { cap: 0.15, capH: 0.06 }), railX, 0, zFoot).userData.inventory = 'newel';
   stand(post(mat.banister, 0.09, stairY(zBack) + RAIL + 0.06), railX, 0, zBack);
   const sloped = (x, z0, z1, rise, profile) => {
     const y0 = stairY(z0) + rise;

@@ -1,5 +1,5 @@
 {
-  "hash": "4518645889caecc68517212f160e8a105a0bc644e816a8e43247937427b971f1",
+  "hash": "b489a69468694b4b1997ceb6192cc09ecfdff5b8d9c8cd46dac9273feaa768ab",
   "sources": [
     "pipeline/house/concept/hall.jpg",
     "pipeline/house/model/hall.json",
@@ -7,8 +7,7 @@
     "pipeline/house/model/swatches.py",
     "pipeline/house/model/swatch.js",
     "pipeline/house/model/run.js",
-    "src/house/painter.js",
-    "src/house/layout.js"
+    "src/house/painter.js"
   ],
   "swatches": [
     "plaster",

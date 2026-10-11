@@ -2,6 +2,7 @@ import * as THREE from 'three';
 
 import { chest, piece, place, table, tint as paint } from './furniture.js';
 import { panelDoor } from './joinery.js';
+import { place as model } from './models.js';
 import { CLOCK, CONTAINERS, DOORS, GROUND, ITEMS, NOTES, UPPER, WALL_THICKNESS, openingFor } from './layout.js';
 
 /**
@@ -31,7 +32,7 @@ function frame(wall) {
   return wall.axis === 'x' ? { u: [0, 1], n: [1, 0] } : { u: [1, 0], n: [0, 1] };
 }
 
-function makeDoor(def, group, mat) {
+function makeDoor(def, group, mat, models = {}) {
   const { wall, opening } = openingFor(def.id);
   const { u, n } = frame(wall);
   const w = opening.width - 0.02;
@@ -50,7 +51,12 @@ function makeDoor(def, group, mat) {
   // closed door spans the opening when the pivot is turned to the wall. It is
   // a panelled door, as the painting's are (joinery.js): two tall fielded
   // panels, or for the front door upright boards below and glass above.
-  const leaf = mat
+  // Blender's leaf, modelled at this opening's size, where there is one
+  // (pipeline/house/blender/models.py); the code's panelled leaf where not.
+  const modelled = mat && model(models, `door-${def.id}`, { ...mat, door: material }, { tag: `door:${def.id}` });
+  const leaf = modelled
+    ? modelled
+    : mat
     ? panelDoor(material, {
         w,
         h,
@@ -283,7 +289,8 @@ function makeClock(group, mat) {
 
 function makeNote(def, group, mat) {
   const paper = mat ? mat.paper.clone() : new THREE.MeshLambertMaterial({ color: 0xcfc8b0, side: THREE.DoubleSide });
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(def.flat ? 0.21 : 0.32, def.flat ? 0.28 : 0.44), paper);
+  const [pw, ph] = def.size ?? (def.flat ? [0.21, 0.28] : [0.32, 0.44]);
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), paper);
   const [x, y, z] = def.at;
   mesh.position.set(x, y, z);
   mesh.userData.inventory = `note:${def.id}`;
@@ -325,10 +332,10 @@ function tables(group, surfaces) {
   return colliders;
 }
 
-export function buildThings(mat = null) {
+export function buildThings(mat = null, models = {}) {
   const group = new THREE.Group();
   group.name = 'things';
-  const doors = DOORS.map((d) => makeDoor(d, group, mat));
+  const doors = DOORS.map((d) => makeDoor(d, group, mat, models));
   const containers = CONTAINERS.map((c) => makeContainer(c, group, mat));
   const clock = makeClock(group, mat);
   const notes = NOTES.map((n) => makeNote(n, group, mat));

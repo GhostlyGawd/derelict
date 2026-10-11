@@ -6,6 +6,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
+import { PAINTING } from '../../../src/house/layout.js';
+
 /**
  * `npm run paint:fill`: the house's materials, cut from the owner's painting
  * (9.3, the hall modelled to the painting, its materials cut from it).
@@ -39,12 +41,18 @@ const STAMP = path.join(CONCEPT, 'swatches.json');
 export const SWATCH_SOURCES = [
   'pipeline/house/concept/hall.jpg', 'pipeline/house/model/hall.json', 'pipeline/house/model/fill.py',
   'pipeline/house/model/swatches.py', 'pipeline/house/model/swatch.js', 'pipeline/house/model/run.js',
-  'src/house/painter.js', 'src/house/layout.js',
+  'src/house/painter.js',
 ];
 
+/**
+ * The swatches' hash: their source files, and where the painter stood
+ * (`PAINTING` in layout.js), which is all of the house's layout a swatch
+ * depends on. Moving a wall does not change the painting.
+ */
 export function swatchHash() {
   const h = createHash('sha256');
   for (const file of SWATCH_SOURCES) h.update(file).update('\0').update(readFileSync(path.join(ROOT, file))).update('\0');
+  h.update('PAINTING').update('\0').update(JSON.stringify(PAINTING)).update('\0');
   return h.digest('hex');
 }
 

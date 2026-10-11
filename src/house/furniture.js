@@ -253,10 +253,10 @@ export function fireplace(mat, { w = 1.5, h = 2.8, d = 0.45 } = {}) {
   p.b(mat.wood, 0.4, 0.62, 0, 1.05, d, d + 0.05);
   p.b(mat.wood, -0.62, 0.62, 0.85, 1.05, d, d + 0.05);
   p.b(mat.wood, -0.72, 0.72, 1.05, 1.11, d - 0.02, d + 0.14);
-  p.b(tint(mat.ceiling, 0x8a8a7a), -0.7, 0.7, 0, 0.03, d, d + 0.5);
+  p.b(tint(mat.ceiling, 0x8a8a7a), -0.7, 0.7, 0, 0.03, d, d + 0.5, { tile: 2 });
   // The grate, and what is left in it.
   p.b(mat.iron, -0.25, 0.25, 0.05, 0.22, d - 0.2, d - 0.05);
-  p.b(tint(mat.ceiling, 0x5a5a50), -0.2, 0.2, 0.22, 0.27, d - 0.18, d - 0.07);
+  p.b(tint(mat.ceiling, 0x5a5a50), -0.2, 0.2, 0.22, 0.27, d - 0.18, d - 0.07, { tile: 2 });
   p.solid(-w / 2, w / 2, 0, h, 0, d + 0.05);
   p.solid(-0.7, 0.7, 0, 0.03, d, d + 0.5);
   return p;
@@ -417,12 +417,19 @@ export function picture(mat, { w = 0.45, h = 0.6, empty = false } = {}) {
 }
 
 /** A small rug laid flat, centred on its origin. */
-export function rug(mat, { w = 1.6, l = 2.2, repeat = 1.9 } = {}) {
+/** The metres one repeat of the rug texture stands for (pipeline/house/model/hall.json). */
+const RUG = [1.72, 1.26];
+
+export function rug(mat, { w = 1.6, l = 2.2 } = {}) {
   const p = piece();
   const geo = new THREE.PlaneGeometry(w, l);
   geo.rotateX(-Math.PI / 2);
+  // At the size the runner's pattern was cut from the painting (its swatch,
+  // 1.72 m across and 1.26 m a repeat along): a narrower rug shows the middle
+  // of it, never the whole of it squeezed.
+  const pos = geo.attributes.position;
   const uv = geo.attributes.uv;
-  for (let i = 0; i < uv.count; i++) uv.setY(i, uv.getY(i) * (l / repeat));
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, 0.5 + pos.getX(i) / RUG[0], pos.getZ(i) / RUG[1]);
   const m = new THREE.Mesh(geo, mat.rug);
   m.position.y = 0.006;
   p.group.add(m);

@@ -20,6 +20,7 @@ import { ITEMS, LOOP, PLAYER_HEIGHT, PLAYER_RADIUS, RING_SIZE, SPACES, SPAWN, fl
 import * as LAYOUT from './layout.js';
 import { buildThings } from './things.js';
 import { closeUps, renderTags, texelScale } from './inventory.js';
+import { loadModels } from './models.js';
 import { paintingCamera } from './painter.js';
 
 // Wider than the ship's 72: the reference hall is seen through a wide lens,
@@ -105,15 +106,17 @@ class House {
   async boot() {
     this.hud.setLoading(0.2, 'Opening the door…');
     this.surfaces = await loadSurfaces();
+    // The pieces Blender modelled (models.js).
+    this.models = await loadModels(this.surfaces.manifest.models);
     this.hud.setLoading(0.6, 'Building the house…');
     await new Promise((r) => requestAnimationFrame(() => r()));
-    const house = buildHouse(this.surfaces.materials);
+    const house = buildHouse(this.surfaces.materials, this.models);
     this.scene.add(house.group);
-    this.dressing = dressHouse(this.surfaces.materials);
+    this.dressing = dressHouse(this.surfaces.materials, this.models);
     this.scene.add(this.dressing.group);
     this.scene.add(bakedSkins(this.surfaces));
     for (const light of this.dressing.lights) this.scene.add(light);
-    this.things = buildThings(this.surfaces.materials);
+    this.things = buildThings(this.surfaces.materials, this.models);
     this.scene.add(this.things.group);
     this.staticColliders = house.colliders.concat(this.things.staticColliders, this.dressing.colliders);
     this.doors = this.things.doors;

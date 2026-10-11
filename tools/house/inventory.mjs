@@ -28,6 +28,8 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 import sharp from 'sharp';
 
+import { REGION_NAMES, luminance, structure } from '../lib/structure.js';
+
 const ROOT = process.argv.find((a) => /^https?:/.test(a)) || 'http://127.0.0.1:4173/';
 const SHEET = process.argv.includes('--sheet');
 const CONCEPT = new URL('../../pipeline/house/concept/', import.meta.url).pathname;
@@ -142,6 +144,28 @@ for (const item of items) {
   say(iou >= BARS.overlap, `${item.id}: overlaps its place in the painting by ${iou.toFixed(2)} (at least ${BARS.overlap}); the hall has it at [${x0}, ${y0}, ${x1}, ${y1}], the painting at [${item.box.join(', ')}]${instead}`);
 }
 
+// With --ids, the flat render over the painting, every listed box drawn on
+// it, so a thing out of place can be seen as well as read.
+if (process.argv.includes('--ids')) {
+  const paint = await sharp(path.join(CONCEPT, 'hall.filled.jpg')).resize(W, H).removeAlpha().raw().toBuffer();
+  const out = Buffer.alloc(W * H * 3);
+  const colour = (v) => [(v * 97) % 200 + 55, (v * 57) % 200 + 55, (v * 181) % 200 + 55];
+  const wanted = new Set(items.flatMap((i) => i.is.map((t) => tags.indexOf(t) + 1)));
+  for (let i = 0; i < W * H; i++) {
+    const v = id[i];
+    const c = wanted.has(v) ? colour(v) : [0, 0, 0];
+    for (let k = 0; k < 3; k++) out[i * 3 + k] = Math.round(paint[i * 3 + k] * 0.45 + c[k] * 0.55);
+  }
+  const svg = items
+    .map((it) => `<rect x="${it.box[0]}" y="${it.box[1]}" width="${it.box[2] - it.box[0]}" height="${it.box[3] - it.box[1]}" fill="none" stroke="#ff00ff" stroke-width="2"/><text x="${it.box[0] + 3}" y="${it.box[1] + 14}" font-size="13" fill="#ff80ff" font-family="sans-serif">${it.id}</text>`)
+    .join('');
+  await sharp(out, { raw: { width: W, height: H, channels: 3 } })
+    .composite([{ input: Buffer.from(`<svg width="${W}" height="${H}">${svg}</svg>`) }])
+    .png()
+    .toFile(path.resolve('tools/shots/inventory-ids.png'));
+  console.log('wrote tools/shots/inventory-ids.png');
+}
+
 // ---- 2. Texture scale ----
 console.log('\nEvery textured surface at the size its texture was made for:');
 const rows = await page.evaluate(() => window.__house.inventory.texels());
@@ -180,59 +204,9 @@ await page.evaluate(() => {
   g.stepForTest(1 / 60);
 });
 const view = await page.screenshot();
-const SW = 168;
-const SH = 112;
-// Light and dark at the scale of the room's shapes, not its brushwork.
-const lum = async (input) => new Float32Array(await sharp(input).resize(SW, SH, { fit: 'fill' }).greyscale().blur(1).raw().toBuffer());
 const painting = path.join(CONCEPT, 'hall.filled.jpg');
-const A = await lum(painting);
-const B = await lum(view);
-const GA = gradient(A);
-const GB = gradient(B);
-for (let ry = 0; ry < 3; ry++) {
-  for (let rx = 0; rx < 4; rx++) {
-    // Where the light and dark fall, and where the edges fall: each the
-    // correlation of the two pictures over the region (0 for a flat or a
-    // random frame, 1 for the painting itself).
-    const s = (correlation(A, B, rx, ry) + correlation(GA, GB, rx, ry)) / 2;
-    const where = `${['top', 'middle', 'bottom'][ry]} ${['left', 'centre-left', 'centre-right', 'right'][rx]}`;
-    say(s >= BARS.structure, `region ${where}: structure ${s.toFixed(2)} (at least ${BARS.structure})`);
-  }
-}
-
-function gradient(a) {
-  const g = new Float32Array(SW * SH);
-  for (let y = 1; y < SH - 1; y++) for (let x = 1; x < SW - 1; x++) {
-    const i = y * SW + x;
-    g[i] = Math.hypot(a[i + 1] - a[i - 1], a[i + SW] - a[i - SW]);
-  }
-  return g;
-}
-
-function correlation(a, b, rx, ry) {
-  let n = 0;
-  let sa = 0;
-  let sb = 0;
-  let saa = 0;
-  let sbb = 0;
-  let sab = 0;
-  for (let y = Math.floor((ry * SH) / 3) + 1; y < Math.floor(((ry + 1) * SH) / 3) - 1; y++) {
-    for (let x = Math.floor((rx * SW) / 4) + 1; x < Math.floor(((rx + 1) * SW) / 4) - 1; x++) {
-      const p = a[y * SW + x];
-      const q = b[y * SW + x];
-      n++;
-      sa += p;
-      sb += q;
-      saa += p * p;
-      sbb += q * q;
-      sab += p * q;
-    }
-  }
-  const va = saa / n - (sa / n) ** 2;
-  const vb = sbb / n - (sb / n) ** 2;
-  if (va < 1e-6 || vb < 1e-6) return 0;
-  return (sab / n - (sa * sb) / n / n) / Math.sqrt(va * vb);
-}
+const scores = structure(await luminance(painting), await luminance(view));
+scores.forEach((s, i) => say(s >= BARS.structure, `region ${REGION_NAMES[i]}: structure ${s.toFixed(2)} (at least ${BARS.structure})`));
 
 // ---- The close-ups, for looking at: not a gate ----
 if (SHEET) {
