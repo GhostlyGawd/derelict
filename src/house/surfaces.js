@@ -22,6 +22,8 @@ export async function loadSurfaces(base = '/assets/house/manifest.json') {
   await Promise.all(
     Object.entries(manifest.textures).map(async ([id, entry]) => {
       tex[id] = point(await loader.loadAsync(entry.file), true);
+      // Named, so the texture-scale check can find the size it was made for.
+      tex[id].name = id;
       tex[`${id}_n`] = point(await loader.loadAsync(entry.normal), false);
     })
   );

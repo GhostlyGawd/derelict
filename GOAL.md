@@ -523,6 +523,90 @@ having been tuned for the generated textures, and two regions of the hall's
 reference view are lit brighter than the painting there. Re-tuning the rooms
 follows if the owner takes this direction; no tolerance is loosened.
 
+*The owner's look at the modelled hall, 11 October 2026.* "Better than the
+last one. It's still not great": much of the painting's feel, and many of its
+objects, are not there; the shapes still read as made of rectangles; the
+textures and the light still look wrong; and things that look plainly wrong,
+such as the rug, were never caught by anything. All of it was right. Laid
+object by object against the painting, the hall had a chair where the painting
+has a low cabinet with a vase and a cloth, a small dark teardrop for the
+painting's large woven bag on its crossed straps (and no bench under it),
+plain light panels for the parlour door's dark plank-filled ones, a four-pane
+grid for the front door's two lights over a lock rail, one beam for a ceiling
+of heavy dark joists and no posts at the corners, a glowing ball for a flat
+enamel shade, pale treads and slats for dark stairs on a solid string, and
+blotched noise for walls of drips and stains. The rug was cut from the
+painting 1.72 m wide and laid 2.2 m wide, so its pattern was stretched by 28%
+across, squashed along, repeated three times down the hall, and lit by the
+lamp on top of the light already painted into it.
+
+The gap in the instruments is that every check so far measures the frame's
+statistics, and none of them asks whether the painting's things are in it, or
+whether a surface wears its texture at the size it was made for. Chosen by the
+owner the same day:
+
+- **The harness first, shown failing on this hall.** Four new checks on the
+  house, built before anything is rebuilt:
+  - *The inventory* (`tools/house/inventory.mjs`, its list in
+    `pipeline/house/concept/inventory.json`). Every object the painting shows
+    is listed with the box it fills in the painting's frame. The hall is
+    rendered from the painting's camera with every piece of the house drawn
+    in a flat colour naming what it is, and each listed object must be there,
+    be the thing it is, and fill its box.
+  - *Texture scale.* Every textured surface in the house is measured, triangle
+    by triangle, for the texels per metre it shows in each direction, against
+    the density its texture was made at. A stretched, squashed or mis-scaled
+    surface fails.
+  - *The painting itself.* The painting is committed now, so the painting's
+    view is also compared with it, region by region, by structure (where its
+    edges and its light and dark fall), not only by the style target's
+    statistics.
+  - *Close-ups.* Every listed object is rendered close, from two sides, beside
+    its crop from the painting, on one sheet. Claude looks at it before every
+    push, and the owner gets the same sheet. It is not a gate: no check can
+    say a thing looks wrong in general, and the three above catch the kinds of
+    wrong the owner found.
+- **Bespoke models, by two free tools at build time.** Blender's scripted
+  modelling (the step the light bake named next, now taken) models the
+  architecture and the furniture: real bevels, curved and turned profiles,
+  sculpted wear, the shapes a modeller would make rather than boxes. A free
+  local image-to-3D model (TripoSR, MIT licence, on the CPU) is tried on the
+  painting's organic props, the woven bag, the vase and the cloth, from their
+  crops of the painting, and is kept only where it beats Blender. Neither runs
+  in CI or the deploy; their models are committed as sources with a hash of
+  their inputs, as the light maps are, and the pipeline fails if they are
+  stale. The image-to-3D model, like the image model, is only ever given the
+  owner's painting.
+
+As built, the same day. The inventory lists 22 things, read off the painting
+by eye. Every piece of the house now says what it is (`tagged` in
+`src/house/inventory.js`), and the hall's things are drawn flat in their own
+colours from the painting's camera. A thing passes when the box it fills there
+overlaps the painting's by half; the joists and the runner, which are not
+boxes in the frame, must cover a share of theirs. Every texture in the
+manifest now says the metres one repeat of it stands for, and the surfaces
+that wear one are measured triangle by triangle; a fifth either way is
+allowed, over all but 5% of a thing's area, which is about what the rounded
+arrises of a door take. The comparison with the painting first used SSIM,
+and that scored a flat green frame above the hall, so it was replaced before
+it was trusted: it is now the correlation of the two pictures' light and dark,
+and of their edges, region by region at the scale of the room's shapes. A
+flat or random frame scores 0, the painting blurred by 8 px 0.97, and the
+painting moved 20 px sideways 0.46 to 0.99. The bar is 0.5.
+
+On the hall the owner looked at, it fails 46 times, and every failure is real.
+Seven of the twenty-two are in place (the lamp, the cabinet, the parlour
+door, the arch, the stairs, the picture and the runner). Five are not in the
+hall at all: the vase, the chest under its cloth, the fitting by the parlour
+door, the thing on the floor, and the notice, which the front door, drawn too
+wide, stands over. The banister and the newel stand a third of their width
+left of the painting's, the window and its curtain are half where they should
+be, and the joists cover 8% of a ceiling the painting fills with them. Twenty-one
+things wear their textures at the wrong size: the hall's runner, every room's
+rug (up to 2.15×), every curtain (3 to 4.7×), the turned lamp, jug and posts
+(their lathe coordinates stretched round them), and the bag. Ten of the twelve
+regions of the painting's view are under the bar, from 0.39 to −0.20.
+
 For now, doors open and stay open, and a key is spent at its door. On a
 phone the key ring sits at the top left, because the stick holds the bottom
 left.
@@ -846,11 +930,13 @@ still applies to DERELICT exactly as written.
 saving (it is ten minutes long), settings menus, procedural generation,
 physically-based rendering, cutscenes, and jump scares, which 9.4.3 defines.
 
-**Every asset is still generated by code, with two exceptions the owner
-chose.** The owner's painting is a source of the house's surfaces, and a free
-local image model extends it where it shows nothing. Neither reaches the
-ship, and neither is ever asked for a picture that does not start from the
-owner's.
+**Every asset is still generated by code, with the exceptions the owner
+chose.** The owner's painting is a source of the house's surfaces, a free
+local image model extends it where it shows nothing, Blender models the
+house's pieces by script, and a free local image-to-3D model may lift the
+painting's organic props from their crops of it. None of them reaches the
+ship, and neither model is ever asked for anything that does not start from
+the owner's painting.
 
 ## 9.6 Definition of done
 
@@ -864,7 +950,8 @@ owner's.
 | **Every note can be reached and read.** Each note is on the critical path or reachable from it, and at the reader's size its type clears the pixel floor on a phone in portrait. | Claude — the chain harness and `tools/legible.mjs` |
 | **Every asset is consumed.** Every generated texture, model, sound and the colour grade is observed in use during a full run of the house. | Claude — the consumption gate, on the house |
 | **It fits its budgets.** The house's frame against its own stripped frame inside 1.9×, its bytes to title gated at its own measured figure plus 15%, and no shader compiles after the title. | Claude — `tools/framecost.mjs`, `tools/weight.mjs`, and the new compile check |
-| **Still generated end to end.** A clean checkout reproduces every house asset byte-for-byte from the committed sources (the owner's painting, Blender's light maps and the image model's output among them), and no light map or model output is stale against the sources it was made from. | The existing determinism gate, and the pipeline's staleness check |
+| **Still generated end to end.** A clean checkout reproduces every house asset byte-for-byte from the committed sources (the owner's painting, Blender's light maps and models, and the image models' output among them), and no light map, model or model output is stale against the sources it was made from. | The existing determinism gate, and the pipeline's staleness check |
+| **The hall has the painting's things.** Every object the painting shows is in the hall, is the thing it is, and fills its place in the painting's frame from the painting's camera; every surface wears its texture at the size it was made for; and the painting's view follows the painting's structure region by region. | Claude — `tools/house/inventory.mjs`, in CI |
 | **The house holds its style.** Fixed views of every room score within the stated tolerance of the style target in 9.4.5: value, cast, saturation, detail and palette. | Claude — the style harness, in CI |
 | **The entry hall reads as the reference.** From where the player starts: the layout, the damp, the wood, the green and the one lamp, recreated. | **The owner**, at the first milestone |
 | **The house is frightening without a monster.** | **The owner** |

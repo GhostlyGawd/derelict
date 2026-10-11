@@ -10,18 +10,24 @@ import { GRADE, PALETTE as P } from './style.js';
  * Rows run top to bottom: row 0 is the top of a wall.
  */
 
+/**
+ * `metres` is the size one repeat of a texture stands for in the house,
+ * across and up (the texture-scale check holds every surface to it). A
+ * texture drawn to fit its object (the night in a pane, a notice, a picture)
+ * has none.
+ */
 export const HOUSE_TEXTURES = [
-  { id: 'plaster', size: 512, draw: plaster, note: 'damp plaster, one wall height per tile' },
-  { id: 'floor', size: 512, draw: floor, note: 'worn, damp floor, two metres per tile' },
-  { id: 'ceiling', size: 256, draw: ceiling, note: 'dark boarded ceiling' },
-  { id: 'door', size: 256, draw: door, note: 'a panelled door leaf' },
-  { id: 'wood', size: 256, draw: wood, note: 'dark wood for stairs, rails and furniture' },
-  { id: 'rug', size: 256, draw: rug, note: 'the runner, one repeat of its pattern' },
-  { id: 'curtain', size: 128, draw: curtain, note: 'thin cloth' },
+  { id: 'plaster', size: 512, metres: [2.8, 2.8], draw: plaster, note: 'damp plaster, one wall height per tile' },
+  { id: 'floor', size: 512, metres: [2, 2], draw: floor, note: 'worn, damp floor, two metres per tile' },
+  { id: 'ceiling', size: 256, metres: [2, 2], draw: ceiling, note: 'dark boarded ceiling' },
+  { id: 'door', size: 256, metres: [1, 1], draw: door, note: 'a panelled door leaf' },
+  { id: 'wood', size: 256, metres: [1, 1], draw: wood, note: 'dark wood for stairs, rails and furniture' },
+  { id: 'rug', size: 256, metres: [1.26, 1.26], draw: rug, note: 'the runner, one repeat of its pattern' },
+  { id: 'curtain', size: 128, metres: [0.6, 0.6], draw: curtain, note: 'thin cloth' },
   { id: 'night', size: 256, draw: night, note: 'the night outside: sky, rain, branches' },
   { id: 'paper', size: 128, draw: paper, note: 'a notice, written but not legible' },
   { id: 'picture', size: 128, draw: picture, note: 'a dark painting' },
-  { id: 'tile', size: 256, draw: tile, note: 'glazed tile for the kitchen and the bathroom, a metre per tile' },
+  { id: 'tile', size: 256, metres: [1, 1], draw: tile, note: 'glazed tile for the kitchen and the bathroom, a metre per tile' },
 ];
 
 function plaster(s, seed) {

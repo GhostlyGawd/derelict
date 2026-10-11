@@ -19,6 +19,8 @@ import { bakedSkins } from './baked.js';
 import { ITEMS, LOOP, PLAYER_HEIGHT, PLAYER_RADIUS, RING_SIZE, SPACES, SPAWN, floorAt, isOut, spaceAt } from './layout.js';
 import * as LAYOUT from './layout.js';
 import { buildThings } from './things.js';
+import { closeUps, renderTags, texelScale } from './inventory.js';
+import { paintingCamera } from './painter.js';
 
 // Wider than the ship's 72: the reference hall is seen through a wide lens,
 // with the front door at the right edge of the frame and the window at the left.
@@ -73,6 +75,20 @@ class House {
     this.loop = LOOP;
     /** The layout tables, for the harnesses that run inside the page. */
     this.layout = LAYOUT;
+    /** The inventory check's instruments (tools/house/inventory.mjs). */
+    this.inventory = {
+      paintingCamera,
+      tags: (camera, w, h) => renderTags(this.view.renderer, this.scene, camera, w, h),
+      texels: () => texelScale(this.scene, this.surfaces.manifest),
+      closeUps: (names) => closeUps(this.scene, names, LAYOUT.PAINTING.pos, SPACES),
+      shot: ({ pos, target }) => {
+        this.camera.clearViewOffset();
+        this.camera.position.fromArray(pos);
+        this.camera.lookAt(...target);
+        this.camera.updateMatrixWorld();
+        this.grade.render(this.scene, this.camera, null);
+      },
+    };
     this.refusal = 0;
 
     // ?trace records a run here exactly as on the ship (7.3.2).

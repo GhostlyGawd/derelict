@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+
 import { BLOCKERS, SPACES, STAIRS, STAIRWELL, UPPER, WALLS, WALL_THICKNESS } from './layout.js';
 import { HANDRAIL, placeRun, post, soft } from './joinery.js';
 import { worldUV } from './surfaces.js';
@@ -114,6 +115,7 @@ export function buildHouse(surfaces) {
   const run = (STAIRS.z[1] - STAIRS.z[0]) / steps;
   const SX0 = STAIRS.x[0];
   const SX1 = STAIRS.x[1];
+  const stairsFrom = group.children.length;
   for (let i = 0; i < steps; i++) {
     const z1 = STAIRS.z[1] - i * run;
     const top = (i + 1) * rise;
@@ -133,6 +135,7 @@ export function buildHouse(surfaces) {
     string.rotation.x = Math.atan2(STAIRS.top - STAIRS.bottom, STAIRS.z[1] - STAIRS.z[0]);
     group.add(string);
   }
+  for (let i = stairsFrom; i < group.children.length; i++) group.children[i].userData.inventory = 'stairs';
   // The slot in the hall's ceiling the flight climbs through: its sides, from
   // the ceiling up to the upper floor's ceiling. They are colliders, so the
   // upper flight and the stairhead cannot be stepped off sideways.
@@ -175,12 +178,13 @@ export function buildHouse(surfaces) {
     group.add(obj);
     return obj;
   };
+  const banisterFrom = group.children.length;
   for (let z = zFoot - 0.18; z > zBack + 0.06; z -= run) {
     const y0 = stairY(z) + 0.1;
     stand(post(mat.banister, 0.036, stairY(z) + RAIL - y0), railX, y0, z);
   }
   const newelTop = stairY(zFoot) + RAIL + 0.12;
-  stand(post(mat.banister, 0.11, newelTop, { cap: 0.15, capH: 0.06 }), railX, 0, zFoot);
+  stand(post(mat.banister, 0.11, newelTop, { cap: 0.15, capH: 0.06 }), railX, 0, zFoot).userData.inventory = 'newel';
   stand(post(mat.banister, 0.09, stairY(zBack) + RAIL + 0.06), railX, 0, zBack);
   const sloped = (x, z0, z1, rise, profile) => {
     const y0 = stairY(z0) + rise;
@@ -193,6 +197,7 @@ export function buildHouse(surfaces) {
     group.add(placeRun(mat.banister, profile, len, [x - w / 2, y0, z0], dir, [1, 0, 0], up));
   };
   sloped(railX, zFoot, zBack, RAIL, HANDRAIL);
+  for (let i = banisterFrom; i < group.children.length; i++) group.children[i].userData.inventory ??= 'banister';
   // The handrail on the wall, on brackets, from the back wall to the head.
   const wallX = STAIRS.x[0] - 0.02;
   sloped(wallX, -T / 2, zHead, RAIL - 0.05, HANDRAIL);

@@ -43,6 +43,7 @@ function makeDoor(def, group, mat) {
 
   const pivot = new THREE.Group();
   pivot.position.set(hx, wall.y, hz);
+  pivot.userData.inventory = `door:${def.id}`;
   group.add(pivot);
   const material = mat ? mat.door.clone() : new THREE.MeshLambertMaterial({ color: def.lock ? 0x5a3a28 : 0x6a5038 });
   // The leaf's own frame: it runs along local -hinge·x from the pivot, so the
@@ -285,6 +286,7 @@ function makeNote(def, group, mat) {
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(def.flat ? 0.21 : 0.32, def.flat ? 0.28 : 0.44), paper);
   const [x, y, z] = def.at;
   mesh.position.set(x, y, z);
+  mesh.userData.inventory = `note:${def.id}`;
   if (def.flat) mesh.rotation.set(-Math.PI / 2, 0, def.face);
   else mesh.rotation.y = def.face;
   group.add(mesh);

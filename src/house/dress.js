@@ -4,6 +4,7 @@ import { SPACES, STAIRWELL, WALLS, WALL_THICKNESS } from './layout.js';
 import { dressRooms } from './rooms.js';
 import { ARCHITRAVE, SKIRTING, folds, panelDoor, placeRun, soft, turned } from './joinery.js';
 import { tint } from './furniture.js';
+import { tagged } from './inventory.js';
 import { worldUV } from './surfaces.js';
 
 const T = WALL_THICKNESS;
@@ -60,6 +61,7 @@ function casings(group, mat) {
       const b = o.center + o.width / 2;
       const top = w.y + o.height;
       const jambTop = o.kind === 'door' ? top + W : top - o.width / 2;
+      const n0 = group.children.length;
       for (const side of [-1, 1]) {
         const face = w.at + side * (T / 2);
         // In the wall's own terms: t along it, n out of this face.
@@ -73,6 +75,7 @@ function casings(group, mat) {
         group.add(placeRun(mat.wood, ARCHITRAVE, jambTop - w.y, at(b + W, w.y), [0, 1, 0], back, out));
         if (o.kind === 'door') group.add(placeRun(mat.wood, ARCHITRAVE, b - a + 2 * W, at(a - W, top + W), along, [0, -1, 0], out));
       }
+      for (let i = n0; i < group.children.length; i++) group.children[i].userData.inventory = `casing:${o.id}`;
     }
   }
 }
@@ -99,6 +102,7 @@ function arches(group, mat) {
         mesh.rotation.y = Math.PI / 2;
       }
       worldUV(mesh, { tile: 2.8, tileV: 2.8 });
+      mesh.userData.inventory = `arch:${o.id}`;
       group.add(mesh);
     }
   }
@@ -140,6 +144,7 @@ function windows(box, group, mat) {
         pane.rotation.y = sign > 0 ? 0 : Math.PI;
         pane.position.set(o.center, (y0 + y1) / 2, w.at);
       }
+      const n0 = group.children.length;
       group.add(pane);
       // Frame, sill and glazing bars.
       put(t0 - 0.06, t1 + 0.06, y0 - 0.05, y0, -0.02, 0.05);
@@ -148,6 +153,7 @@ function windows(box, group, mat) {
       put(t1, t1 + 0.06, y0, y1, -0.02, 0.03);
       put(o.center - 0.02, o.center + 0.02, y0, y1, -T / 2 - 0.02, -T / 2 + 0.02);
       put(t0, t1, (y0 + y1) / 2 - 0.02, (y0 + y1) / 2 + 0.02, -T / 2 - 0.02, -T / 2 + 0.02);
+      for (let i = n0; i < group.children.length; i++) group.children[i].userData.inventory = `window:${o.id}`;
       if (BARE.has(o.id)) continue;
       // The curtain: a pale valance across the top, and a fall down each side.
       const cloth = (a, b, ya, yb, n) => {
@@ -158,6 +164,7 @@ function windows(box, group, mat) {
           m.rotation.y = Math.PI / 2;
           m.position.set(nn, (ya + yb) / 2, (a + b) / 2);
         } else m.position.set((a + b) / 2, (ya + yb) / 2, nn);
+        m.userData.inventory = `curtain:${o.id}`;
         group.add(m);
       };
       cloth(t0 - 0.15, t1 + 0.15, y1 - 0.33, y1 + 0.12, 0.06);
@@ -188,7 +195,7 @@ export const NIGHT_FILL = { sky: 0x4a5a78, ground: 0x0a0c08, intensity: 0.32 };
 function hall(box, group, mat, colliders, lights) {
   // ---- The one lamp ----
   const LAMP = HALL_LAMP.at;
-  {
+  tagged(group, 'lamp', () => {
     const cord = new THREE.Mesh(new THREE.BoxGeometry(0.015, 2.8 - LAMP[1] - 0.08, 0.015), mat.wood);
     cord.position.set(LAMP[0], (2.8 + LAMP[1] + 0.08) / 2, LAMP[2]);
     group.add(cord);
@@ -218,11 +225,13 @@ function hall(box, group, mat, colliders, lights) {
     const glow = new THREE.PointLight(colour, gl.intensity, gl.distance, gl.decay);
     glow.position.set(LAMP[0], LAMP[1] - gl.drop, LAMP[2]);
     lights.push(glow);
-  }
+  });
 
   // ---- Joists across the ceiling, stopping at the stair slot: shallow, so
   // the ceiling reads as dark boards over the hall, not as a beam in the view ----
-  for (const z of [0.55, 1.75, 2.95, 4.15]) box(mat.wood, -2.57, z > STAIRWELL.z[1] ? 2.3 : STAIRWELL.x[0], 2.72, 2.8, z - 0.06, z + 0.06);
+  tagged(group, 'beams', () => {
+    for (const z of [0.55, 1.75, 2.95, 4.15]) box(mat.wood, -2.57, z > STAIRWELL.z[1] ? 2.3 : STAIRWELL.x[0], 2.72, 2.8, z - 0.06, z + 0.06);
+  });
 
   // ---- Skirting round the hall: a moulded board, standing off each wall ----
   const skirt = (from, to, out) => {
@@ -230,15 +239,17 @@ function hall(box, group, mat, colliders, lights) {
     const len = Math.hypot(along[0], along[2]);
     group.add(placeRun(mat.wood, SKIRTING, len, from, along.map((v) => v / len), [0, 1, 0], out));
   };
-  skirt([-2.57, 0, 0.1], [-2.57, 0, 4.5], [1, 0, 0]);
-  skirt([-2.57, 0, 4.5], [2.3, 0, 4.5], [0, 0, -1]);
-  skirt([2.3, 0, 2.08], [2.3, 0, 4.5], [-1, 0, 0]);
-  skirt([-2.57, 0, 0.1], [-1.92, 0, 0.1], [0, 0, 1]);
-  skirt([-0.8, 0, 0.1], [-0.38, 0, 0.1], [0, 0, 1]);
-  skirt([0.98, 0, 0.1], [1.15, 0, 0.1], [0, 0, 1]);
+  tagged(group, 'skirting', () => {
+    skirt([-2.57, 0, 0.1], [-2.57, 0, 4.5], [1, 0, 0]);
+    skirt([-2.57, 0, 4.5], [2.3, 0, 4.5], [0, 0, -1]);
+    skirt([2.3, 0, 2.08], [2.3, 0, 4.5], [-1, 0, 0]);
+    skirt([-2.57, 0, 0.1], [-1.92, 0, 0.1], [0, 0, 1]);
+    skirt([-0.8, 0, 0.1], [-0.38, 0, 0.1], [0, 0, 1]);
+    skirt([0.98, 0, 0.1], [1.15, 0, 0.1], [0, 0, 1]);
+  });
 
   // ---- The runner, from near the door to the arch ----
-  {
+  tagged(group, 'rug', () => {
     const width = 2.2;
     const from = 4.45;
     const to = 0.74;
@@ -252,10 +263,10 @@ function hall(box, group, mat, colliders, lights) {
     const rug = new THREE.Mesh(geo, mat.hallRug ?? mat.rug);
     rug.position.set(0.3, 0.006, (from + to) / 2);
     group.add(rug);
-  }
+  });
 
   // ---- The sideboard against the left wall, short of the window, where the painting has it ----
-  {
+  tagged(group, 'cabinet', () => {
     const x0 = -2.57;
     const x1 = -1.9;
     const z0 = 0.95;
@@ -287,18 +298,21 @@ function hall(box, group, mat, colliders, lights) {
     }
     // On top: a mantel clock and a jug, as the painting's has things on it.
     const clock = soft(mat.wood, -2.42, -2.24, 0.745, 0.98, 1.08, 1.32, 0.03);
+    clock.userData.inventory = 'clock';
     group.add(clock);
     const face = new THREE.Mesh(new THREE.CircleGeometry(0.07, 16), mat.enamel);
     face.rotation.y = Math.PI / 2;
     face.position.set(-2.235, 0.87, 1.2);
+    face.userData.inventory = 'clock';
     group.add(face);
     const jug = turned(mat.iron, [[0.0, 0], [0.07, 0.0], [0.085, 0.05], [0.08, 0.13], [0.05, 0.19], [0.045, 0.23], [0.055, 0.25]], 14);
     jug.position.set(-2.35, 0.745, 1.75);
+    jug.userData.inventory = 'vase';
     group.add(jug);
-  }
+  });
 
   // ---- The chair in the corner beside the left door, under the hanging ----
-  {
+  tagged(group, 'chair', () => {
     const cx = -2.22;
     const cz = 0.36;
     const s = 0.21;
@@ -317,10 +331,10 @@ function hall(box, group, mat, colliders, lights) {
     group.add(soft(mat.wood, cx - s + 0.02, cx + s - 0.02, 0.86, 0.93, cz - s + 0.012, cz - s + 0.04, 0.008));
     group.add(soft(mat.wood, cx - s + 0.02, cx + s - 0.02, 0.66, 0.71, cz - s + 0.015, cz - s + 0.037, 0.008));
     colliders.push({ minX: cx - s, maxX: cx + s, minY: 0, maxY: 0.92, minZ: cz - s, maxZ: cz + s });
-  }
+  });
 
   // ---- A picture on the right-hand wall, over the foot of the stairs ----
-  {
+  tagged(group, 'picture', () => {
     const x = 2.29;
     const y = 1.98;
     const z = 1.05;
@@ -329,10 +343,10 @@ function hall(box, group, mat, colliders, lights) {
     art.rotation.y = -Math.PI / 2;
     art.position.set(x - 0.032, y, z);
     group.add(art);
-  }
+  });
 
   // ---- A leather bag hung on a peg in the corner beside the left door, as in the painting ----
-  {
+  tagged(group, 'bag', () => {
     const leather = tint(mat.wood, 0x6a5232);
     const bag = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), leather);
     bag.scale.set(0.2, 0.3, 0.075);
@@ -345,5 +359,5 @@ function hall(box, group, mat, colliders, lights) {
     peg.rotation.x = Math.PI / 2;
     peg.position.set(-2.3, 2.0, 0.14);
     group.add(peg);
-  }
+  });
 }

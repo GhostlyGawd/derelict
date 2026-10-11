@@ -4,6 +4,10 @@
       "file": "/assets/house/textures/plaster.png",
       "normal": "/assets/house/textures/plaster_n.png",
       "size": 512,
+      "metres": [
+        2.8,
+        2.8
+      ],
       "bytes": 110308,
       "painted": true
     },
@@ -11,6 +15,10 @@
       "file": "/assets/house/textures/floor.png",
       "normal": "/assets/house/textures/floor_n.png",
       "size": 512,
+      "metres": [
+        2,
+        2
+      ],
       "bytes": 96425,
       "painted": true
     },
@@ -18,12 +26,20 @@
       "file": "/assets/house/textures/ceiling.png",
       "normal": "/assets/house/textures/ceiling_n.png",
       "size": 256,
+      "metres": [
+        2,
+        2
+      ],
       "bytes": 28515
     },
     "door": {
       "file": "/assets/house/textures/door.png",
       "normal": "/assets/house/textures/door_n.png",
       "size": 256,
+      "metres": [
+        1,
+        1
+      ],
       "bytes": 30709,
       "painted": true
     },
@@ -31,6 +47,10 @@
       "file": "/assets/house/textures/wood.png",
       "normal": "/assets/house/textures/wood_n.png",
       "size": 256,
+      "metres": [
+        1,
+        1
+      ],
       "bytes": 32700,
       "painted": true
     },
@@ -38,6 +58,10 @@
       "file": "/assets/house/textures/rug.png",
       "normal": "/assets/house/textures/rug_n.png",
       "size": 256,
+      "metres": [
+        1.72,
+        1.26
+      ],
       "bytes": 57564,
       "painted": true
     },
@@ -45,6 +69,10 @@
       "file": "/assets/house/textures/curtain.png",
       "normal": "/assets/house/textures/curtain_n.png",
       "size": 128,
+      "metres": [
+        0.6,
+        0.6
+      ],
       "bytes": 11709
     },
     "night": {
@@ -69,6 +97,10 @@
       "file": "/assets/house/textures/tile.png",
       "normal": "/assets/house/textures/tile_n.png",
       "size": 256,
+      "metres": [
+        1,
+        1
+      ],
       "bytes": 57429
     }
   },

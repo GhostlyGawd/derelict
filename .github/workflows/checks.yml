@@ -153,6 +153,14 @@ jobs:
       - name: House — the house holds its style
         run: node tools/house/style.mjs http://127.0.0.1:4173/
 
+      # The painting's things (the owner's look at the modelled hall): every
+      # object the painting shows, in its place from the painting's camera;
+      # every surface at its texture's size; and the painting's structure. Run
+      # even when the style is out, so both are reported.
+      - name: House — the hall has the painting's things
+        if: ${{ !cancelled() }}
+        run: node tools/house/inventory.mjs http://127.0.0.1:4173/
+
       - name: Report — frame times on the owner's phone
         run: node tools/profile.mjs http://127.0.0.1:4173/
 

@@ -11,6 +11,16 @@ import { BAKED_ROOMS, bakeRooms, readLook } from './bake.js';
 import { HOUSE_TEXTURES, gradeLut } from './textures.js';
 import { paintedSwatches } from './model/run.js';
 const SWATCH_JOB = JSON.parse(readFileSync(new URL('./model/hall.json', import.meta.url), 'utf8'));
+
+/**
+ * The metres one repeat of a swatch's texture stands for: grown by quilting at
+ * the swatch's own density, it covers `texMetres` across; brought to size
+ * whole (the rug), it is the patch of the painting it was cut from.
+ */
+function swatchMetres(s) {
+  if (s.grow?.quilt === false) return s.plane.size;
+  return [s.texMetres, (s.texMetres * s.size[1]) / s.size[0]];
+}
 import { readFileSync } from 'node:fs';
 
 /**
@@ -63,6 +73,7 @@ async function main() {
         file: `/assets/house/textures/${spec.id}.png`,
         normal: `/assets/house/textures/${spec.id}_n.png`,
         size: spec.size,
+        metres: swatchMetres(SWATCH_JOB.swatches[spec.id]),
         bytes: png.length + normal.length,
         painted: true,
       };
@@ -81,6 +92,7 @@ async function main() {
       file: `/assets/house/textures/${spec.id}.png`,
       normal: `/assets/house/textures/${spec.id}_n.png`,
       size: spec.size,
+      ...(spec.metres ? { metres: spec.metres } : {}),
       bytes: png.length + normal.length,
     };
     log.done(`${spec.id} — ${spec.size}px, ${spec.note}, ${bytes(png.length)} → ${rel(file)}`);
