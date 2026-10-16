@@ -37,7 +37,7 @@
     "ramp": 1
   },
   "live": {
-    "rug": 1.0
+    "rug": 1
   },
   "rooms": {
     "hall": {
@@ -91,14 +91,14 @@
       "fill": 0.2
     },
     "study": {
-      "exposure": 2.858,
+      "exposure": 5.756,
       "light": {
         "cone": 1,
-        "glow": 2.198,
+        "glow": 3.119,
         "others": 1,
-        "night": 20
+        "night": 16
       },
-      "fill": 10.6
+      "fill": 13.8
     },
     "passage": {
       "exposure": 5.495,
@@ -149,6 +149,16 @@
         "night": 13
       },
       "fill": 16
+    },
+    "bathroom": {
+      "exposure": 2.014,
+      "light": {
+        "cone": 2.014,
+        "glow": 1,
+        "others": 1,
+        "night": 5
+      },
+      "fill": 1
     }
   }
 }

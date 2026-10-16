@@ -222,37 +222,37 @@
       "file": "/assets/house/baked/study-z0-n.png",
       "width": 218,
       "height": 179,
-      "bytes": 37736
+      "bytes": 48156
     },
     "study-x2.8-p": {
       "file": "/assets/house/baked/study-x2.8-p.png",
       "width": 179,
       "height": 179,
-      "bytes": 26569
+      "bytes": 34067
     },
     "study-x6.4-n": {
       "file": "/assets/house/baked/study-x6.4-n.png",
       "width": 179,
       "height": 179,
-      "bytes": 18804
+      "bytes": 23779
     },
     "study-z-3-p": {
       "file": "/assets/house/baked/study-z-3-p.png",
       "width": 218,
       "height": 179,
-      "bytes": 36077
+      "bytes": 46664
     },
     "study-floor": {
       "file": "/assets/house/baked/study-floor.png",
       "width": 230,
       "height": 192,
-      "bytes": 45919
+      "bytes": 57831
     },
     "study-ceiling": {
       "file": "/assets/house/baked/study-ceiling.png",
       "width": 230,
       "height": 192,
-      "bytes": 31163
+      "bytes": 41342
     },
     "dining-z-6-p": {
       "file": "/assets/house/baked/dining-z-6-p.png",
@@ -480,37 +480,37 @@
       "file": "/assets/house/baked/bathroom-z-6-p.png",
       "width": 218,
       "height": 166,
-      "bytes": 26069
+      "bytes": 38237
     },
     "bathroom-x6.4-n": {
       "file": "/assets/house/baked/bathroom-x6.4-n.png",
       "width": 186,
       "height": 166,
-      "bytes": 24380
+      "bytes": 35720
     },
     "bathroom-x2.8-p": {
       "file": "/assets/house/baked/bathroom-x2.8-p.png",
       "width": 186,
       "height": 166,
-      "bytes": 22874
+      "bytes": 33194
     },
     "bathroom-z-2.9-n": {
       "file": "/assets/house/baked/bathroom-z-2.9-n.png",
       "width": 218,
       "height": 166,
-      "bytes": 29764
+      "bytes": 43925
     },
     "bathroom-floor": {
       "file": "/assets/house/baked/bathroom-floor.png",
       "width": 230,
       "height": 198,
-      "bytes": 68861
+      "bytes": 79539
     },
     "bathroom-ceiling": {
       "file": "/assets/house/baked/bathroom-ceiling.png",
       "width": 230,
       "height": 198,
-      "bytes": 5578
+      "bytes": 9779
     }
   },
   "target": {
