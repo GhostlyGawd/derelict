@@ -1,0 +1,199 @@
+{
+  "style": "painterly hand painted retro horror game texture, dark, damp, muted green cast, flat, seamless",
+  "negative": "text, letters, words, people, face, perspective, room, objects, frame, border, photo, blurry",
+  "hud": [
+    [
+      0,
+      752,
+      210,
+      896
+    ],
+    [
+      1124,
+      752,
+      1344,
+      896
+    ]
+  ],
+  "hudPrompt": "worn grey green wooden floorboards and damp stains at the foot of a wall",
+  "swatches": {
+    "plaster": {
+      "plane": {
+        "origin": [
+          -0.76,
+          0.5,
+          0.1
+        ],
+        "u": [
+          1,
+          0,
+          0
+        ],
+        "v": [
+          0,
+          1,
+          0
+        ],
+        "size": [
+          0.5,
+          1.8
+        ]
+      },
+      "texMetres": 2.8,
+      "size": [
+        512,
+        512
+      ],
+      "prompt": "damp stained green plaster wall, brush strokes",
+      "grow": {
+        "block": 40,
+        "band": 12,
+        "strength": 0.65,
+        "seed": 11
+      }
+    },
+    "floor": {
+      "plane": {
+        "origin": [
+          -1.6,
+          0,
+          1.5
+        ],
+        "u": [
+          1,
+          0,
+          0
+        ],
+        "v": [
+          0,
+          0,
+          -1
+        ],
+        "size": [
+          0.85,
+          0.6
+        ]
+      },
+      "texMetres": 2,
+      "size": [
+        512,
+        512
+      ],
+      "prompt": "worn pale damp floor, brush strokes",
+      "grow": {
+        "block": 48,
+        "band": 14,
+        "strength": 0.65,
+        "seed": 12
+      }
+    },
+    "door": {
+      "plane": {
+        "origin": [
+          -1.52,
+          1.36,
+          0
+        ],
+        "u": [
+          1,
+          0,
+          0
+        ],
+        "v": [
+          0,
+          1,
+          0
+        ],
+        "size": [
+          0.46,
+          0.74
+        ]
+      },
+      "texMetres": 1,
+      "size": [
+        256,
+        256
+      ],
+      "prompt": "dark green painted old wood, vertical grain",
+      "grow": {
+        "block": 40,
+        "band": 8,
+        "strength": 0.6,
+        "seed": 13
+      },
+      "contrast": 0.7
+    },
+    "wood": {
+      "plane": {
+        "origin": [
+          -1.52,
+          1.36,
+          0
+        ],
+        "u": [
+          1,
+          0,
+          0
+        ],
+        "v": [
+          0,
+          1,
+          0
+        ],
+        "size": [
+          0.46,
+          0.74
+        ]
+      },
+      "texMetres": 1,
+      "size": [
+        256,
+        256
+      ],
+      "prompt": "dark old wood, vertical grain",
+      "grow": {
+        "block": 32,
+        "band": 8,
+        "strength": 0.6,
+        "seed": 14
+      },
+      "contrast": 0.5
+    },
+    "rug": {
+      "plane": {
+        "origin": [
+          -0.58,
+          0.006,
+          2.0
+        ],
+        "u": [
+          1,
+          0,
+          0
+        ],
+        "v": [
+          0,
+          0,
+          -1
+        ],
+        "size": [
+          1.72,
+          1.26
+        ]
+      },
+      "texMetres": 1.72,
+      "size": [
+        256,
+        256
+      ],
+      "prompt": "woven patterned runner rug, ochre and dark green diamonds",
+      "grow": {
+        "quilt": false,
+        "axes": "v",
+        "band": 10,
+        "strength": 0.55,
+        "seed": 15
+      }
+    }
+  }
+}

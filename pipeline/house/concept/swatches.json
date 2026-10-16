@@ -1,0 +1,19 @@
+{
+  "hash": "b489a69468694b4b1997ceb6192cc09ecfdff5b8d9c8cd46dac9273feaa768ab",
+  "sources": [
+    "pipeline/house/concept/hall.jpg",
+    "pipeline/house/model/hall.json",
+    "pipeline/house/model/fill.py",
+    "pipeline/house/model/swatches.py",
+    "pipeline/house/model/swatch.js",
+    "pipeline/house/model/run.js",
+    "src/house/painter.js"
+  ],
+  "swatches": [
+    "plaster",
+    "floor",
+    "door",
+    "wood",
+    "rug"
+  ]
+}

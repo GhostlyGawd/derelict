@@ -100,7 +100,15 @@ export function buildViewmodel(assets) {
     scene,
     camera,
 
-    resize(aspect) {
+    /**
+     * `rightLimit`, when given, is the fraction of the screen's width the
+     * tool's right edge must stay left of. On a touch layout that is the
+     * column of buttons. Phase 7 tucked the buttons into the bottom-right
+     * corner, which is exactly where the tool sits, and on a portrait phone
+     * the two had overlapped ever since (9.4.7). The tool moves left until it
+     * clears them, and nothing else about it changes.
+     */
+    resize(aspect, { rightLimit = null, leftLimit = null } = {}) {
       camera.fov = fovFor(BASE_FOV, aspect);
       camera.aspect = aspect;
       camera.updateProjectionMatrix();
@@ -113,6 +121,72 @@ export function buildViewmodel(assets) {
       const trim = THREE.MathUtils.clamp(aspect / 1.2, 0.68, 1);
       rig.scale.setScalar(scale * trim);
       cellRig.scale.setScalar(cellScale * trim);
+
+      if (rightLimit !== null) {
+        const left = leftLimit ?? 0;
+        // Too wide for the gap between the stick and the buttons: smaller, but
+        // never below 60% of itself.
+        const width = () => {
+          const r = this.screenRect(1, 1);
+          return r.x1 - r.x0;
+        };
+        const room = rightLimit - left;
+        if (width() > room) {
+          const k = Math.max(0.6, room / width());
+          rig.scale.multiplyScalar(k);
+          cellRig.scale.multiplyScalar(k);
+        }
+        // The tool is tilted, so its projected edges do not move one for one
+        // with its position; a few passes settle it.
+        for (let pass = 0; pass < 6; pass++) {
+          const r = this.screenRect(1, 1);
+          let shift = 0;
+          if (r.x1 > rightLimit) shift = rightLimit - r.x1;
+          else if (r.x0 < left) shift = left - r.x0;
+          if (Math.abs(shift) < 1e-4) break;
+          REST.x += shift * 2 * halfHeight * aspect;
+        }
+      }
+    },
+
+    /**
+     * The tool's on-screen bounds at rest, in CSS pixels for a viewport of
+     * `w` × `h`, whichever of the scanner or the cell is in hand.
+     */
+    screenRect(w, h) {
+      holder.position.copy(REST);
+      holder.rotation.copy(REST_ROT);
+      holder.updateMatrixWorld(true);
+      camera.updateMatrixWorld(true);
+      const box = new THREE.Box3();
+      for (const part of [rig, cellRig]) {
+        // Either may be in hand, so both are measured whichever is showing.
+        const shown = part.visible;
+        part.visible = true;
+        box.expandByObject(part);
+        part.visible = shown;
+      }
+      const r = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+      const v = new THREE.Vector3();
+      for (const x of [box.min.x, box.max.x]) {
+        for (const y of [box.min.y, box.max.y]) {
+          for (const z of [box.min.z, box.max.z]) {
+            v.set(x, y, z).project(camera);
+            const sx = ((v.x + 1) / 2) * w;
+            const sy = ((1 - v.y) / 2) * h;
+            r.x0 = Math.min(r.x0, sx);
+            r.x1 = Math.max(r.x1, sx);
+            r.y0 = Math.min(r.y0, sy);
+            r.y1 = Math.max(r.y1, sy);
+          }
+        }
+      }
+      // Clipped to the screen: what is off the edge is not under anything.
+      r.x0 = Math.max(0, r.x0);
+      r.y0 = Math.max(0, r.y0);
+      r.x1 = Math.min(w, r.x1);
+      r.y1 = Math.min(h, r.y1);
+      return r;
     },
 
     /** Fires the short animation the spec asks for on every interaction. */

@@ -1,0 +1,164 @@
+{
+  "grime": {
+    "mottle": 0.15,
+    "dirt": 0.6,
+    "dirtColour": [
+      0.012,
+      0.016,
+      0.008
+    ],
+    "damp": 0.45,
+    "dampColour": [
+      0.01,
+      0.015,
+      0.006
+    ],
+    "tide": 0.5,
+    "tideColour": [
+      0.006,
+      0.008,
+      0.004
+    ],
+    "soot": 1,
+    "sootColour": [
+      0.004,
+      0.004,
+      0.003
+    ],
+    "wear": 1
+  },
+  "paint": {
+    "kuwahara": 2,
+    "strokes": 0.6
+  },
+  "grade": {
+    "keep": 0.55,
+    "lift": 1.2,
+    "ramp": 1
+  },
+  "live": {
+    "rug": 1
+  },
+  "rooms": {
+    "hall": {
+      "exposure": 3.574,
+      "light": {
+        "cone": 0.497,
+        "glow": 0.35,
+        "night": 20,
+        "others": 1
+      },
+      "fill": 16
+    },
+    "default": {
+      "exposure": 1,
+      "light": {
+        "cone": 1,
+        "glow": 1,
+        "others": 1,
+        "night": 1
+      },
+      "fill": 1
+    },
+    "parlour": {
+      "exposure": 9.31,
+      "light": {
+        "cone": 0.876,
+        "glow": 1,
+        "others": 1,
+        "night": 20
+      },
+      "fill": 14.4
+    },
+    "dining": {
+      "exposure": 4.056,
+      "light": {
+        "cone": 2.014,
+        "glow": 1,
+        "others": 1,
+        "night": 20
+      },
+      "fill": 16
+    },
+    "kitchen": {
+      "exposure": 12.857,
+      "light": {
+        "cone": 0.2,
+        "glow": 1,
+        "others": 1,
+        "night": 20
+      },
+      "fill": 0.2
+    },
+    "study": {
+      "exposure": 5.756,
+      "light": {
+        "cone": 1,
+        "glow": 3.119,
+        "others": 1,
+        "night": 16
+      },
+      "fill": 13.8
+    },
+    "passage": {
+      "exposure": 5.495,
+      "light": {
+        "cone": 0.646,
+        "glow": 1,
+        "others": 1,
+        "night": 13
+      },
+      "fill": 15.2
+    },
+    "landing": {
+      "exposure": 5.883,
+      "light": {
+        "cone": 0.578,
+        "glow": 1,
+        "others": 1,
+        "night": 11
+      },
+      "fill": 16
+    },
+    "bedroom": {
+      "exposure": 3.405,
+      "light": {
+        "cone": 1,
+        "glow": 2.014,
+        "others": 1,
+        "night": 20
+      },
+      "fill": 16
+    },
+    "child": {
+      "exposure": 3.405,
+      "light": {
+        "cone": 1,
+        "glow": 1.691,
+        "others": 1,
+        "night": 4
+      },
+      "fill": 16
+    },
+    "gallery": {
+      "exposure": 2.399,
+      "light": {
+        "cone": 2.014,
+        "glow": 1,
+        "others": 1,
+        "night": 13
+      },
+      "fill": 16
+    },
+    "bathroom": {
+      "exposure": 2.014,
+      "light": {
+        "cone": 2.014,
+        "glow": 1,
+        "others": 1,
+        "night": 5
+      },
+      "fill": 1
+    }
+  }
+}
