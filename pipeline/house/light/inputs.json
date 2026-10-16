@@ -1,5 +1,5 @@
 {
-  "hash": "09763c576cba0b5532994161aec68f70b98a5659aee04a83ee888bd211b91661",
+  "hash": "d4bf0a6618f1af9de7f6d2b99f168aa595694d6db65665c9e1e0078ce08d3124",
   "blender": "4.2.3",
   "samples": 1024,
   "layers": [
@@ -12,7 +12,7 @@
     "hall-z0-p",
     "hall-z4.6-n",
     "hall-x-2.67-p",
-    "hall-x2.4-n",
+    "hall-x2.8-n",
     "hall-floor",
     "hall-ceiling",
     "parlour-z0-n",
@@ -28,7 +28,7 @@
     "passage-floor",
     "passage-ceiling",
     "study-z0-n",
-    "study-x2.4-p",
+    "study-x2.8-p",
     "study-x6.4-n",
     "study-z-3-p",
     "study-floor",
@@ -51,7 +51,7 @@
     "landing-z-2.9-n",
     "landing-z-6-p",
     "landing-x-0.9-p",
-    "landing-x2.4-n",
+    "landing-x2.8-n",
     "landing-floor",
     "landing-ceiling",
     "gallery-z0-n",
@@ -72,7 +72,7 @@
     "child-ceiling",
     "bathroom-z-6-p",
     "bathroom-x6.4-n",
-    "bathroom-x2.4-p",
+    "bathroom-x2.8-p",
     "bathroom-z-2.9-n",
     "bathroom-floor",
     "bathroom-ceiling"

@@ -803,6 +803,19 @@ For now, doors open and stay open, and a key is spent at its door. On a
 phone the key ring sits at the top left, because the stick holds the bottom
 left.
 
+*The hall widened, chosen by the owner on 15 October 2026.* Asked whether to
+widen the hall so the banister, newel and picture could stand where the
+painting has them, or to keep the flight player-sized and accept those
+failures, the owner said to widen. The hall's east wall moves from x = 2.4 to
+x = 2.8 (`EAST` in layout.js), and the banister from x = 1.2 to 1.63
+(`BANISTER_X`), which puts the newel at the painting's x of 1.68. That leaves
+the flight 0.97 m between the banister and the wall's face, where the
+painting's is 0.7 and the monkey's autopilot needs 0.88, so the margin the
+phase has kept stays kept. The study, the stairhead, the landing and the
+bathroom lose 0.4 m of width to it, and the front door, the notice, the
+picture, the hall's skirting and joists, the stairhead's lamp and the way out
+move with the wall. The light is baked again, since the hall's shell has moved.
+
 **This phase does not touch the ship.** DERELICT stays exactly as signed:
 the same level, the same chain, the same guardrails, the same harnesses and the
 same traces. Everything this section lifts, it lifts for the house only.

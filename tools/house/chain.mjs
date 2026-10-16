@@ -56,10 +56,10 @@ const ok = (name, pass, detail = '') => {
         // push toward, and what counts as through.
         // The stair door is climbed to first: it waits at the head of the stairs.
         const barriers = [
-          { id: 'stair-door', start: () => [1.65 + (rnd() - 0.5) * 0.5, 0, 1.9], yaw: 0, climb: 150, aim: [1.8, -4.5], through: (p) => p.y > 2.99 && p.z < -3.0 },
+          { id: 'stair-door', start: () => [2.2 + (rnd() - 0.5) * 0.4, 0, 1.9], yaw: 0, climb: 150, aim: [2.2, -4.5], through: (p) => p.y > 2.99 && p.z < -3.0 },
           { id: 'dining-door', start: () => [0.1 + rnd() * 0.5, 0, -4.5 + (rnd() - 0.5) * 0.8], yaw: Math.PI / 2, climb: 0, aim: [-2.5, -4.5], through: (p) => p.x < -1.0 && p.z < -3.0 },
           { id: 'study-door', start: () => [4 + (rnd() - 0.5) * 0.8, 0, -3.5 - rnd() * 0.5], yaw: Math.PI, climb: 0, aim: [4, -1.5], through: (p) => p.z > -2.9 },
-          { id: 'front-door', start: () => [1.6 + rnd() * 0.3, 0, 1.59 + (rnd() - 0.5) * 0.5], yaw: -Math.PI / 2, climb: 0, aim: [3.6, 1.59], through: (p) => p.x > 2.5 },
+          { id: 'front-door', start: () => [2.0 + rnd() * 0.3, 0, 1.25 + (rnd() - 0.5) * 0.4], yaw: -Math.PI / 2, climb: 0, aim: [4.0, 1.25], through: (p) => p.x > 2.9 },
         ];
         const out = {};
         for (const b of barriers) {

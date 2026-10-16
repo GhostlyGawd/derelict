@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 import { armchair, basin, bath, bed, bookcase, chair, chest, deadDoor, dresserBase, fireplace, pendant, picture, place, range, rug, shelf, table, tableLamp, thing, tint, wardrobe } from './furniture.js';
-import { SPACES, UPPER, WALLS, WALL_THICKNESS } from './layout.js';
+import { BANISTER_X, EAST, SPACES, UPPER, WALLS, WALL_THICKNESS } from './layout.js';
 import { want } from './models.js';
 import { worldUV } from './surfaces.js';
 
@@ -219,13 +219,13 @@ function kitchen(mat, put, hang) {
 
 /** The study: the desk, the books, and the table the last note is on. */
 function study(mat, put, light) {
-  put(chair(mat), 4.6, 0, -1.25, N);
+  put(chair(mat), 5.2, 0, -1.25, N);
   put(bookcase(mat, { w: 1.0, seed: 21, gaps: 0.1 }), 6.3, 0, -1.2, W);
-  put(rug(mat, { w: 1.4, l: 1.6 }), 4.4, 0, -1.7, E);
-  put(picture(mat, { w: 0.4, h: 0.55 }), 2.5, 1.6, -2.1, E);
+  put(rug(mat, { w: 1.4, l: 1.6 }), 5.0, 0, -1.7, E);
+  put(picture(mat, { w: 0.4, h: 0.55 }), EAST + 0.1, 1.6, -2.1, E);
   // The lamp on the desk is the study's one light.
-  put(tableLamp(mat), 5.05, 0.78, -0.35, 0);
-  light(5.05, 1.2, -0.45, { colour: 0xe0d098, intensity: 9, range: 8 });
+  put(tableLamp(mat), 5.65, 0.78, -0.35, 0);
+  light(5.65, 1.2, -0.45, { colour: 0xe0d098, intensity: 9, range: 8 });
 }
 
 /** The back passage: the cellar door, coats on their hooks, and a bare bulb. */
@@ -246,8 +246,8 @@ function passage(mat, put, hang) {
  */
 function stairhead(mat, put, light) {
   const y = UPPER;
-  put(thing(mat, 'sconce'), 2.3, y + 1.85, -2.62, W);
-  light(2.1, y + 1.95, -2.62, { colour: 0xe0cc90, intensity: 3.2, range: 5 });
+  put(thing(mat, 'sconce'), EAST - 0.1, y + 1.85, -2.62, W);
+  light(EAST - 0.3, y + 1.95, -2.62, { colour: 0xe0cc90, intensity: 3.2, range: 5 });
 }
 
 /** The landing: a table with a vase, a picture, and a runner. */
@@ -263,8 +263,8 @@ function landing(mat, put, hang) {
 /** The gallery beside the stairwell: pictures and a runner. */
 function gallery(mat, put, hang) {
   const y = UPPER;
-  put(picture(mat, { w: 0.4, h: 0.5 }), 1.2, y + 1.55, -1.0, W);
-  put(picture(mat, { w: 0.4, h: 0.5, empty: true }), 1.2, y + 1.55, -2.0, W);
+  put(picture(mat, { w: 0.4, h: 0.5 }), BANISTER_X[0], y + 1.55, -1.0, W);
+  put(picture(mat, { w: 0.4, h: 0.5, empty: true }), BANISTER_X[0], y + 1.55, -2.0, W);
   put(rug(mat, { w: 0.8, l: 2.4 }), 0.15, y, -1.5, 0);
   hang(0.15, y + 2.6, -1.45, { drop: 0.3, intensity: 12, angle: 1.4 });
 }

@@ -27,7 +27,7 @@
   const pad = window.__pad || null;
   const LOOK = touch ? 0.0042 : 0.0022;
   const STEP = 0.1;
-  const { floorAt, SPACES, LOOP, ITEMS, RING_SIZE, STAIRS, PLAYER_EYE, EXIT } = g.layout;
+  const { floorAt, SPACES, LOOP, ITEMS, RING_SIZE, STAIRS, PLAYER_EYE, EXIT, EAST } = g.layout;
 
   // ------------------------------------------------------------------ rng --
   function rng(seed) {
@@ -286,6 +286,39 @@
       }
     }
     if (!from) return null;
+    // Stood where the planner's spare does not fit (in the pocket an open
+    // leaf makes with a corner, say), the nearest node can lie across the
+    // obstacle itself. The first leg is then to the nearest node a straight
+    // walk reaches with the player's real body, which is out of the pocket.
+    pilot.escape = null;
+    if (best > 0.3) {
+      const cs = g.colliders();
+      const walkable = (n) => {
+        const tx = xOf(n.i);
+        const tz = zOf(n.j);
+        const len = Math.hypot(tx - p.x, tz - p.z);
+        for (let t = 0; t <= len; t += 0.05) {
+          const x = p.x + ((tx - p.x) * t) / (len || 1);
+          const z = p.z + ((tz - p.z) * t) / (len || 1);
+          if (!clear(cs, x - R, x + R, z - R, z + R, p.y)) return false;
+        }
+        return true;
+      };
+      let near = null;
+      let nd = Infinity;
+      for (const n of nodes.values()) {
+        if (Math.abs(n.y - p.y) > 0.5) continue;
+        const d = Math.hypot(xOf(n.i) - p.x, zOf(n.j) - p.z);
+        if (d < nd && d < 2.5 && walkable(n)) {
+          nd = d;
+          near = n;
+        }
+      }
+      if (near) {
+        from = near;
+        pilot.escape = near;
+      }
+    }
     const prev = new Map([[from.key, null]]);
     const queue = [from];
     for (let q = 0; q < queue.length; q++) {
@@ -362,6 +395,7 @@
   function resetPilot() {
     pilot.goalKey = null;
     pilot.path = null;
+    pilot.escape = null;
     pilot.spot = null;
     pilot.avoid.clear();
     pilot.pressedAt = -1;
@@ -432,7 +466,11 @@
         near = k;
       }
     }
-    const ahead = path[Math.min(path.length - 1, near + 4)];
+    let ahead = path[Math.min(path.length - 1, near + 4)];
+    if (pilot.escape) {
+      if (Math.hypot(xOf(pilot.escape.i) - p.x, zOf(pilot.escape.j) - p.z) < 0.2) pilot.escape = null;
+      else ahead = pilot.escape;
+    }
     const err = face(xOf(ahead.i), zOf(ahead.j));
     setCrouch(false);
     setForward(err < 0.7);
@@ -582,7 +620,7 @@
     // On the floor under them, always; off every floor only out of the open front door.
     const f = floorAt(p.x, p.z, p.y);
     if (f === null) {
-      if (!(g.doorsById.get('front-door').open && p.x > 2.2)) return `player outside the house at (${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)})`;
+      if (!(g.doorsById.get('front-door').open && p.x > EAST - 0.1)) return `player outside the house at (${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)})`;
     } else if (Math.abs(f - p.y) > 1e-6) {
       return `player not standing on the floor under them (y=${p.y.toFixed(3)}, floor ${f.toFixed(3)})`;
     }
@@ -897,6 +935,16 @@
     jiggle: pilot.jiggle,
     forward: hands.forward,
     reached: flood()?.size ?? null,
+    yaw: g.player.yaw,
+    escape: pilot.escape ? [xOf(pilot.escape.i), zOf(pilot.escape.j)] : null,
+    jig: pilot.jiggle,
+    pf: pilot.progressFrom,
+    pframe: pilot.frame,
+    retryAt: pilot.retryAt,
+    look: hands.look ? { x: hands.look.x, y: hands.look.y } : null,
+    stick: g.input.stick?.id ?? null,
+    pos: [g.player.position.x, g.player.position.z],
+    next: pilot.path ? pilot.path.slice(0, 6).map((n) => [xOf(n.i), zOf(n.j)]) : null,
   });
 
   window.__monkey = { drive, finish, check, debug };

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-import { SPACES, STAIRWELL, WALLS, WALL_THICKNESS } from './layout.js';
+import { EAST, SPACES, STAIRWELL, WALLS, WALL_THICKNESS } from './layout.js';
 import { dressRooms } from './rooms.js';
 import { tagged } from './inventory.js';
 import { useModels, want } from './models.js';
@@ -184,7 +184,7 @@ function hall(box, group, mat, colliders, lights, models) {
   tagged(group, 'beams', () => {
     for (const z of [0.45, 1.05, 1.65, 2.25, 2.85, 3.45, 4.05]) {
       const long = z > STAIRWELL.z[1];
-      const [x0, x1] = [-2.57, long ? 2.3 : STAIRWELL.x[0]];
+      const [x0, x1] = [-2.57, long ? EAST - 0.1 : STAIRWELL.x[0]];
       const beam = want(models, 'joist', { length: Math.round((x1 - x0) * 1000) / 1000 }, mat, { tag: 'beams', pos: [(x0 + x1) / 2, 2.8, z] });
       if (beam) group.add(beam);
     }
@@ -209,11 +209,11 @@ function hall(box, group, mat, colliders, lights, models) {
   };
   tagged(group, 'skirting', () => {
     skirt([-2.57, 0, 0.1], [-2.57, 0, 4.5], [1, 0, 0]);
-    skirt([-2.57, 0, 4.5], [2.3, 0, 4.5], [0, 0, -1]);
-    skirt([2.3, 0, 1.92], [2.3, 0, 4.5], [-1, 0, 0]);
+    skirt([-2.57, 0, 4.5], [EAST - 0.1, 0, 4.5], [0, 0, -1]);
+    skirt([EAST - 0.1, 0, 1.92], [EAST - 0.1, 0, 4.5], [-1, 0, 0]);
     skirt([-2.57, 0, 0.1], [-1.92, 0, 0.1], [0, 0, 1]);
     skirt([-0.8, 0, 0.1], [-0.38, 0, 0.1], [0, 0, 1]);
-    skirt([0.995, 0, 0.1], [1.2, 0, 0.1], [0, 0, 1]);
+    skirt([0.995, 0, 0.1], [STAIRWELL.x[0] - 0.15, 0, 0.1], [0, 0, 1]);
   });
 
   // ---- The runner, from near the door to the arch ----
@@ -250,11 +250,11 @@ function hall(box, group, mat, colliders, lights, models) {
 
   // ---- A picture on the right-hand wall, over the foot of the stairs ----
   {
-    // Blender's frame faces its +z: turned to face the room, off the wall's face at x = 2.3.
+    // Blender's frame faces its +z: turned to face the room, off the wall's face at x = EAST - 0.1.
     // Clear of the front door's frame (the models harness): the door is wider
     // than the painting draws it, so a player fits, and the picture hung where
     // the painting has it overlapped the door's frame. Off the wall's skin.
-    const frame = want(models, 'picture', { w: 0.24, h: 0.6, frame: 0.05 }, mat, { tag: 'picture', pos: [2.282, 1.98, 0.74], turn: -Math.PI / 2 });
+    const frame = want(models, 'picture', { w: 0.2, h: 0.6, frame: 0.03 }, mat, { tag: 'picture', pos: [EAST - 0.118, 1.98, 0.48], turn: -Math.PI / 2 });
     if (frame) group.add(frame);
   }
 
