@@ -55,7 +55,10 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  // Any page load is the one page there is, whatever its query (?trace).
+  // The house (phase 9) is a page of its own and is not the ship's to cache:
+  // it goes to the network untouched.
+  if (url.pathname.startsWith('/house')) return;
+  // Any other page load is the ship's one page, whatever its query (?trace).
   const key = request.mode === 'navigate' ? '/index.html' : url.pathname;
   event.respondWith(
     (async () => {

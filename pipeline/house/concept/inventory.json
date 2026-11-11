@@ -1,0 +1,27 @@
+{
+  "about": "Every object the owner's painting (hall.jpg, 1344 x 896) shows, with the box it fills there, [x0, y0, x1, y1] in the painting's pixels, and the names of the pieces of the house that are that thing (src/house/inventory.js). Read off the painting by eye, by Claude, on 11 October 2026. tools/house/inventory.mjs renders the hall from the painting's camera and holds each to its box. `fill`, where given, is the share of the box the thing must cover instead, for things that are not boxes in the frame (the runner, the ceiling's joists).",
+  "items": [
+    { "id": "lamp", "what": "a flat white enamel shade on a cord, bulb showing under it", "box": [595, 5, 730, 65], "is": ["lamp"] },
+    { "id": "beams", "what": "heavy dark joists across the ceiling", "box": [0, 0, 1344, 110], "fill": 0.25, "is": ["beams"] },
+    { "id": "window", "what": "a small-paned window in the left wall, the night behind it", "box": [35, 245, 150, 440], "is": ["window:hall-window"] },
+    { "id": "curtain", "what": "a pale cloth hung over the top of the window", "box": [15, 160, 155, 270], "is": ["curtain:hall-window"] },
+    { "id": "bag", "what": "a large woven bag on crossed straps, hung on the back wall", "box": [195, 160, 295, 390], "is": ["bag"] },
+    { "id": "chair", "what": "a small hard chair against the back wall, under the bag", "box": [205, 445, 300, 560], "is": ["chair"] },
+    { "id": "cabinet", "what": "a low dark cabinet with a drawer and a panelled door, in the left corner", "box": [55, 460, 185, 728], "is": ["cabinet"] },
+    { "id": "clock", "what": "a round-faced clock on the cabinet", "box": [0, 455, 45, 510], "is": ["clock"] },
+    { "id": "vase", "what": "a green vase on the cabinet, by the window", "box": [0, 400, 55, 460], "is": ["vase"] },
+    { "id": "chest", "what": "a chest in the near left corner with a white cloth over it", "box": [0, 555, 60, 770], "is": ["chest"] },
+    { "id": "parlour-door", "what": "a tall dark door in a heavy frame, two panels filled with upright planks", "box": [318, 135, 485, 522], "is": ["door:parlour-door", "casing:parlour-door"] },
+    { "id": "wall-fixture", "what": "a small dark fitting on the back wall beside the parlour door", "box": [500, 280, 535, 320], "is": ["wall-fixture"] },
+    { "id": "arch", "what": "a round-headed arch onto the passage", "box": [575, 140, 725, 520], "is": ["arch:arch", "casing:arch"] },
+    { "id": "passage-door", "what": "a door down the passage, on its left", "box": [600, 185, 690, 345], "is": ["door:dining-door", "casing:dining-door", "door:kitchen-door", "casing:kitchen-door"] },
+    { "id": "floor-thing", "what": "something small lying on the floor in front of the arch", "box": [730, 530, 765, 560], "is": ["floor-thing"] },
+    { "id": "stairs", "what": "a steep dark flight of stairs up the right-hand side, to the ceiling", "box": [860, 60, 1125, 640], "is": ["stairs"] },
+    { "id": "banister", "what": "a handrail on square balusters down the open side of the stairs", "box": [800, 60, 950, 600], "is": ["banister"] },
+    { "id": "newel", "what": "a heavy square newel post at the foot of the banister", "box": [900, 330, 948, 600], "is": ["newel"] },
+    { "id": "picture", "what": "a tall narrow framed picture on the right-hand wall", "box": [1054, 118, 1100, 290], "is": ["picture"] },
+    { "id": "front-door", "what": "the front door in the right-hand wall: two lights of glass over a lock rail, upright boards below, in a deep frame", "box": [1124, 75, 1290, 748], "is": ["door:front-door", "casing:front-door"] },
+    { "id": "notice", "what": "a paper notice pinned to the right-hand wall by the front door", "box": [1295, 165, 1344, 395], "is": ["note:notice"] },
+    { "id": "rug", "what": "a patterned runner down the middle of the floor", "box": [320, 575, 1040, 896], "fill": 0.55, "is": ["rug"] }
+  ]
+}

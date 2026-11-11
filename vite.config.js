@@ -18,6 +18,8 @@ export default defineConfig({
     assetsInlineLimit: 0,
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
+      // Phase 9: the house is a second page, built from the same core.
+      input: { main: 'index.html', house: 'house/index.html' },
       output: {
         // Function form rather than the object shorthand: Vite 8 bundles with
         // rolldown, which only accepts a function here. Rollup takes either,

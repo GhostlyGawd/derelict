@@ -24,7 +24,8 @@
  *   ['m', frame, movementX, movementY]        mouse look (pointer locked)
  *   ['b', frame, button]                      mouse button on the view
  *   ['t', frame, kind, target, [[id, x, y]]]  touches: kind s/m/e/c, target
- *                                             w (the view), i (interact), c (crouch)
+ *                                             w (the view), i (interact), c (crouch),
+ *                                             x (save the trace so far: replay skips it)
  *   ['l', frame, locked]                      pointer lock gained or lost
  *   ['u', frame, id]                          an overlay button: resume, restart
  *   ['p', frame, axes, buttons]               a pad's state when it changed: four
@@ -119,6 +120,24 @@ export class TraceRecorder {
     this.final = snapshot(this.game, this.frame);
   }
 
+  /**
+   * The run as it stands now, cut at this frame, for a player who is stuck and
+   * cannot reach the end card: everything the game has read so far, and where
+   * it stands, as the final state replay must reach. An event stamped with
+   * this frame has not been read yet, and is left out.
+   */
+  exportNow() {
+    if (!this.recording) return this.export();
+    const t = this.export();
+    t.frames = t.frames.slice(0, this.frame);
+    t.intervals = t.intervals.slice(0, this.frame);
+    t.events = t.events.filter((e) => e[1] < this.frame);
+    t.checkpoints = t.checkpoints.filter((c) => c[0] <= this.frame);
+    t.final = snapshot(this.game, this.frame);
+    t.partial = true;
+    return t;
+  }
+
   export() {
     return {
       format: TRACE_FORMAT,
@@ -141,9 +160,9 @@ export class TraceRecorder {
    * way off an iPhone that does not involve the Files app — and a plain
    * download everywhere else.
    */
-  async save() {
-    const name = `derelict-trace-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`;
-    const blob = new Blob([JSON.stringify(this.export())], { type: 'application/json' });
+  async save({ now = false } = {}) {
+    const name = `derelict-trace-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}${now ? '-so-far' : ''}.json`;
+    const blob = new Blob([JSON.stringify(now ? this.exportNow() : this.export())], { type: 'application/json' });
     try {
       const file = new File([blob], name, { type: 'application/json' });
       if (navigator.canShare?.({ files: [file] })) {
@@ -186,11 +205,14 @@ export class TraceRecorder {
     const KIND = { touchstart: 's', touchmove: 'm', touchend: 'e', touchcancel: 'c' };
     for (const type of Object.keys(KIND)) {
       window.addEventListener(type, (e) => {
+        // `x`: the save-the-run-so-far button, which the game never sees.
         const target = e.target?.closest?.('#touch-interact')
           ? 'i'
           : e.target?.closest?.('#touch-crouch')
             ? 'c'
-            : 'w';
+            : e.target?.closest?.('#trace-now')
+              ? 'x'
+              : 'w';
         const touches = [...e.changedTouches].map((t) => [
           t.identifier,
           Math.round(t.clientX * 10) / 10,

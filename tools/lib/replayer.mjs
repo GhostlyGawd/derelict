@@ -107,6 +107,8 @@ export async function replay(browser, base, trace, { errors = [], perFrame = nul
           canvas.dispatchEvent(new MouseEvent('mousedown', { button: rest[0], bubbles: true }));
         } else if (kind === 't') {
           const [k, where, touches] = rest;
+          // The save-the-run-so-far button: the game never saw it.
+          if (where === 'x') return;
           const target = targets[where] || canvas;
           const changed = touches.map(
             ([identifier, clientX, clientY]) => new Touch({ identifier, target, clientX, clientY })

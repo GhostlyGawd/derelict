@@ -389,6 +389,42 @@ if (s.cells !== 1) throw new Error(`context tap did not seat the cell (${JSON.st
 console.log('  context tap → cell seated, 1/2');
 if (SHOTS) await page.screenshot({ path: path.join(OUT, 'm5-seated.png') });
 
+// ---- Phase 9: the tool is never under a thumb (9.4.7) ----------------------
+// Phase 7 tucked the buttons into the bottom-right corner, where the tool sits,
+// and on a portrait phone the two overlapped until the owner noticed the
+// scanner "felt off". The tool now places itself between the stick and the
+// buttons; this holds it there at the owner's phone and every common shape,
+// in both stances of hand: the scanner, and a carried cell.
+console.log('\n  the tool clears the thumbs');
+for (const [w, h] of [[440, 760], [390, 844], [360, 740], [430, 932], [375, 667], [844, 390], [932, 430]]) {
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: true, isMobile: true, serviceWorkers: 'block' });
+  const p2 = await ctx.newPage();
+  p2.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+  await p2.goto(BASE, { waitUntil: 'networkidle' });
+  await p2.waitForFunction(() => window.__derelict?.phase === 'title', null, { timeout: 60000 });
+  await p2.evaluate(() => document.getElementById('start').click());
+  await p2.waitForFunction(() => window.__derelict?.phase === 'playing', null, { timeout: 15000 });
+  for (const carrying of [false, true]) {
+    const r = await p2.evaluate((c) => {
+      window.__derelict.viewmodel.setCarrying(c);
+      return window.__derelict.viewmodelRectForTest();
+    }, carrying);
+    const t = r.tool;
+    const hit = Object.entries(r.buttons)
+      .map(([id, b]) => [id, Math.max(0, Math.min(t.x1, b.x1) - Math.max(t.x0, b.x0)) * Math.max(0, Math.min(t.y1, b.y1) - Math.max(t.y0, b.y0))])
+      .filter(([, a]) => a > 0);
+    if (hit.length || Object.keys(r.buttons).length < 3) {
+      throw new Error(
+        `${w}×${h}${carrying ? ', carrying' : ''}: the tool (x ${t.x0.toFixed(0)}–${t.x1.toFixed(0)}, y ${t.y0.toFixed(0)}–${t.y1.toFixed(0)}) is under ${
+          hit.map(([id, a]) => `${id} (${a.toFixed(0)} px²)`).join(', ') || `only ${Object.keys(r.buttons).length} controls measured`
+        }`
+      );
+    }
+  }
+  console.log(`  ${w}×${h}: scanner and cell clear the stick and both buttons`);
+  await ctx.close();
+}
+
 await browser.close();
 
 if (errors.length) {

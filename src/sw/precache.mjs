@@ -24,8 +24,13 @@ function walk(dir, base = dir, out = []) {
   return out;
 }
 
+// Phase 9: the house is a second page in the same build. It is not the ship,
+// so its page, its own entry chunk and its generated assets stay out of the
+// ship's cache.
+const NOT_THE_SHIP = /^(house\/|bundle\/house-|assets\/house\/)/;
+
 export function writePrecache(dist, { retire = false } = {}) {
-  const files = walk(dist).filter((f) => f !== 'sw.js');
+  const files = walk(dist).filter((f) => f !== 'sw.js' && !NOT_THE_SHIP.test(f));
   const list = files.map((f) => ({ url: `/${f}`, hash: hash(readFileSync(path.join(dist, f))) }));
   const build = hash(JSON.stringify(list) + (retire ? ':retire' : ''));
   const source = readFileSync(TEMPLATE, 'utf8')

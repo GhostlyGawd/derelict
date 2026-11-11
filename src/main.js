@@ -137,6 +137,10 @@ class Derelict {
     this.materials = new MaterialLibrary(this.assets);
     this.#buildWorld();
 
+    this.hud.setLoading(0.97, 'Warming up…');
+    await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+    this.#warmUp();
+
     this.hud.setLoading(1, this.assets.generated ? 'Ready' : 'Ready — placeholder assets');
     this.hud.hide('loading');
     this.hud.show('title');
@@ -228,6 +232,48 @@ class Derelict {
     this.lighting.reset();
   }
 
+  /**
+   * Phase 9 (9.4.7): everything the run will ever draw is drawn once, now,
+   * off-screen, so no shader program compiles, no texture uploads and no
+   * buffer uploads after the title. On a phone each first-use compile is a
+   * stall, and the owner's profiled run found one: 195 ms in the Annex as its
+   * lamps struck. Every object is made visible and unculled for one draw, with
+   * the cell and the scanner both in hand, and then put back exactly as it
+   * was. tools/warm.mjs gates that nothing compiles after this.
+   */
+  #warmUp() {
+    const renderer = this.view.renderer;
+    const touched = [];
+    const expose = (root) =>
+      root.traverse((o) => {
+        touched.push([o, o.visible, o.frustumCulled]);
+        o.visible = true;
+        o.frustumCulled = false;
+      });
+    expose(this.scene);
+    expose(this.viewmodel.scene);
+    // Drawn to the canvas itself, behind the loading screen: a program built
+    // for an off-screen target is a different variant (it skips the sRGB
+    // conversion), so warming one leaves the other to compile in play.
+    for (const carrying of [false, true]) {
+      this.viewmodel.setCarrying(carrying);
+      expose(this.viewmodel.scene);
+      renderer.compile(this.scene, this.camera);
+      renderer.compile(this.viewmodel.scene, this.viewmodel.camera);
+      renderer.clear();
+      renderer.render(this.scene, this.camera);
+      renderer.clearDepth();
+      renderer.render(this.viewmodel.scene, this.viewmodel.camera);
+    }
+    renderer.clear();
+    for (let i = touched.length - 1; i >= 0; i--) {
+      const [o, visible, culled] = touched[i];
+      o.visible = visible;
+      o.frustumCulled = culled;
+    }
+    this.viewmodel.setCarrying(false);
+  }
+
   #bindUi() {
     document.getElementById('start').addEventListener('click', () => this.#start());
     document.getElementById('resume').addEventListener('click', () => this.#resume());
@@ -260,6 +306,9 @@ class Derelict {
     this.trace?.begin();
     this.hud.setHudVisible(true);
     this.hud.setTouchVisible(this.input.usingTouch);
+    // The buttons only have a place on the page once they are showing, and the
+    // viewmodel is placed against them.
+    this.#resize();
     this.input.setEnabled(true);
     this.input.requestPointerLock();
     this.hud.fade(0, 1.6);
@@ -532,7 +581,30 @@ class Derelict {
     this.camera.fov = fovFor(BASE_FOV, aspect);
     this.camera.aspect = aspect;
     this.camera.updateProjectionMatrix();
-    this.viewmodel?.resize(aspect);
+    this.viewmodel?.resize(aspect, this.#thumbRoom());
+  }
+
+  /**
+   * Where the thumbs' controls are, as fractions of the screen's width: the
+   * right edge of the movement stick at rest and the left edge of the button
+   * column, each with a small margin. The viewmodel keeps between them
+   * (9.4.7). Empty when no touch controls are showing.
+   */
+  #thumbRoom() {
+    if (!this.input.usingTouch) return {};
+    const edge = (ids, side) => {
+      let v = side === 'left' ? Infinity : -Infinity;
+      for (const id of ids) {
+        const b = document.getElementById(id)?.getBoundingClientRect();
+        if (b && b.width > 0) v = side === 'left' ? Math.min(v, b.left) : Math.max(v, b.right);
+      }
+      return Number.isFinite(v) ? v : null;
+    };
+    const buttons = edge(['touch-interact', 'touch-crouch'], 'left');
+    const stick = edge(['stick'], 'right');
+    if (buttons === null) return {};
+    const w = window.innerWidth;
+    return { rightLimit: (buttons - 10) / w, leftLimit: stick === null ? null : (stick + 10) / w };
   }
 
   #frame(now) {
@@ -773,6 +845,24 @@ class Derelict {
       n++;
     }
     return { rgb: n ? sum.map((v) => v / n) : null, coverage: n / (w * h) };
+  }
+
+  /**
+   * Where the viewmodel sits on screen, in CSS pixels, against the touch
+   * buttons, for tools/mobile.mjs (9.4.7). The tool's own bounds are projected
+   * through the viewmodel camera at rest; the buttons are read off the page.
+   */
+  viewmodelRectForTest() {
+    const rect = this.viewmodel.screenRect(window.innerWidth, window.innerHeight);
+    const buttons = {};
+    for (const id of ['touch-interact', 'touch-crouch', 'stick']) {
+      const el = document.getElementById(id);
+      const b = el?.getBoundingClientRect();
+      if (b && b.width > 0 && getComputedStyle(el).display !== 'none' && this.input.usingTouch) {
+        buttons[id] = { x0: b.left, y0: b.top, x1: b.right, y1: b.bottom };
+      }
+    }
+    return { tool: rect, buttons };
   }
 
   #inside(box) {
